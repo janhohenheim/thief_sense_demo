@@ -5,9 +5,10 @@
 
 use bevy::prelude::*;
 
-pub mod level;
-pub mod npc;
+mod click;
+pub(crate) mod level;
+pub(crate) mod npc;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_plugins((level::plugin, npc::plugin));
+    app.add_plugins((level::plugin, npc::plugin, click::plugin));
 }

@@ -1,15 +1,21 @@
 use bevy::prelude::*;
+use bevy_seedling::sample::{Sample, SamplePlayer};
 
-use crate::{asset_tracking::LoadResource, audio::sound_effect};
+use crate::{AppSystems, asset_tracking::LoadResource, audio::SfxPool};
 
 pub(super) fn plugin(app: &mut App) {
     app.register_type::<InteractionPalette>();
-    app.add_systems(Update, apply_interaction_palette);
-
-    app.register_type::<InteractionAssets>();
     app.load_resource::<InteractionAssets>();
-    app.add_observer(play_on_hover_sound_effect);
-    app.add_observer(play_on_click_sound_effect);
+    app.add_systems(
+        Update,
+        (
+            trigger_on_press,
+            apply_interaction_palette,
+            trigger_interaction_sound_effect,
+        )
+            .run_if(resource_exists::<InteractionAssets>)
+            .in_set(AppSystems::Update),
+    );
 }
 
 /// Palette for widget interactions. Add this to an entity that supports
@@ -17,10 +23,26 @@ pub(super) fn plugin(app: &mut App) {
 /// on the current interaction state.
 #[derive(Component, Debug, Reflect)]
 #[reflect(Component)]
-pub struct InteractionPalette {
-    pub none: Color,
-    pub hovered: Color,
-    pub pressed: Color,
+pub(crate) struct InteractionPalette {
+    pub(crate) none: Color,
+    pub(crate) hovered: Color,
+    pub(crate) pressed: Color,
+}
+
+/// Event triggered on a UI entity when the [`Interaction`] component on the same entity changes to
+/// [`Interaction::Pressed`]. Observe this event to detect e.g. button presses.
+#[derive(Event)]
+pub(crate) struct OnPress;
+
+fn trigger_on_press(
+    interaction_query: Query<(Entity, &Interaction), Changed<Interaction>>,
+    mut commands: Commands,
+) {
+    for (entity, interaction) in &interaction_query {
+        if matches!(interaction, Interaction::Pressed) {
+            commands.trigger_targets(OnPress, entity);
+        }
+    }
 }
 
 fn apply_interaction_palette(
@@ -39,51 +61,40 @@ fn apply_interaction_palette(
     }
 }
 
-#[derive(Resource, Asset, Clone, Reflect)]
-#[reflect(Resource)]
-struct InteractionAssets {
+#[derive(Resource, Asset, Reflect, Clone)]
+pub(crate) struct InteractionAssets {
     #[dependency]
-    hover: Handle<AudioSource>,
+    hover: Handle<Sample>,
     #[dependency]
-    click: Handle<AudioSource>,
+    press: Handle<Sample>,
+}
+
+impl InteractionAssets {
+    pub(crate) const PATH_BUTTON_HOVER: &'static str = "audio/sound_effects/button_hover.ogg";
+    pub(crate) const PATH_BUTTON_PRESS: &'static str = "audio/sound_effects/button_press.ogg";
 }
 
 impl FromWorld for InteractionAssets {
     fn from_world(world: &mut World) -> Self {
         let assets = world.resource::<AssetServer>();
         Self {
-            hover: assets.load("audio/sound_effects/button_hover.ogg"),
-            click: assets.load("audio/sound_effects/button_click.ogg"),
+            hover: assets.load(Self::PATH_BUTTON_HOVER),
+            press: assets.load(Self::PATH_BUTTON_PRESS),
         }
     }
 }
 
-fn play_on_hover_sound_effect(
-    trigger: Trigger<Pointer<Over>>,
+fn trigger_interaction_sound_effect(
+    interaction_query: Query<&Interaction, Changed<Interaction>>,
+    interaction_assets: Res<InteractionAssets>,
     mut commands: Commands,
-    interaction_assets: Option<Res<InteractionAssets>>,
-    interaction_query: Query<(), With<Interaction>>,
 ) {
-    let Some(interaction_assets) = interaction_assets else {
-        return;
-    };
-
-    if interaction_query.contains(trigger.target()) {
-        commands.spawn(sound_effect(interaction_assets.hover.clone()));
-    }
-}
-
-fn play_on_click_sound_effect(
-    trigger: Trigger<Pointer<Click>>,
-    mut commands: Commands,
-    interaction_assets: Option<Res<InteractionAssets>>,
-    interaction_query: Query<(), With<Interaction>>,
-) {
-    let Some(interaction_assets) = interaction_assets else {
-        return;
-    };
-
-    if interaction_query.contains(trigger.target()) {
-        commands.spawn(sound_effect(interaction_assets.click.clone()));
+    for interaction in &interaction_query {
+        let source = match interaction {
+            Interaction::Hovered => interaction_assets.hover.clone(),
+            Interaction::Pressed => interaction_assets.press.clone(),
+            _ => continue,
+        };
+        commands.spawn((SamplePlayer::new(source), SfxPool));
     }
 }

@@ -5,7 +5,41 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.16", features = ["wayland"] }
+bevy = { version = "0.16.1", default-features = false, features = [
+    "animation",
+    "bevy_asset",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "bevy_gilrs",
+    "bevy_gizmos",
+    "bevy_gltf",
+    "bevy_mesh_picking_backend",
+    "bevy_pbr",
+    "bevy_picking",
+    "bevy_render",
+    "bevy_scene",
+    "bevy_sprite",
+    "bevy_sprite_picking_backend",
+    "bevy_state",
+    "bevy_text",
+    "bevy_ui",
+    "bevy_ui_picking_backend",
+    "bevy_window",
+    "bevy_winit",
+    "custom_cursor",
+    "default_font",
+    "hdr",
+    "multi_threaded",
+    "smaa_luts",
+    "sysinfo_plugin",
+    "tonemapping_luts",
+    "jpeg",
+    "tga",
+    "ktx2",
+    "png",
+    "wayland",
+    "configurable_error_handler",
+] }
 rand = "0.8"
 # Compile low-severity logs out of native builds for performance.
 log = { version = "0.4", features = [
@@ -57,6 +91,7 @@ dev = [
 ]
 dev_native = [
     "dev",
+    "native",
     # Enable asset hot reloading for native dev builds.
     "bevy/file_watcher",
     # Enable embedded asset hot reloading for native dev builds.
@@ -64,6 +99,8 @@ dev_native = [
     "bevy/bevy_remote",
     "bevy_rerecast/editor_integration",
 ]
+native = []
+web = ["dep:firewheel-web-audio"]
 
 
 [package.metadata.bevy_cli.release]

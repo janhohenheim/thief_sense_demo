@@ -8,7 +8,6 @@ mod audio;
 mod demo;
 #[cfg(feature = "dev")]
 mod dev_tools;
-mod menus;
 mod screens;
 mod theme;
 mod third_party;
@@ -23,12 +22,12 @@ fn main() -> AppExit {
     App::new().add_plugins(AppPlugin).run()
 }
 
-pub struct AppPlugin;
+pub(crate) struct AppPlugin;
 
 impl Plugin for AppPlugin {
     fn build(&self, app: &mut App) {
         // Add Bevy plugins.
-        app.add_plugins(
+        app.add_plugins((
             DefaultPlugins
                 .set(AssetPlugin {
                     // Wasm builds will check for meta files (that don't exist) if this isn't set.
@@ -55,7 +54,20 @@ impl Plugin for AppPlugin {
                         ..ImageSamplerDescriptor::linear()
                     },
                 }),
-        );
+            MeshPickingPlugin,
+            #[cfg(feature = "native")]
+            bevy_seedling::SeedlingPlugin::default(),
+            // right now, `Default` isn't implemented for any non-cpal backend
+            #[cfg(feature = "web")]
+            app.add_plugins(
+                bevy_seedling::SeedlingPlugin::<firewheel_web_audio::WebAudioBackend> {
+                    config: Default::default(),
+                    stream_config: Default::default(),
+                    spawn_default_pool: true,
+                    pool_size: 4..=32,
+                },
+            ),
+        ));
 
         #[cfg(feature = "dev_native")]
         // Adding these here so that third party plugins can register their BRP methods.
@@ -72,7 +84,6 @@ impl Plugin for AppPlugin {
             demo::plugin,
             #[cfg(feature = "dev")]
             dev_tools::plugin,
-            menus::plugin,
             screens::plugin,
             theme::plugin,
         ));
@@ -113,7 +124,7 @@ enum AppSystems {
 /// Whether or not the game is paused.
 #[derive(States, Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 #[states(scoped_entities)]
-struct Pause(pub bool);
+struct Pause(pub(crate) bool);
 
 /// A system set for systems that shouldn't run while the game is paused.
 #[derive(SystemSet, Copy, Clone, Eq, PartialEq, Hash, Debug)]

@@ -30,7 +30,7 @@ pub(super) fn plugin(app: &mut App) {
 const MODEL_PATH: &'static str = "models/npc.glb";
 
 #[point_class(model(MODEL_PATH))]
-pub struct Npc;
+pub(crate) struct Npc;
 
 fn spawn_npc(
     trigger: Trigger<OnAdd, Npc>,

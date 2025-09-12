@@ -1,47 +1,54 @@
 use bevy::prelude::*;
+use bevy_seedling::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
-    app.register_type::<Music>();
-    app.register_type::<SoundEffect>();
+    app.register_type::<MusicPool>();
+    app.register_type::<SpatialPool>();
 
-    app.add_systems(
-        Update,
-        apply_global_volume.run_if(resource_changed::<GlobalVolume>),
-    );
+    app.add_systems(Startup, initialize_audio);
 }
 
-/// An organizational marker component that should be added to a spawned [`AudioPlayer`] if it's in the
-/// general "music" category (e.g. global background music, soundtrack).
-///
-/// This can then be used to query for and operate on sounds in that category.
-#[derive(Component, Reflect, Default)]
+#[derive(PoolLabel, Reflect, PartialEq, Eq, Debug, Hash, Clone)]
 #[reflect(Component)]
-pub struct Music;
+pub(crate) struct SpatialPool;
 
-/// A music audio instance.
-pub fn music(handle: Handle<AudioSource>) -> impl Bundle {
-    (AudioPlayer(handle), PlaybackSettings::LOOP, Music)
-}
-
-/// An organizational marker component that should be added to a spawned [`AudioPlayer`] if it's in the
-/// general "sound effect" category (e.g. footsteps, the sound of a magic spell, a door opening).
-///
-/// This can then be used to query for and operate on sounds in that category.
-#[derive(Component, Reflect, Default)]
+#[derive(PoolLabel, Reflect, PartialEq, Eq, Debug, Hash, Clone)]
 #[reflect(Component)]
-pub struct SoundEffect;
+pub(crate) struct SfxPool;
 
-/// A sound effect audio instance.
-pub fn sound_effect(handle: Handle<AudioSource>) -> impl Bundle {
-    (AudioPlayer(handle), PlaybackSettings::DESPAWN, SoundEffect)
-}
+#[derive(PoolLabel, Reflect, PartialEq, Eq, Debug, Hash, Clone)]
+#[reflect(Component)]
+pub(crate) struct MusicPool;
 
-/// [`GlobalVolume`] doesn't apply to already-running audio entities, so this system will update them.
-fn apply_global_volume(
-    global_volume: Res<GlobalVolume>,
-    mut audio_query: Query<(&PlaybackSettings, &mut AudioSink)>,
-) {
-    for (playback, mut sink) in &mut audio_query {
-        sink.set_volume(global_volume.volume * playback.volume);
-    }
+/// Set somewhere below 0 dB so that the user can turn the volume up if they want to.
+pub(crate) const DEFAULT_MAIN_VOLUME: Volume = Volume::Linear(0.5);
+
+fn initialize_audio(mut master: Single<&mut VolumeNode, With<MainBus>>, mut commands: Commands) {
+    master.volume = DEFAULT_MAIN_VOLUME;
+    // Tuned by ear
+    const DEFAULT_POOL_VOLUME: Volume = Volume::Linear(1.6);
+
+    // For each new pool, we can provide non-default initial values for the volume.
+    commands.spawn((
+        Name::new("Music audio sampler pool"),
+        SamplerPool(MusicPool),
+        VolumeNode {
+            volume: DEFAULT_POOL_VOLUME,
+        },
+    ));
+    commands.spawn((
+        Name::new("SFX audio sampler pool"),
+        SamplerPool(SpatialPool),
+        sample_effects![(SpatialBasicNode::default(), SpatialScale(Vec3::splat(2.0)))],
+        VolumeNode {
+            volume: DEFAULT_POOL_VOLUME,
+        },
+    ));
+    commands.spawn((
+        Name::new("UI SFX audio sampler pool"),
+        SamplerPool(SfxPool),
+        VolumeNode {
+            volume: DEFAULT_POOL_VOLUME,
+        },
+    ));
 }

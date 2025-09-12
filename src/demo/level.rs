@@ -15,7 +15,7 @@ const MAP: &str = "maps/main_level.map#Scene";
 const NAVMESH: &str = "maps/main_level.nav";
 
 /// A system that spawns the main level.
-pub fn spawn_level(mut commands: Commands, assets: Res<AssetServer>) {
+pub(crate) fn spawn_level(mut commands: Commands, assets: Res<AssetServer>) {
     commands.spawn((
         SceneRoot(assets.load(MAP)),
         StateScoped(Screen::Gameplay),
