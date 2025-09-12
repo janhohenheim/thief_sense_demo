@@ -1,8 +1,15 @@
 use bevy::prelude::*;
 
 mod avian;
-mod bevy_trenchbroom;
+mod landmass;
+mod rerecast;
+mod trenchbroom;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_plugins((bevy_trenchbroom::plugin, avian::plugin));
+    app.add_plugins((
+        trenchbroom::plugin,
+        avian::plugin,
+        rerecast::plugin,
+        landmass::plugin,
+    ));
 }

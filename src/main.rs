@@ -57,6 +57,13 @@ impl Plugin for AppPlugin {
                 }),
         );
 
+        #[cfg(feature = "dev_native")]
+        // Adding these here so that third party plugins can register their BRP methods.
+        app.add_plugins((
+            bevy::remote::RemotePlugin::default(),
+            bevy::remote::http::RemoteHttpPlugin::default(),
+        ));
+
         // Add other plugins.
         app.add_plugins((
             third_party::plugin,
@@ -116,6 +123,6 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn((
         Name::new("Camera"),
         Camera3d::default(),
-        Transform::from_xyz(0.0, 3.0, 3.0).looking_at(Vec3::Y * 0.5, Vec3::Y),
+        Transform::from_xyz(0.0, 10.0, 8.0).looking_to(Vec3::new(0.0, -1.0, -0.7), Vec3::Y),
     ));
 }
