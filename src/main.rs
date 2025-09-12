@@ -67,13 +67,11 @@ impl Plugin for AppPlugin {
                     pool_size: 4..=32,
                 },
             ),
-        ));
-
-        #[cfg(feature = "dev_native")]
-        // Adding these here so that third party plugins can register their BRP methods.
-        app.add_plugins((
-            bevy::remote::RemotePlugin::default(),
-            bevy::remote::http::RemoteHttpPlugin::default(),
+            #[cfg(feature = "dev_native")]
+            (
+                bevy::remote::RemotePlugin::default(),
+                bevy::remote::http::RemoteHttpPlugin::default(),
+            ),
         ));
 
         // Add other plugins.
@@ -99,10 +97,6 @@ impl Plugin for AppPlugin {
                 .chain(),
         );
 
-        // Set up the `Pause` state.
-        app.init_state::<Pause>();
-        app.configure_sets(Update, PausableSystems.run_if(in_state(Pause(false))));
-
         // Spawn the main camera.
         app.add_systems(Startup, spawn_camera);
     }
@@ -120,15 +114,6 @@ enum AppSystems {
     /// Do everything else (consider splitting this into further variants).
     Update,
 }
-
-/// Whether or not the game is paused.
-#[derive(States, Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
-#[states(scoped_entities)]
-struct Pause(pub(crate) bool);
-
-/// A system set for systems that shouldn't run while the game is paused.
-#[derive(SystemSet, Copy, Clone, Eq, PartialEq, Hash, Debug)]
-struct PausableSystems;
 
 fn spawn_camera(mut commands: Commands) {
     commands.spawn((

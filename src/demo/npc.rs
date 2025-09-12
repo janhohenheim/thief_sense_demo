@@ -21,10 +21,6 @@ pub(super) fn plugin(app: &mut App) {
             .before(LandmassSystemSet::SyncExistence)
             .run_if(in_state(Screen::Gameplay)),
     );
-    app.add_systems(
-        RunFixedMainLoop,
-        update_agent_target.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
-    );
 }
 
 const MODEL_PATH: &'static str = "models/npc.glb";
@@ -69,12 +65,6 @@ fn spawn_npc(
         AgentOf(npc),
         AgentTarget3d::default(),
     ));
-}
-
-fn update_agent_target(mut agents: Query<&mut AgentTarget3d>) {
-    for mut target in &mut agents {
-        *target = AgentTarget3d::Point(Vec3::new(3.0, 0.0, 0.0));
-    }
 }
 
 #[derive(Component, Deref, Debug, Reflect)]
