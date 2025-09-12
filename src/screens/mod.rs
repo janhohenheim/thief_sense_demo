@@ -2,14 +2,13 @@
 
 mod gameplay;
 mod loading;
-mod splash;
 
 use bevy::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
     app.init_state::<Screen>();
 
-    app.add_plugins((gameplay::plugin, loading::plugin, splash::plugin));
+    app.add_plugins((gameplay::plugin, loading::plugin));
 }
 
 /// The game's main screen states.
@@ -17,7 +16,6 @@ pub(super) fn plugin(app: &mut App) {
 #[states(scoped_entities)]
 pub(crate) enum Screen {
     #[default]
-    Splash,
     Loading,
     Gameplay,
 }
