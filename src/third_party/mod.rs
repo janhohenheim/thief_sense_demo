@@ -3,6 +3,7 @@ use bevy::prelude::*;
 mod avian;
 mod landmass;
 mod rerecast;
+mod tnua;
 mod trenchbroom;
 
 pub(super) fn plugin(app: &mut App) {
@@ -11,5 +12,6 @@ pub(super) fn plugin(app: &mut App) {
         avian::plugin,
         rerecast::plugin,
         landmass::plugin,
+        tnua::plugin,
     ));
 }
