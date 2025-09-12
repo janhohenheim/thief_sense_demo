@@ -18,6 +18,10 @@ pub(super) fn plugin(app: &mut App) {
 
 const MODEL_PATH: &str = "models/npc.glb";
 
+const NPC_HEIGHT: f32 = 1.6811;
+const NPC_RADIUS: f32 = 0.2;
+const NPC_FLOAT_HEIGHT: f32 = NPC_HEIGHT / 2.0 + 0.01;
+
 #[point_class(model(MODEL_PATH))]
 pub(crate) struct Npc;
 
@@ -31,19 +35,20 @@ fn spawn_npc(
     commands
         .entity(npc)
         .insert((
-            Collider::capsule(0.5, 0.5),
+            Collider::capsule(NPC_RADIUS, NPC_HEIGHT - NPC_RADIUS * 2.0),
             TnuaController::default(),
-            TnuaAvian3dSensorShape(Collider::cylinder(0.5 - 0.01, 0.0)),
+            TnuaAvian3dSensorShape(Collider::cylinder(NPC_RADIUS - 0.01, 0.0)),
             ColliderDensity(2_000.0),
             RigidBody::Dynamic,
             LockedAxes::ROTATION_LOCKED.unlock_rotation_y(),
         ))
-        .with_child(SceneRoot(
-            assets.load(GltfAssetLabel::Scene(0).from_asset(MODEL_PATH)),
+        .with_child((
+            SceneRoot(assets.load(GltfAssetLabel::Scene(0).from_asset(MODEL_PATH))),
+            Transform::from_xyz(0.0, -NPC_FLOAT_HEIGHT, 0.0),
         ));
     commands.spawn((
         Name::new("NPC Agent"),
-        Transform::from_translation(Vec3::new(0.0, -1.0, 0.0)),
+        Transform::from_translation(Vec3::new(0.0, -NPC_FLOAT_HEIGHT, 0.0)),
         Agent3dBundle {
             agent: default(),
             settings: AgentSettings {
@@ -53,7 +58,6 @@ fn spawn_npc(
             },
             archipelago_ref: ArchipelagoRef3d::new(*archipelago),
         },
-        TargetReachedCondition::Distance(Some(1.0)),
         ChildOf(npc),
         AgentOf(npc),
         AgentTarget3d::default(),

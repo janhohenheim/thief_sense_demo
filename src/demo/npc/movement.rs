@@ -1,4 +1,4 @@
-use crate::screens::Screen;
+use crate::{demo::npc::NPC_FLOAT_HEIGHT, screens::Screen};
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use bevy_landmass::{Velocity3d as LandmassVelocity, prelude::*};
@@ -40,7 +40,7 @@ fn set_controller_velocity(
         controller.basis(TnuaBuiltinWalk {
             desired_velocity: velocity,
             desired_forward: forward,
-            float_height: 1.0,
+            float_height: NPC_FLOAT_HEIGHT,
             ..default()
         });
     }
