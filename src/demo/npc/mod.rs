@@ -58,7 +58,7 @@ fn spawn_npc(
         Agent3dBundle {
             agent: default(),
             settings: AgentSettings {
-                radius: 0.5,
+                radius: NPC_RADIUS,
                 desired_speed: 7.0,
                 max_speed: 8.0,
             },

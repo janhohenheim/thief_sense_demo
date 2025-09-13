@@ -88,6 +88,7 @@ dev = [
     "bevy/bevy_ui_debug",
     # Improve error messages coming from Bevy
     "bevy/track_location",
+    "avian3d/debug-plugin"
 ]
 dev_native = [
     "dev",
