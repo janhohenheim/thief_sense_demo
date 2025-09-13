@@ -34,7 +34,7 @@
 "classname" "npc"
 "origin" "24 40 32"
 "angle" "180"
-"target" "a"
+"target" ""
 }
 // entity 3
 {
