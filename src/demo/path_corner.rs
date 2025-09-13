@@ -50,7 +50,7 @@ fn update_targets_to_path_corners_on_arrival(
             let distance = corner_transform
                 .translation
                 .distance(ai_transform.translation);
-            if distance < 0.1 {
+            if distance < 1.0 {
                 commands.entity(ai_entity).remove::<Target>();
                 if let Some(next_corner) = next_corner {
                     commands.entity(ai_entity).insert(Target(next_corner.get()));

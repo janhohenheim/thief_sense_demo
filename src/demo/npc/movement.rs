@@ -1,5 +1,5 @@
 use crate::{
-    demo::{npc::NPC_FLOAT_HEIGHT, target::Target},
+    demo::{npc::NPC_FLOAT_HEIGHT, path_corner::PathCorner, target::Target},
     screens::Screen,
     third_party::landmass::Agent,
 };
@@ -48,11 +48,20 @@ fn sync_agent_velocity(mut agent_query: Query<(&LinearVelocity, &mut LandmassVel
 }
 
 fn set_target_to_quake_target(
-    mut npcs: Query<(&Target, &mut AgentTarget3d)>,
+    controllers: Query<(&Target, &Agent)>,
+    mut agents: Query<&mut AgentTarget3d>,
+    path_corners: Query<(), With<PathCorner>>,
     transforms: Query<&Transform>,
     archipelago: Single<&Archipelago3d>,
 ) {
-    for (target, mut agent_target) in &mut npcs {
+    for (target, agent) in &controllers {
+        let Ok(mut agent_target) = agents.get_mut(**agent) else {
+            error!("Failed to get agent target");
+            continue;
+        };
+        if !path_corners.contains(target.get()) {
+            continue;
+        }
         let Ok(transform) = transforms.get(target.get()) else {
             error!("Failed to get transform for target");
             continue;
