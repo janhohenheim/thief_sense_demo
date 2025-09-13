@@ -64,3 +64,10 @@
 "targetname" "d"
 "target" "a"
 }
+// entity 7
+{
+"classname" "light_directional"
+"origin" "200 120 104"
+"shadows_enabled" "true"
+"angles" "54 -42 55"
+}

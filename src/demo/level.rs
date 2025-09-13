@@ -21,17 +21,7 @@ const NAVMESH: &str = "maps/main_level.nav";
 /// A system that spawns the main level.
 pub(crate) fn spawn_level(mut commands: Commands, assets: Res<AssetServer>) {
     commands
-        .spawn((
-            SceneRoot(assets.load(MAP)),
-            StateScoped(Screen::Gameplay),
-            children![(
-                DirectionalLight {
-                    shadows_enabled: true,
-                    ..default()
-                },
-                Transform::default().looking_to(Vec3::new(2.0, -6.0, -1.0), Vec3::Y)
-            )],
-        ))
+        .spawn((SceneRoot(assets.load(MAP)), StateScoped(Screen::Gameplay)))
         .observe(link_path_corners)
         .observe(link_targets);
     let archipelago = commands
