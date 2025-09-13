@@ -25,7 +25,7 @@ const NPC_HEIGHT: f32 = 1.6811;
 const NPC_RADIUS: f32 = 0.2;
 const NPC_FLOAT_HEIGHT: f32 = NPC_HEIGHT / 2.0 + 0.01;
 
-#[point_class(model(MODEL_PATH))]
+#[point_class(model("models/npc.glb"))]
 pub(crate) struct Npc;
 
 fn spawn_npc(

@@ -32,6 +32,6 @@
 // entity 2
 {
 "classname" "npc"
-"origin" "24 -8 16"
+"origin" "24 -8 32"
 "angle" "180"
 }
