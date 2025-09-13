@@ -23,11 +23,13 @@ fn set_controller_velocity(
         let Ok(desired_velocity) = desired_velocity_query.get(**agent) else {
             continue;
         };
-        let velocity = desired_velocity.velocity();
+        // Hack: due to a bug, landmass slows down on corners, so we set the velocity manually.
+        let velocity = desired_velocity.velocity().normalize_or_zero() * 5.0;
         let forward = Dir3::try_from(velocity).ok();
         controller.basis(TnuaBuiltinWalk {
             desired_velocity: velocity,
             desired_forward: forward,
+            acceleration: 25.0,
             float_height: NPC_FLOAT_HEIGHT,
             ..default()
         });
