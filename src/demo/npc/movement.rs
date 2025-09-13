@@ -1,12 +1,10 @@
-use crate::{demo::npc::NPC_FLOAT_HEIGHT, screens::Screen};
+use crate::{demo::npc::NPC_FLOAT_HEIGHT, screens::Screen, third_party::landmass::Agent};
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use bevy_landmass::{Velocity3d as LandmassVelocity, prelude::*};
 use bevy_tnua::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
-    app.register_type::<Agent>();
-    app.register_type::<AgentOf>();
     app.add_systems(
         RunFixedMainLoop,
         (sync_agent_velocity, set_controller_velocity)
@@ -16,16 +14,6 @@ pub(super) fn plugin(app: &mut App) {
             .run_if(in_state(Screen::Gameplay)),
     );
 }
-
-#[derive(Component, Deref, Debug, Reflect)]
-#[reflect(Component)]
-#[relationship(relationship_target = Agent)]
-pub(crate) struct AgentOf(pub(crate) Entity);
-
-#[derive(Component, Deref, Debug, Reflect)]
-#[reflect(Component)]
-#[relationship_target(relationship = AgentOf)]
-pub(crate) struct Agent(Entity);
 
 fn set_controller_velocity(
     mut agent_query: Query<(&mut TnuaController, &Agent)>,

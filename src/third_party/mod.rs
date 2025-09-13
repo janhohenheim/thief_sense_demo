@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 mod avian;
-mod landmass;
+pub(crate) mod landmass;
 mod rerecast;
 mod tnua;
 mod trenchbroom;

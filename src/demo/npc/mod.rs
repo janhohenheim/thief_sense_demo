@@ -1,11 +1,10 @@
 use crate::{
-    animation::AnimationPlayerAncestor,
-    asset_tracking::LoadResource as _,
-    demo::npc::{animation::NpcAnimationState, movement::AgentOf},
+    animation::AnimationPlayerAncestor, asset_tracking::LoadResource as _,
+    demo::npc::animation::NpcAnimationState, third_party::landmass::AgentOf,
 };
 use avian3d::prelude::*;
 use bevy::prelude::*;
-use bevy_landmass::{TargetReachedCondition, prelude::*};
+use bevy_landmass::prelude::*;
 use bevy_tnua::{TnuaAnimatingState, prelude::*};
 use bevy_tnua_avian3d::TnuaAvian3dSensorShape;
 use bevy_trenchbroom::prelude::*;
@@ -59,8 +58,8 @@ fn spawn_npc(
             agent: default(),
             settings: AgentSettings {
                 radius: NPC_RADIUS,
-                desired_speed: 7.0,
-                max_speed: 8.0,
+                desired_speed: 5.0,
+                max_speed: 7.0,
             },
             archipelago_ref: ArchipelagoRef3d::new(*archipelago),
         },

@@ -182,4 +182,5 @@ opt-level = 0
 [patch.crates-io]
 # 0.10.0 is not released yet.
 bevy_landmass = { git = "https://github.com/andriyDev/landmass" }
+landmass = { git = "https://github.com/andriyDev/landmass" }
 landmass_rerecast = { git = "https://github.com/andriyDev/landmass" }

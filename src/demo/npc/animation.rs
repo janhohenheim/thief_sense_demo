@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use bevy::{ecs::error::panic, prelude::*};
+use bevy::prelude::*;
 use bevy_tnua::{TnuaAnimatingState, TnuaAnimatingStateDirective, prelude::*};
 
 use crate::{AppSystems, animation::AnimationPlayers, demo::npc::NPC_GLTF, screens::Screen};
@@ -97,12 +97,19 @@ fn play_animations(
                 }
             }) {
                 TnuaAnimatingStateDirective::Maintain { state } => {
-                    if let NpcAnimationState::Run(speed) | NpcAnimationState::Walk(speed) = state {
-                        if let Some((_index, playing_animation)) =
-                            anim_player.playing_animations_mut().next()
-                        {
-                            let anim_speed = (speed / 7.0).max(0.3);
-                            playing_animation.set_speed(anim_speed);
+                    if let Some((_index, playing_animation)) =
+                        anim_player.playing_animations_mut().next()
+                    {
+                        match state {
+                            NpcAnimationState::Run(speed) => {
+                                let anim_speed = speed / 5.5;
+                                playing_animation.set_speed(anim_speed);
+                            }
+                            NpcAnimationState::Walk(speed) => {
+                                let anim_speed = speed / 3.5;
+                                playing_animation.set_speed(anim_speed);
+                            }
+                            NpcAnimationState::Idle => {}
                         }
                     }
                 }
@@ -113,7 +120,6 @@ fn play_animations(
                     state,
                 } => match state {
                     NpcAnimationState::Idle => {
-                        info!("Standing animation started");
                         transitions
                             .play(
                                 &mut anim_player,
@@ -123,7 +129,6 @@ fn play_animations(
                             .repeat();
                     }
                     NpcAnimationState::Walk(_speed) => {
-                        info!("Walking animation started");
                         transitions
                             .play(
                                 &mut anim_player,
@@ -133,7 +138,6 @@ fn play_animations(
                             .repeat();
                     }
                     NpcAnimationState::Run(_speed) => {
-                        info!("Running animation started");
                         transitions
                             .play(&mut anim_player, animations.run, Duration::from_millis(400))
                             .repeat();
