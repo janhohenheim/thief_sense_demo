@@ -10,6 +10,7 @@ pub(crate) mod level;
 pub(crate) mod npc;
 mod path_corner;
 mod target;
+mod target_after;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((
@@ -18,5 +19,6 @@ pub(super) fn plugin(app: &mut App) {
         click::plugin,
         path_corner::plugin,
         target::plugin,
+        target_after::plugin,
     ));
 }

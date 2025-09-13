@@ -28,6 +28,7 @@
 {
 "classname" "light_point"
 "origin" "-32 0 144"
+"shadows_enabled" "true"
 }
 // entity 2
 {
@@ -42,6 +43,7 @@
 "origin" "72 -120 40"
 "targetname" "a"
 "target" "b"
+"wait" "0.5"
 }
 // entity 4
 {
@@ -49,6 +51,7 @@
 "origin" "-136 -120 40"
 "targetname" "b"
 "target" "c"
+"wait" "0.5"
 }
 // entity 5
 {
@@ -56,6 +59,7 @@
 "origin" "-216 40 40"
 "targetname" "c"
 "target" "d"
+"wait" "0.5"
 }
 // entity 6
 {
@@ -63,6 +67,7 @@
 "origin" "184 56 40"
 "targetname" "d"
 "target" "a"
+"wait" "0.5"
 }
 // entity 7
 {

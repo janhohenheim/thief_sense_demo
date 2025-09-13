@@ -42,7 +42,7 @@ pub(crate) struct TargetBase {
 #[relationship_target(relationship = Target)]
 pub(crate) struct TargetOf(Vec<Entity>);
 
-#[derive(Component, Reflect, Deref)]
+#[derive(Component, Copy, Clone, Reflect, Deref)]
 #[reflect(Component)]
 #[relationship(relationship_target = TargetOf)]
 pub(crate) struct Target(pub(crate) Entity);
