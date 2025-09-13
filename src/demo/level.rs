@@ -5,7 +5,11 @@ use bevy_landmass::{PointSampleDistance3d, prelude::*};
 use bevy_rerecast::Navmesh;
 use landmass_rerecast::{Island3dBundle, NavMeshHandle3d};
 
-use crate::{asset_tracking::LoadResource, screens::Screen};
+use crate::{
+    asset_tracking::LoadResource,
+    demo::{path_corner::link_path_corners, target::link_targets},
+    screens::Screen,
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.load_asset::<Scene>(MAP).load_asset::<Navmesh>(NAVMESH);
@@ -16,17 +20,20 @@ const NAVMESH: &str = "maps/main_level.nav";
 
 /// A system that spawns the main level.
 pub(crate) fn spawn_level(mut commands: Commands, assets: Res<AssetServer>) {
-    commands.spawn((
-        SceneRoot(assets.load(MAP)),
-        StateScoped(Screen::Gameplay),
-        children![(
-            DirectionalLight {
-                shadows_enabled: true,
-                ..default()
-            },
-            Transform::default().looking_to(Vec3::new(2.0, -6.0, -1.0), Vec3::Y)
-        )],
-    ));
+    commands
+        .spawn((
+            SceneRoot(assets.load(MAP)),
+            StateScoped(Screen::Gameplay),
+            children![(
+                DirectionalLight {
+                    shadows_enabled: true,
+                    ..default()
+                },
+                Transform::default().looking_to(Vec3::new(2.0, -6.0, -1.0), Vec3::Y)
+            )],
+        ))
+        .observe(link_path_corners)
+        .observe(link_targets);
     let archipelago = commands
         .spawn((
             Name::new("Main Level Archipelago"),

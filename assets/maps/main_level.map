@@ -34,4 +34,33 @@
 "classname" "npc"
 "origin" "24 -8 32"
 "angle" "180"
+"target" "a"
+}
+// entity 3
+{
+"classname" "path_corner"
+"origin" "72 -168 40"
+"targetname" "a"
+"target" "b"
+}
+// entity 4
+{
+"classname" "path_corner"
+"origin" "-136 -168 40"
+"targetname" "b"
+"target" "c"
+}
+// entity 5
+{
+"classname" "path_corner"
+"origin" "-136 104 40"
+"targetname" "c"
+"target" "d"
+}
+// entity 6
+{
+"classname" "path_corner"
+"origin" "72 104 40"
+"targetname" "d"
+"target" "a"
 }

@@ -1,6 +1,8 @@
 use crate::{
-    animation::AnimationPlayerAncestor, asset_tracking::LoadResource as _,
-    demo::npc::animation::NpcAnimationState, third_party::landmass::AgentOf,
+    animation::AnimationPlayerAncestor,
+    asset_tracking::LoadResource as _,
+    demo::{npc::animation::NpcAnimationState, target::TargetBase},
+    third_party::landmass::AgentOf,
 };
 use avian3d::prelude::*;
 use bevy::prelude::*;
@@ -26,7 +28,7 @@ const NPC_RADIUS: f32 = 0.2;
 const NPC_FLOAT_HEIGHT: f32 = NPC_HEIGHT / 2.0 + 0.01;
 const NPC_MAX_SPEED: f32 = 5.0;
 
-#[point_class(model("models/npc.glb"))]
+#[point_class(base(TargetBase), model("models/npc.glb"))]
 pub(crate) struct Npc;
 
 fn spawn_npc(
