@@ -29,7 +29,7 @@ fn set_controller_velocity(
         controller.basis(TnuaBuiltinWalk {
             desired_velocity: velocity,
             desired_forward: forward,
-            acceleration: 25.0,
+            acceleration: 35.0,
             float_height: NPC_FLOAT_HEIGHT,
             ..default()
         });
