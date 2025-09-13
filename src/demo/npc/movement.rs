@@ -1,7 +1,11 @@
-use crate::{demo::npc::NPC_FLOAT_HEIGHT, screens::Screen, third_party::landmass::Agent};
+use crate::{
+    demo::{npc::NPC_FLOAT_HEIGHT, target::Target},
+    screens::Screen,
+    third_party::landmass::Agent,
+};
 use avian3d::prelude::*;
-use bevy::prelude::*;
-use bevy_landmass::{Velocity3d as LandmassVelocity, prelude::*};
+use bevy::{ecs::relationship::Relationship as _, prelude::*};
+use bevy_landmass::{PointSampleDistance3d, Velocity3d as LandmassVelocity, prelude::*};
 use bevy_tnua::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
@@ -13,6 +17,7 @@ pub(super) fn plugin(app: &mut App) {
             .before(LandmassSystemSet::SyncExistence)
             .run_if(in_state(Screen::Gameplay)),
     );
+    app.add_systems(FixedUpdate, set_target_to_quake_target);
 }
 
 fn set_controller_velocity(
@@ -39,5 +44,25 @@ fn set_controller_velocity(
 fn sync_agent_velocity(mut agent_query: Query<(&LinearVelocity, &mut LandmassVelocity)>) {
     for (avian_velocity, mut landmass_velocity) in &mut agent_query {
         landmass_velocity.velocity = avian_velocity.0;
+    }
+}
+
+fn set_target_to_quake_target(
+    mut npcs: Query<(&Target, &mut AgentTarget3d)>,
+    transforms: Query<&Transform>,
+    archipelago: Single<&Archipelago3d>,
+) {
+    for (target, mut agent_target) in &mut npcs {
+        let Ok(transform) = transforms.get(target.get()) else {
+            error!("Failed to get transform for target");
+            continue;
+        };
+        let target_point = archipelago.sample_point(
+            transform.translation,
+            &PointSampleDistance3d::from_agent_radius(5.0),
+        );
+        if let Ok(target_point) = target_point {
+            *agent_target = AgentTarget3d::Point(target_point.point());
+        }
     }
 }

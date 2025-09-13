@@ -1,10 +1,13 @@
-use bevy::{prelude::*, scene::SceneInstanceReady};
+use bevy::{ecs::relationship::Relationship, prelude::*, scene::SceneInstanceReady};
 use bevy_trenchbroom::prelude::*;
+
+use crate::demo::target::{Target, TargetOf};
 
 pub(super) fn plugin(app: &mut App) {
     app.register_type::<PathCorner>();
     app.register_type::<NextPathCorner>();
     app.register_type::<PreviousPathCorners>();
+    app.add_systems(FixedUpdate, update_targets_to_path_corners_on_arrival);
 }
 
 pub(crate) fn link_path_corners(
@@ -30,6 +33,30 @@ pub(crate) fn link_path_corners(
         commands
             .entity(entity)
             .insert(NextPathCorner(next_target_entity));
+    }
+}
+
+fn update_targets_to_path_corners_on_arrival(
+    corners: Query<(&Transform, &TargetOf, Option<&NextPathCorner>)>,
+    transforms: Query<&Transform>,
+    mut commands: Commands,
+) {
+    for (corner_transform, target_of, next_corner) in corners.iter() {
+        for ai_entity in target_of.iter() {
+            let Ok(ai_transform) = transforms.get(ai_entity) else {
+                error!("Failed to get AI transform",);
+                continue;
+            };
+            let distance = corner_transform
+                .translation
+                .distance(ai_transform.translation);
+            if distance < 0.1 {
+                commands.entity(ai_entity).remove::<Target>();
+                if let Some(next_corner) = next_corner {
+                    commands.entity(ai_entity).insert(Target(next_corner.get()));
+                }
+            }
+        }
     }
 }
 
