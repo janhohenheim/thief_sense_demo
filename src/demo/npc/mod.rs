@@ -1,8 +1,12 @@
-use crate::{asset_tracking::LoadResource as _, demo::npc::movement::AgentOf};
+use crate::{
+    animation::AnimationPlayerAncestor,
+    asset_tracking::LoadResource as _,
+    demo::npc::{animation::NpcAnimationState, movement::AgentOf},
+};
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use bevy_landmass::{TargetReachedCondition, prelude::*};
-use bevy_tnua::prelude::*;
+use bevy_tnua::{TnuaAnimatingState, prelude::*};
 use bevy_tnua_avian3d::TnuaAvian3dSensorShape;
 use bevy_trenchbroom::prelude::*;
 
@@ -11,12 +15,12 @@ mod movement;
 
 pub(super) fn plugin(app: &mut App) {
     app.register_type::<Npc>();
-    app.load_asset::<Gltf>(MODEL_PATH);
+    app.load_asset::<Gltf>(NPC_GLTF);
     app.add_observer(spawn_npc);
     app.add_plugins((movement::plugin, animation::plugin));
 }
 
-const MODEL_PATH: &str = "models/npc.glb";
+const NPC_GLTF: &str = "models/npc.glb";
 
 const NPC_HEIGHT: f32 = 1.6811;
 const NPC_RADIUS: f32 = 0.2;
@@ -41,9 +45,11 @@ fn spawn_npc(
             ColliderDensity(2_000.0),
             RigidBody::Dynamic,
             LockedAxes::ROTATION_LOCKED.unlock_rotation_y(),
+            TnuaAnimatingState::<NpcAnimationState>::default(),
+            AnimationPlayerAncestor,
         ))
         .with_child((
-            SceneRoot(assets.load(GltfAssetLabel::Scene(0).from_asset(MODEL_PATH))),
+            SceneRoot(assets.load(GltfAssetLabel::Scene(0).from_asset(NPC_GLTF))),
             Transform::from_xyz(0.0, -NPC_FLOAT_HEIGHT, 0.0),
         ));
     commands.spawn((
