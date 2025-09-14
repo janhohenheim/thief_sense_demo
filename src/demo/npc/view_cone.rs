@@ -19,16 +19,13 @@ pub(crate) fn spawn_view_cones(
         if name.as_str() != "DEF-head" {
             continue;
         }
-        let view_cone = Collider::elliptic_cone(0.4, 0.8, 1.5);
-        let sphere = Collider::sphere(0.2);
+        let view_cone = Collider::elliptic_cone(0.4, 0.8, 3.5);
 
-        commands
-            .entity(child)
-            .with_child((
-                view_cone,
-                Transform::from_rotation(Quat::from_rotation_x(-TAU / 4.0)),
-            ))
-            .with_child(sphere);
+        commands.entity(child).with_child((
+            view_cone,
+            Transform::from_rotation(Quat::from_rotation_x(-TAU / 4.0)),
+            Sensor,
+        ));
 
         break;
     }
