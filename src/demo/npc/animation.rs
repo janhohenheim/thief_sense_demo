@@ -8,11 +8,9 @@ use bevy_tnua::{TnuaAnimatingState, TnuaAnimatingStateDirective, prelude::*};
 use crate::{
     AppSystems,
     animation::AnimationPlayers,
-    demo::npc::{NPC_GLTF, NPC_MAX_SPEED},
+    demo::npc::{NPC_GLTF, NPC_MAX_SPEED, NPC_WALK_SPEED},
     screens::Screen,
 };
-
-const MAX_WALK_SPEED: f32 = 4.5;
 
 pub(super) fn plugin(app: &mut App) {
     app.register_type::<NpcAnimations>();
@@ -95,7 +93,7 @@ fn play_animations(
                     continue;
                 };
                 let speed = basis_state.running_velocity.length();
-                if speed > MAX_WALK_SPEED {
+                if speed > NPC_WALK_SPEED + 0.1 {
                     NpcAnimationState::Run(speed)
                 } else if speed > 0.01 {
                     NpcAnimationState::Walk(speed)
@@ -113,7 +111,7 @@ fn play_animations(
                                 playing_animation.set_speed(anim_speed);
                             }
                             NpcAnimationState::Walk(speed) => {
-                                let anim_speed = speed / MAX_WALK_SPEED;
+                                let anim_speed = speed / NPC_WALK_SPEED;
                                 playing_animation.set_speed(anim_speed);
                             }
                             NpcAnimationState::Idle => {}

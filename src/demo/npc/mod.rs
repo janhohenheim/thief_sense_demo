@@ -31,6 +31,7 @@ const NPC_HEIGHT: f32 = 1.6811;
 const NPC_RADIUS: f32 = 0.2;
 const NPC_FLOAT_HEIGHT: f32 = NPC_HEIGHT / 2.0 + 0.01;
 const NPC_MAX_SPEED: f32 = 5.0;
+const NPC_WALK_SPEED: f32 = 2.5;
 
 #[point_class(base(TargetBase), model("models/npc.glb"))]
 pub(crate) struct Npc;
@@ -69,8 +70,8 @@ fn spawn_npc(
             agent: default(),
             settings: AgentSettings {
                 radius: NPC_RADIUS,
-                desired_speed: NPC_MAX_SPEED,
-                max_speed: NPC_MAX_SPEED + 2.0,
+                desired_speed: NPC_WALK_SPEED,
+                max_speed: NPC_MAX_SPEED,
             },
             archipelago_ref: ArchipelagoRef3d::new(*archipelago),
         },

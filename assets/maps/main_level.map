@@ -40,34 +40,34 @@
 // entity 3
 {
 "classname" "path_corner"
-"origin" "72 -120 40"
+"origin" "104 -152 40"
 "targetname" "a"
 "target" "b"
-"wait" "0.5"
+"wait" "2.5"
 }
 // entity 4
 {
 "classname" "path_corner"
-"origin" "-136 -120 40"
+"origin" "-184 -152 40"
 "targetname" "b"
 "target" "c"
-"wait" "0.5"
+"wait" "2.5"
 }
 // entity 5
 {
 "classname" "path_corner"
-"origin" "-216 40 40"
+"origin" "-184 40 40"
 "targetname" "c"
 "target" "d"
-"wait" "0.5"
+"wait" "2.5"
 }
 // entity 6
 {
 "classname" "path_corner"
-"origin" "184 56 40"
+"origin" "104 56 40"
 "targetname" "d"
 "target" "a"
-"wait" "0.5"
+"wait" "2.5"
 }
 // entity 7
 {
