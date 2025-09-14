@@ -1,7 +1,10 @@
 use crate::{
     animation::AnimationPlayerAncestor,
     asset_tracking::LoadResource as _,
-    demo::{npc::animation::NpcAnimationState, target::TargetBase},
+    demo::{
+        npc::{animation::NpcAnimationState, view_cone::spawn_view_cones},
+        target::TargetBase,
+    },
     third_party::landmass::AgentOf,
 };
 use avian3d::prelude::*;
@@ -13,12 +16,13 @@ use bevy_trenchbroom::prelude::*;
 
 mod animation;
 mod movement;
+mod view_cone;
 
 pub(super) fn plugin(app: &mut App) {
     app.register_type::<Npc>();
     app.load_asset::<Gltf>(NPC_GLTF);
     app.add_observer(spawn_npc);
-    app.add_plugins((movement::plugin, animation::plugin));
+    app.add_plugins((movement::plugin, animation::plugin, view_cone::plugin));
 }
 
 const NPC_GLTF: &str = "models/npc.glb";
@@ -50,10 +54,14 @@ fn spawn_npc(
             TnuaAnimatingState::<NpcAnimationState>::default(),
             AnimationPlayerAncestor,
         ))
-        .with_child((
-            SceneRoot(assets.load(GltfAssetLabel::Scene(0).from_asset(NPC_GLTF))),
-            Transform::from_xyz(0.0, -NPC_FLOAT_HEIGHT, 0.0),
-        ));
+        .with_children(|parent| {
+            parent
+                .spawn((
+                    SceneRoot(assets.load(GltfAssetLabel::Scene(0).from_asset(NPC_GLTF))),
+                    Transform::from_xyz(0.0, -NPC_FLOAT_HEIGHT, 0.0),
+                ))
+                .observe(spawn_view_cones);
+        });
     commands.spawn((
         Name::new("NPC Agent"),
         Transform::from_translation(Vec3::new(0.0, -NPC_FLOAT_HEIGHT, 0.0)),

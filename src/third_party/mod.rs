@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-mod avian;
+pub(crate) mod avian;
 pub(crate) mod landmass;
 mod rerecast;
 mod tnua;
