@@ -4,7 +4,7 @@ use crate::third_party::avian::EllipticCone as _;
 use avian3d::prelude::*;
 use bevy::{prelude::*, scene::SceneInstanceReady};
 
-pub(super) fn plugin(app: &mut App) {}
+pub(super) fn plugin(_app: &mut App) {}
 
 pub(crate) fn spawn_view_cones(
     trigger: Trigger<SceneInstanceReady>,

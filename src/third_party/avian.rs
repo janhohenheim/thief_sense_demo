@@ -1,7 +1,7 @@
-use std::{f32::consts::TAU, iter};
+use std::f32::consts::{FRAC_PI_2, TAU};
 
 use avian3d::prelude::*;
-use bevy::prelude::*;
+use bevy::{math::ops::sin_cos, prelude::*};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()));
@@ -15,22 +15,23 @@ pub(crate) trait EllipticCone {
 
 impl EllipticCone for Collider {
     fn elliptic_cone(half_width: f32, half_height: f32, height: f32) -> Collider {
-        let ellipse = Ellipse::new(half_width, half_height)
-            .mesh()
-            .resolution(8)
-            .build();
-        let base = ellipse
-            .attribute(Mesh::ATTRIBUTE_POSITION)
-            .unwrap()
-            .as_float3()
-            .unwrap()
-            .into_iter()
-            .copied()
-            .map(Vec3::from_array)
-            .map(|v| Quat::from_rotation_x(TAU / 4.0) * v)
-            .map(|v| v - Vec3::Y * height);
+        // The following is adapted from Bevy's implementation of building a mesh from an ellipse
+        const RESOLUTION: usize = 8;
+        // Add pi/2 so that there is a vertex at the top (sin is 1.0 and cos is 0.0)
+        let start_angle = FRAC_PI_2;
+        let step = TAU / RESOLUTION as f32;
+
         let tip = Vec3::ZERO;
-        let points = iter::once(tip).chain(base).collect();
+        let mut points = vec![tip];
+        for i in 0..RESOLUTION {
+            // Compute vertex position at angle theta
+            let theta = start_angle + i as f32 * step;
+            let (sin, cos) = sin_cos(theta);
+            let x = cos * half_width;
+            let z = sin * half_height;
+
+            points.push(Vec3::new(x, -height, z));
+        }
         Collider::convex_hull(points).unwrap()
     }
 }
