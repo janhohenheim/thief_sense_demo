@@ -28,8 +28,7 @@ fn set_controller_velocity(
         let Ok(desired_velocity) = desired_velocity_query.get(**agent) else {
             continue;
         };
-        // Hack: due to a bug, landmass slows down on corners, so we set the velocity manually.
-        let velocity = desired_velocity.velocity().normalize_or_zero() * 5.0;
+        let velocity = desired_velocity.velocity();
         let forward = Dir3::try_from(velocity).ok();
         controller.basis(TnuaBuiltinWalk {
             desired_velocity: velocity,
@@ -41,8 +40,15 @@ fn set_controller_velocity(
     }
 }
 
-fn sync_agent_velocity(mut agent_query: Query<(&LinearVelocity, &mut LandmassVelocity)>) {
-    for (avian_velocity, mut landmass_velocity) in &mut agent_query {
+fn sync_agent_velocity(
+    mut agent_query: Query<(&LinearVelocity, &Agent)>,
+    mut landmass_velocity: Query<&mut LandmassVelocity>,
+) {
+    for (avian_velocity, agent) in &mut agent_query {
+        let Ok(mut landmass_velocity) = landmass_velocity.get_mut(**agent) else {
+            error!("Failed to get landmass velocity");
+            continue;
+        };
         landmass_velocity.velocity = avian_velocity.0;
     }
 }
