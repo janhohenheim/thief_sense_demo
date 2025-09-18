@@ -23,7 +23,7 @@ pub(crate) fn spawn_view_cones(
 
         commands.entity(child).with_child((
             view_cone,
-            Transform::from_rotation(Quat::from_rotation_x(-TAU / 4.0)),
+            Transform::from_rotation(Quat::from_rotation_x(TAU / 4.0)),
             Sensor,
         ));
 

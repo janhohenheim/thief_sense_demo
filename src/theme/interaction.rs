@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_seedling::sample::{Sample, SamplePlayer};
+use bevy_seedling::sample::{AudioSample, SamplePlayer};
 
 use crate::{AppSystems, asset_tracking::LoadResource, audio::SfxPool};
 
@@ -66,9 +66,9 @@ fn apply_interaction_palette(
 #[derive(Resource, Asset, Reflect, Clone)]
 pub(crate) struct InteractionAssets {
     #[dependency]
-    hover: Handle<Sample>,
+    hover: Handle<AudioSample>,
     #[dependency]
-    press: Handle<Sample>,
+    press: Handle<AudioSample>,
 }
 
 impl InteractionAssets {

@@ -28,7 +28,7 @@ pub(super) fn plugin(app: &mut App) {
 const NPC_GLTF: &str = "models/npc.glb";
 
 const NPC_HEIGHT: f32 = 1.6811;
-const NPC_RADIUS: f32 = 0.2;
+pub(crate) const NPC_RADIUS: f32 = 0.2;
 const NPC_FLOAT_HEIGHT: f32 = NPC_HEIGHT / 2.0 + 0.01;
 const NPC_MAX_SPEED: f32 = 5.0;
 const NPC_WALK_SPEED: f32 = 2.5;

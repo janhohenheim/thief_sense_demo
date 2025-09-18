@@ -39,6 +39,7 @@ bevy = { version = "0.17.0-rc", default-features = false, features = [
     "png",
     "wayland",
     "zstd_rust",
+    "reflect_auto_register"
 ] }
 rand = "0.9"
 # Compile low-severity logs out of builds for performance.
