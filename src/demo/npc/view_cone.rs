@@ -7,7 +7,7 @@ use bevy::{prelude::*, scene::SceneInstanceReady};
 pub(super) fn plugin(_app: &mut App) {}
 
 pub(crate) fn spawn_view_cones(
-    trigger: Trigger<SceneInstanceReady>,
+    trigger: On<SceneInstanceReady>,
     children: Query<&Children>,
     names: Query<&Name>,
     mut commands: Commands,

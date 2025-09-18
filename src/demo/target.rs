@@ -10,7 +10,7 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 pub(crate) fn link_targets(
-    _trigger: Trigger<SceneInstanceReady>,
+    _trigger: On<SceneInstanceReady>,
     target_bases: Query<(Entity, &TargetBase)>,
     corners: Query<(Entity, &PathCorner)>,
     mut commands: Commands,

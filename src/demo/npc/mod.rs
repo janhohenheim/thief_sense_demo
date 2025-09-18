@@ -37,7 +37,7 @@ const NPC_WALK_SPEED: f32 = 2.5;
 pub(crate) struct Npc;
 
 fn spawn_npc(
-    trigger: Trigger<OnAdd, Npc>,
+    trigger: On<Add, Npc>,
     mut commands: Commands,
     assets: Res<AssetServer>,
     archipelago: Single<Entity, With<Archipelago3d>>,

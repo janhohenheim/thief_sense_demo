@@ -29,7 +29,7 @@ fn tick_timers(
 ) {
     for (entity, mut target_after) in target_after.iter_mut() {
         target_after.timer.tick(time.delta());
-        if target_after.timer.finished() {
+        if target_after.timer.is_finished() {
             commands
                 .entity(entity)
                 .remove::<TargetAfter>()
@@ -38,6 +38,6 @@ fn tick_timers(
     }
 }
 
-fn remove_previous_target(trigger: Trigger<OnAdd, TargetAfter>, mut commands: Commands) {
+fn remove_previous_target(trigger: On<Add, TargetAfter>, mut commands: Commands) {
     commands.entity(trigger.entity).remove::<Target>();
 }

@@ -32,7 +32,7 @@ struct NpcAnimations {
 }
 
 pub(crate) fn setup_npc_animations(
-    trigger: Trigger<OnAdd, AnimationPlayers>,
+    trigger: On<Add, AnimationPlayers>,
     q_anim_players: Query<&AnimationPlayers>,
     mut commands: Commands,
     assets: Res<AssetServer>,

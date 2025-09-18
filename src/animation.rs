@@ -28,7 +28,7 @@ pub(crate) struct AnimationPlayerOf(pub(crate) Entity);
 /// This system ensures that we can find the animation player easily by inserting an [`AnimationPlayers`] relationship
 /// into the same entity that contains the [`AnimationPlayerAncestor`] component.
 fn link_animation_player(
-    trigger: Trigger<SceneInstanceReady>,
+    trigger: On<SceneInstanceReady>,
     mut commands: Commands,
     q_parent: Query<&ChildOf>,
     q_children: Query<&Children>,

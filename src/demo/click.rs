@@ -26,7 +26,7 @@ fn draw_mesh_intersections(pointers: Query<&PointerInteraction>, mut gizmos: Giz
 }
 
 fn on_click(
-    click: Trigger<Pointer<Click>>,
+    click: On<Pointer<Click>>,
     mut agents: Query<(&AgentOf, &mut AgentTarget3d)>,
     archipelago: Single<&Archipelago3d>,
     npcs: Query<(), With<Npc>>,
