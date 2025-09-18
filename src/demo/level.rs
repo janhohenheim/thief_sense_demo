@@ -21,13 +21,13 @@ const NAVMESH: &str = "maps/main_level.nav";
 /// A system that spawns the main level.
 pub(crate) fn spawn_level(mut commands: Commands, assets: Res<AssetServer>) {
     commands
-        .spawn((SceneRoot(assets.load(MAP)), StateScoped(Screen::Gameplay)))
+        .spawn((SceneRoot(assets.load(MAP)), DespawnOnExit(Screen::Gameplay)))
         .observe(link_path_corners)
         .observe(link_targets);
     let archipelago = commands
         .spawn((
             Name::new("Main Level Archipelago"),
-            StateScoped(Screen::Gameplay),
+            DespawnOnExit(Screen::Gameplay),
             Archipelago3d::new(AgentOptions {
                 point_sample_distance: PointSampleDistance3d {
                     horizontal_distance: 0.6,
@@ -42,7 +42,7 @@ pub(crate) fn spawn_level(mut commands: Commands, assets: Res<AssetServer>) {
 
     commands.spawn((
         Name::new("Main Level Island"),
-        StateScoped(Screen::Gameplay),
+        DespawnOnExit(Screen::Gameplay),
         Island3dBundle {
             island: Island,
             archipelago_ref: ArchipelagoRef3d::new(archipelago),

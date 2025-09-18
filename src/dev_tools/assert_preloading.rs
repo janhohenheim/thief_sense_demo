@@ -15,7 +15,7 @@ fn validate_mesh(
     q_mesh: Query<&Mesh3d>,
     assets: Res<AssetServer>,
 ) {
-    let handle = &q_mesh.get(trigger.target()).unwrap().0;
+    let handle = &q_mesh.get(trigger.entity).unwrap().0;
     validate_asset(handle, &assets, "Mesh");
 }
 
@@ -24,7 +24,7 @@ fn validate_material(
     q_material: Query<&MeshMaterial3d<StandardMaterial>>,
     assets: Res<AssetServer>,
 ) {
-    let handle = &q_material.get(trigger.target()).unwrap().0;
+    let handle = &q_material.get(trigger.entity).unwrap().0;
     validate_asset(handle, &assets, "Material");
 }
 
@@ -33,7 +33,7 @@ fn validate_scene(
     q_scene: Query<&SceneRoot>,
     assets: Res<AssetServer>,
 ) {
-    let handle = &q_scene.get(trigger.target()).unwrap().0;
+    let handle = &q_scene.get(trigger.entity).unwrap().0;
     validate_asset(handle, &assets, "Scene");
 }
 
@@ -51,6 +51,6 @@ fn validate_audio(
     q_audio: Query<&SamplePlayer>,
     assets: Res<AssetServer>,
 ) {
-    let handle = &q_audio.get(trigger.target()).unwrap().sample;
+    let handle = &q_audio.get(trigger.entity).unwrap().sample;
     validate_asset(handle, &assets, "Audio");
 }

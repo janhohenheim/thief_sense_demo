@@ -31,8 +31,10 @@ pub(crate) struct InteractionPalette {
 
 /// Event triggered on a UI entity when the [`Interaction`] component on the same entity changes to
 /// [`Interaction::Pressed`]. Observe this event to detect e.g. button presses.
-#[derive(Event)]
-pub(crate) struct OnPress;
+#[derive(EntityEvent)]
+pub(crate) struct OnPress {
+    entity: Entity,
+}
 
 fn trigger_on_press(
     interaction_query: Query<(Entity, &Interaction), Changed<Interaction>>,
@@ -40,7 +42,7 @@ fn trigger_on_press(
 ) {
     for (entity, interaction) in &interaction_query {
         if matches!(interaction, Interaction::Pressed) {
-            commands.trigger_targets(OnPress, entity);
+            commands.trigger(OnPress { entity });
         }
     }
 }

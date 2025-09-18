@@ -39,5 +39,5 @@ fn tick_timers(
 }
 
 fn remove_previous_target(trigger: Trigger<OnAdd, TargetAfter>, mut commands: Commands) {
-    commands.entity(trigger.target()).remove::<Target>();
+    commands.entity(trigger.entity).remove::<Target>();
 }

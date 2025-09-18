@@ -37,7 +37,7 @@ fn on_click(
     let Some(point) = click.hit.position else {
         return;
     };
-    if meshes.contains(click.target()) {
+    if meshes.contains(click.entity) {
         let sampled_point =
             archipelago.sample_point(point, &PointSampleDistance3d::from_agent_radius(5.0));
         if let Ok(sampled_point) = sampled_point {
@@ -46,10 +46,10 @@ fn on_click(
                 *target = AgentTarget3d::Point(sampled_point.point());
             }
         }
-    } else if npcs.contains(click.target()) {
+    } else if npcs.contains(click.entity) {
         let arbitrary_path_corner = path_corners.iter().next().unwrap();
         commands
-            .entity(click.target())
+            .entity(click.entity)
             .insert(Target(arbitrary_path_corner));
     }
 }

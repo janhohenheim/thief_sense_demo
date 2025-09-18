@@ -37,7 +37,7 @@ impl LoadResource for App {
     }
 
     fn load_asset<T: Asset>(&mut self, path: &str) -> &mut Self {
-        let handle: Handle<T> = self.world().load_asset(path);
+        let handle: Handle<T> = self.world().load_asset(path.to_string());
         let mut handles = self.world_mut().resource_mut::<ResourceHandles>();
         handles
             .waiting

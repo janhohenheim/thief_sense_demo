@@ -12,7 +12,7 @@ pub(crate) fn spawn_view_cones(
     names: Query<&Name>,
     mut commands: Commands,
 ) {
-    for child in children.iter_descendants(trigger.target()) {
+    for child in children.iter_descendants(trigger.entity) {
         let Ok(name) = names.get(child) else {
             continue;
         };

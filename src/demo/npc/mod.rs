@@ -42,7 +42,7 @@ fn spawn_npc(
     assets: Res<AssetServer>,
     archipelago: Single<Entity, With<Archipelago3d>>,
 ) {
-    let npc = trigger.target();
+    let npc = trigger.entity;
     commands
         .entity(npc)
         .insert((
