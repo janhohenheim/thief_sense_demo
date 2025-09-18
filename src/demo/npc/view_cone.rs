@@ -7,12 +7,12 @@ use bevy::{prelude::*, scene::SceneInstanceReady};
 pub(super) fn plugin(_app: &mut App) {}
 
 pub(crate) fn spawn_view_cones(
-    trigger: Trigger<SceneInstanceReady>,
+    trigger: On<SceneInstanceReady>,
     children: Query<&Children>,
     names: Query<&Name>,
     mut commands: Commands,
 ) {
-    for child in children.iter_descendants(trigger.target()) {
+    for child in children.iter_descendants(trigger.entity) {
         let Ok(name) = names.get(child) else {
             continue;
         };
@@ -23,7 +23,7 @@ pub(crate) fn spawn_view_cones(
 
         commands.entity(child).with_child((
             view_cone,
-            Transform::from_rotation(Quat::from_rotation_x(-TAU / 4.0)),
+            Transform::from_rotation(Quat::from_rotation_x(TAU / 4.0)),
             Sensor,
         ));
 

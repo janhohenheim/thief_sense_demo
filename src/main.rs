@@ -14,6 +14,7 @@ mod theme;
 mod third_party;
 use bevy::{
     asset::AssetMetaCheck,
+    gltf::GltfPlugin,
     image::{ImageAddressMode, ImageSamplerDescriptor},
     prelude::*,
 };
@@ -43,6 +44,10 @@ impl Plugin for AppPlugin {
                         ..default()
                     }
                     .into(),
+                    ..default()
+                })
+                .set(GltfPlugin {
+                    use_model_forward_direction: true,
                     ..default()
                 })
                 .set(ImagePlugin {

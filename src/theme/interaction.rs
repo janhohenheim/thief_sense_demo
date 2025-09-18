@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_seedling::sample::{Sample, SamplePlayer};
+use bevy_seedling::sample::{AudioSample, SamplePlayer};
 
 use crate::{AppSystems, asset_tracking::LoadResource, audio::SfxPool};
 
@@ -31,8 +31,10 @@ pub(crate) struct InteractionPalette {
 
 /// Event triggered on a UI entity when the [`Interaction`] component on the same entity changes to
 /// [`Interaction::Pressed`]. Observe this event to detect e.g. button presses.
-#[derive(Event)]
-pub(crate) struct OnPress;
+#[derive(EntityEvent)]
+pub(crate) struct OnPress {
+    entity: Entity,
+}
 
 fn trigger_on_press(
     interaction_query: Query<(Entity, &Interaction), Changed<Interaction>>,
@@ -40,7 +42,7 @@ fn trigger_on_press(
 ) {
     for (entity, interaction) in &interaction_query {
         if matches!(interaction, Interaction::Pressed) {
-            commands.trigger_targets(OnPress, entity);
+            commands.trigger(OnPress { entity });
         }
     }
 }
@@ -64,9 +66,9 @@ fn apply_interaction_palette(
 #[derive(Resource, Asset, Reflect, Clone)]
 pub(crate) struct InteractionAssets {
     #[dependency]
-    hover: Handle<Sample>,
+    hover: Handle<AudioSample>,
     #[dependency]
-    press: Handle<Sample>,
+    press: Handle<AudioSample>,
 }
 
 impl InteractionAssets {

@@ -14,7 +14,7 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 pub(crate) fn link_path_corners(
-    _trigger: Trigger<SceneInstanceReady>,
+    _trigger: On<SceneInstanceReady>,
     corners: Query<(Entity, &PathCorner)>,
     mut commands: Commands,
 ) {

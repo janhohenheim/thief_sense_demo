@@ -32,7 +32,7 @@ struct NpcAnimations {
 }
 
 pub(crate) fn setup_npc_animations(
-    trigger: Trigger<OnAdd, AnimationPlayers>,
+    trigger: On<Add, AnimationPlayers>,
     q_anim_players: Query<&AnimationPlayers>,
     mut commands: Commands,
     assets: Res<AssetServer>,
@@ -40,7 +40,7 @@ pub(crate) fn setup_npc_animations(
     gltfs: Res<Assets<Gltf>>,
 ) {
     let gltf = gltfs.get(assets.load(NPC_GLTF).id()).unwrap();
-    let anim_players = q_anim_players.get(trigger.target()).unwrap();
+    let anim_players = q_anim_players.get(trigger.entity).unwrap();
     for anim_player in anim_players.iter() {
         let (graph, indices) = AnimationGraph::from_clips(
             ["Idle_Loop", "Walk_Loop", "Sprint_Loop"]

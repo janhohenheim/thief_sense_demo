@@ -1,13 +1,13 @@
 //! Spawn the main level.
 
 use bevy::{color::palettes::tailwind, prelude::*};
-use bevy_landmass::{PointSampleDistance3d, prelude::*};
+use bevy_landmass::prelude::*;
 use bevy_rerecast::Navmesh;
 use landmass_rerecast::{Island3dBundle, NavMeshHandle3d};
 
 use crate::{
     asset_tracking::LoadResource,
-    demo::{path_corner::link_path_corners, target::link_targets},
+    demo::{npc::NPC_RADIUS, path_corner::link_path_corners, target::link_targets},
     screens::Screen,
 };
 
@@ -21,28 +21,20 @@ const NAVMESH: &str = "maps/main_level.nav";
 /// A system that spawns the main level.
 pub(crate) fn spawn_level(mut commands: Commands, assets: Res<AssetServer>) {
     commands
-        .spawn((SceneRoot(assets.load(MAP)), StateScoped(Screen::Gameplay)))
+        .spawn((SceneRoot(assets.load(MAP)), DespawnOnExit(Screen::Gameplay)))
         .observe(link_path_corners)
         .observe(link_targets);
     let archipelago = commands
         .spawn((
             Name::new("Main Level Archipelago"),
-            StateScoped(Screen::Gameplay),
-            Archipelago3d::new(AgentOptions {
-                point_sample_distance: PointSampleDistance3d {
-                    horizontal_distance: 0.6,
-                    distance_above: 1.0,
-                    distance_below: 1.0,
-                    vertical_preference_ratio: 2.0,
-                },
-                ..AgentOptions::from_agent_radius(0.4)
-            }),
+            DespawnOnExit(Screen::Gameplay),
+            Archipelago3d::new(ArchipelagoOptions::from_agent_radius(NPC_RADIUS)),
         ))
         .id();
 
     commands.spawn((
         Name::new("Main Level Island"),
-        StateScoped(Screen::Gameplay),
+        DespawnOnExit(Screen::Gameplay),
         Island3dBundle {
             island: Island,
             archipelago_ref: ArchipelagoRef3d::new(archipelago),
