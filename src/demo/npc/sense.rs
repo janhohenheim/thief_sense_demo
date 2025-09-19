@@ -1,7 +1,19 @@
+//! Original implementation notes:
+//! The AI iterates over the player and all close-ish NPCs. This represents the AI sensing the player and sensing other NPCs.
+//! In every iteration, it checks a timer. For NPCs, it's 500 milliseconds. For the player, it's 200 milliseconds if near (about 12 meters), 500 milliseconds otherwise.
+//! If the timer is due, the sensing happens. Vision is based on what the vision cones see *right now* this frame.
+//! Only the highest order vision cone that contains the target is used.
+//! Visibility is cached. Dunno if only the raycasts or more.
+//! The sound meanwhile is buffered and considers all sounds that happened since the last time the timer was due.
+//! Interestingly, all of this is only true for the AI sensing players and NPCs. Looking at suspicious objects is done completely separately, no vision cones involved.
+//! Sound for e.g. thrown plates is also done separately, but I'm not sure of the timers used in both cases.
+
 use bevy::{
     ecs::{lifecycle::HookContext, world::DeferredWorld},
     prelude::*,
 };
+
+use crate::demo::player::Player;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(PreUpdate, tick_timers);
@@ -100,14 +112,29 @@ fn on_add_player_sense_timer(mut world: DeferredWorld, ctx: HookContext) {
 
 fn tick_timers(
     mut npc_timers: Query<&mut NpcSenseTimer>,
-    mut player_timers: Query<&mut PlayerSenseTimer>,
+    mut player_timers: Query<(&Transform, &mut PlayerSenseTimer)>,
+    player: Single<&Transform, With<Player>>,
     time: Res<Time>,
 ) {
     for mut timer in npc_timers.iter_mut() {
+        if timer.is_finished() {
+            timer.reset();
+        }
         timer.timer.tick(time.delta());
     }
 
-    for mut timer in player_timers.iter_mut() {
+    for (ai_transform, mut timer) in player_timers.iter_mut() {
+        if timer.is_finished() {
+            let near = ai_transform
+                .translation
+                .distance_squared(player.translation)
+                < timer.far_distance * timer.far_distance;
+            if near {
+                timer.reset_near();
+            } else {
+                timer.reset_far();
+            }
+        }
         timer.timer.tick(time.delta());
     }
 }

@@ -9,6 +9,7 @@ mod click;
 pub(crate) mod level;
 pub(crate) mod npc;
 mod path_corner;
+mod player;
 mod target;
 mod target_after;
 
@@ -18,6 +19,7 @@ pub(super) fn plugin(app: &mut App) {
         npc::plugin,
         click::plugin,
         path_corner::plugin,
+        player::plugin,
         target::plugin,
         target_after::plugin,
     ));
