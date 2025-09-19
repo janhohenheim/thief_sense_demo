@@ -61,6 +61,7 @@ bevy_landmass = "0.10.0"
 landmass_rerecast = "0.1.0"
 bevy_rerecast = { version = "0.3.0-rc", default-features = false }
 avian_rerecast = "0.3.0-rc"
+anyhow = "1.0.99"
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.3", features = ["wasm_js"] }

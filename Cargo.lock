@@ -5920,6 +5920,7 @@ dependencies = [
 name = "thief_sense_demo"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "avian3d",
  "avian_rerecast",
  "bevy",
