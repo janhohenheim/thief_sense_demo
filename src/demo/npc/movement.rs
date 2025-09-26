@@ -14,7 +14,7 @@ pub(super) fn plugin(app: &mut App) {
         (sync_agent_velocity, set_controller_velocity)
             .chain()
             .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop)
-            .before(LandmassSystemSet::SyncExistence)
+            .before(LandmassSystems::SyncExistence)
             .run_if(in_state(Screen::Gameplay)),
     );
     app.add_systems(FixedUpdate, set_target_to_quake_target);
