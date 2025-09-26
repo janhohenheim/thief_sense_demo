@@ -18,6 +18,7 @@ use bevy::{
     image::{ImageAddressMode, ImageSamplerDescriptor},
     prelude::*,
 };
+mod rand_timer;
 
 fn main() -> AppExit {
     App::new().add_plugins(AppPlugin).run()
@@ -90,6 +91,7 @@ impl Plugin for AppPlugin {
             dev_tools::plugin,
             screens::plugin,
             theme::plugin,
+            rand_timer::plugin,
         ));
 
         // Order new `AppSystems` variants by adding them here:

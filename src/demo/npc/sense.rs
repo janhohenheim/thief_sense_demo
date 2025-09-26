@@ -8,133 +8,29 @@
 //! Interestingly, all of this is only true for the AI sensing players and NPCs. Looking at suspicious objects is done completely separately, no vision cones involved.
 //! Sound for e.g. thrown plates is also done separately, but I'm not sure of the timers used in both cases.
 
-use bevy::{
-    ecs::{lifecycle::HookContext, world::DeferredWorld},
-    prelude::*,
-};
+use bevy::prelude::*;
 
-use crate::demo::player::Player;
+use crate::rand_timer::{RandTimer, RandTimerApp};
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(PreUpdate, tick_timers);
+    app.add_rand_timer::<NpcSenseTimer>()
+        .add_rand_timer::<PlayerSenseTimer>();
 }
 
-#[derive(Component, Debug)]
-#[component(on_add = on_add_npc_sense_timer)]
-pub(crate) struct NpcSenseTimer {
-    pub(crate) timer: Timer,
-    pub(crate) max_offset: f32,
-    pub(crate) base_duration: f32,
-}
+#[derive(Component, Debug, Deref, DerefMut)]
+pub(crate) struct NpcSenseTimer(pub(crate) RandTimer);
 
 impl Default for NpcSenseTimer {
     fn default() -> Self {
-        Self {
-            max_offset: 0.05,
-            base_duration: 0.2,
-            // set in hook
-            timer: Timer::default(),
-        }
+        Self(RandTimer::from_millis(500))
     }
 }
 
-impl NpcSenseTimer {
-    pub(crate) fn reset(&mut self) {
-        self.timer = Timer::from_seconds(
-            self.base_duration + rand::random_range(-self.max_offset..self.max_offset),
-            TimerMode::Once,
-        );
-    }
-
-    pub(crate) fn is_finished(&self) -> bool {
-        self.timer.is_finished()
-    }
-}
-
-#[derive(Component, Debug)]
-#[component(on_add = on_add_player_sense_timer)]
-pub(crate) struct PlayerSenseTimer {
-    pub(crate) timer: Timer,
-    pub(crate) max_offset: f32,
-    pub(crate) near_duration: f32,
-    pub(crate) far_duration: f32,
-    pub(crate) far_distance: f32,
-}
+#[derive(Component, Debug, Deref, DerefMut)]
+pub(crate) struct PlayerSenseTimer(pub(crate) RandTimer);
 
 impl Default for PlayerSenseTimer {
     fn default() -> Self {
-        Self {
-            max_offset: 0.05,
-            near_duration: 0.2,
-            far_duration: 0.5,
-            far_distance: 15.0,
-            // set in hook
-            timer: Timer::default(),
-        }
-    }
-}
-
-impl PlayerSenseTimer {
-    pub(crate) fn reset_near(&mut self) {
-        self.timer = Timer::from_seconds(
-            self.near_duration + rand::random_range(-self.max_offset..self.max_offset),
-            TimerMode::Once,
-        );
-    }
-
-    pub(crate) fn reset_far(&mut self) {
-        self.timer = Timer::from_seconds(
-            self.far_duration + rand::random_range(-self.max_offset..self.max_offset),
-            TimerMode::Once,
-        );
-    }
-
-    pub(crate) fn is_finished(&self) -> bool {
-        self.timer.is_finished()
-    }
-}
-
-fn on_add_npc_sense_timer(mut world: DeferredWorld, ctx: HookContext) {
-    world
-        .entity_mut(ctx.entity)
-        .get_mut::<NpcSenseTimer>()
-        .unwrap()
-        .reset();
-}
-
-fn on_add_player_sense_timer(mut world: DeferredWorld, ctx: HookContext) {
-    world
-        .entity_mut(ctx.entity)
-        .get_mut::<PlayerSenseTimer>()
-        .unwrap()
-        .reset_far();
-}
-
-fn tick_timers(
-    mut npc_timers: Query<&mut NpcSenseTimer>,
-    mut player_timers: Query<(&Transform, &mut PlayerSenseTimer)>,
-    player: Single<&Transform, With<Player>>,
-    time: Res<Time>,
-) {
-    for mut timer in npc_timers.iter_mut() {
-        if timer.is_finished() {
-            timer.reset();
-        }
-        timer.timer.tick(time.delta());
-    }
-
-    for (ai_transform, mut timer) in player_timers.iter_mut() {
-        if timer.is_finished() {
-            let near = ai_transform
-                .translation
-                .distance_squared(player.translation)
-                < timer.far_distance * timer.far_distance;
-            if near {
-                timer.reset_near();
-            } else {
-                timer.reset_far();
-            }
-        }
-        timer.timer.tick(time.delta());
+        Self(RandTimer::from_millis(200))
     }
 }
