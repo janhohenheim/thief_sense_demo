@@ -1,16 +1,9 @@
 use crate::{
-    demo::{
-        npc::{NPC_FLOAT_HEIGHT, NPC_RADIUS},
-        path_corner::PathCorner,
-        target::Target,
-    },
-    screens::Screen,
+    demo::{npc::NPC_RADIUS, path_corner::PathCorner, target::Target},
     third_party::landmass::Agent,
 };
-use avian3d::prelude::*;
 use bevy::{ecs::relationship::Relationship as _, prelude::*};
-use bevy_landmass::{PointSampleDistance3d, Velocity3d as LandmassVelocity, prelude::*};
-use bevy_tnua::prelude::*;
+use bevy_landmass::{PointSampleDistance3d, prelude::*};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(FixedUpdate, set_target_to_quake_target);

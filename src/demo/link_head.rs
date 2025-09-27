@@ -36,8 +36,7 @@ pub(crate) fn link_head_bone<Marker: Component>(
             else {
                 return Err(BevyError::from(
                     "Failed to create view cone attachment: not a descendant of an NPC",
-                )
-                .into());
+                ));
             };
             let mut found = false;
             for child in children.iter_descendants(trigger.entity) {
@@ -56,8 +55,7 @@ pub(crate) fn link_head_bone<Marker: Component>(
             if !found {
                 return Err(BevyError::from(
                     "Failed to create view cone attachment: bone not found",
-                )
-                .into());
+                ));
             }
             Ok(())
         },

@@ -1,10 +1,6 @@
-use bevy::{
-    color::palettes::tailwind, input::keyboard::KeyboardInput,
-    picking::pointer::PointerInteraction, prelude::*,
-};
+use bevy::{color::palettes::tailwind, picking::pointer::PointerInteraction, prelude::*};
 use bevy_landmass::{
-    AgentDesiredVelocity3d, AgentSettings, AgentTarget3d, Archipelago3d, FromAgentRadius as _,
-    PointSampleDistance3d,
+    AgentSettings, AgentTarget3d, Archipelago3d, FromAgentRadius as _, PointSampleDistance3d,
 };
 
 use crate::{
