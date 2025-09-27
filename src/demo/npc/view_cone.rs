@@ -27,9 +27,14 @@ pub(crate) struct DebugViewCones {
 
 impl FromWorld for ViewCones {
     fn from_world(_world: &mut World) -> Self {
-        Self(vec![ViewCone {
-            collider: Collider::elliptic_cone(0.4, 0.8, 3.5),
-        }])
+        Self(vec![
+            ViewCone {
+                collider: Collider::elliptic_cone(0.4, 0.8, 3.5),
+            },
+            ViewCone {
+                collider: Collider::elliptic_cone(1.2, 1.2, 2.5),
+            },
+        ])
     }
 }
 
@@ -46,7 +51,7 @@ impl FromWorld for DebugViewCones {
         let material = world
             .resource_mut::<Assets<StandardMaterial>>()
             .add(StandardMaterial {
-                base_color: Color::from(tailwind::GREEN_400.with_alpha(0.4)),
+                base_color: Color::from(tailwind::GREEN_400.with_alpha(0.2)),
                 alpha_mode: AlphaMode::Blend,
                 unlit: true,
                 ..default()

@@ -7,7 +7,7 @@ use crate::{
         target::TargetBase,
     },
     movement::FloatHeight,
-    third_party::landmass::AgentOf,
+    third_party::{avian::CollisionLayer, landmass::AgentOf},
 };
 use avian3d::prelude::*;
 use bevy::prelude::*;
@@ -64,6 +64,10 @@ fn spawn_npc(
             TnuaAnimatingState::<NpcAnimationState>::default(),
             AnimationPlayerAncestor,
             FloatHeight(NPC_FLOAT_HEIGHT),
+            CollisionLayers::new(
+                [CollisionLayer::Default, CollisionLayer::AiVisible],
+                CollisionLayer::Default,
+            ),
             SenseTimer::default(),
         ))
         .with_children(|parent| {
