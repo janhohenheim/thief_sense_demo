@@ -13,24 +13,14 @@ use bevy::prelude::*;
 use crate::rand_timer::{RandTimer, RandTimerApp};
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_rand_timer::<NpcSenseTimer>()
-        .add_rand_timer::<PlayerSenseTimer>();
+    app.add_rand_timer::<SenseTimer>();
 }
 
 #[derive(Component, Debug, Deref, DerefMut)]
-pub(crate) struct NpcSenseTimer(pub(crate) RandTimer);
+pub(crate) struct SenseTimer(pub(crate) RandTimer);
 
-impl Default for NpcSenseTimer {
+impl Default for SenseTimer {
     fn default() -> Self {
         Self(RandTimer::from_millis(500))
-    }
-}
-
-#[derive(Component, Debug, Deref, DerefMut)]
-pub(crate) struct PlayerSenseTimer(pub(crate) RandTimer);
-
-impl Default for PlayerSenseTimer {
-    fn default() -> Self {
-        Self(RandTimer::from_millis(200))
     }
 }

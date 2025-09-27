@@ -2,11 +2,8 @@ use crate::{
     animation::AnimationPlayerAncestor,
     asset_tracking::LoadResource as _,
     demo::{
-        npc::{
-            animation::NpcAnimationState,
-            sense::{NpcSenseTimer, PlayerSenseTimer},
-            view_cone::link_head_bone,
-        },
+        link_head::link_head_bone,
+        npc::{animation::NpcAnimationState, sense::SenseTimer},
         target::TargetBase,
     },
     third_party::landmass::AgentOf,
@@ -25,7 +22,6 @@ mod sense;
 mod view_cone;
 
 pub(super) fn plugin(app: &mut App) {
-    app.register_type::<Npc>();
     app.load_asset::<Gltf>(NPC_GLTF);
     app.add_observer(spawn_npc);
     app.add_plugins((
@@ -66,8 +62,7 @@ fn spawn_npc(
             LockedAxes::ROTATION_LOCKED.unlock_rotation_y(),
             TnuaAnimatingState::<NpcAnimationState>::default(),
             AnimationPlayerAncestor,
-            NpcSenseTimer::default(),
-            PlayerSenseTimer::default(),
+            SenseTimer::default(),
         ))
         .with_children(|parent| {
             parent
@@ -75,7 +70,7 @@ fn spawn_npc(
                     SceneRoot(assets.load(GltfAssetLabel::Scene(0).from_asset(NPC_GLTF))),
                     Transform::from_xyz(0.0, -NPC_FLOAT_HEIGHT, 0.0),
                 ))
-                .observe(link_head_bone);
+                .observe(link_head_bone::<Npc>("DEF-head"));
         });
     commands.spawn((
         Name::new("NPC Agent"),

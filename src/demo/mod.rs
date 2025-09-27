@@ -5,8 +5,8 @@
 
 use bevy::prelude::*;
 
-mod click;
 pub(crate) mod level;
+pub(crate) mod link_head;
 pub(crate) mod npc;
 mod path_corner;
 mod player;
@@ -17,10 +17,10 @@ pub(super) fn plugin(app: &mut App) {
     app.add_plugins((
         level::plugin,
         npc::plugin,
-        click::plugin,
         path_corner::plugin,
         player::plugin,
         target::plugin,
         target_after::plugin,
+        link_head::plugin,
     ));
 }

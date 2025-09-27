@@ -35,7 +35,7 @@
 "classname" "npc"
 "origin" "24 40 32"
 "angle" "180"
-"target" ""
+"target" "a"
 }
 // entity 3
 {
@@ -75,4 +75,9 @@
 "origin" "200 168 104"
 "shadows_enabled" "true"
 "angles" "54 -42 55"
+}
+// entity 8
+{
+"classname" "player"
+"origin" "-72 -264 40"
 }
