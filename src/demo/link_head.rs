@@ -12,7 +12,7 @@ pub(super) fn plugin(app: &mut App) {
 
 #[derive(Component, Debug)]
 #[relationship(relationship_target=Head)]
-pub(crate) struct HeadOf(Entity);
+pub(crate) struct HeadOf(pub(crate) Entity);
 
 #[derive(Component, Debug)]
 #[relationship_target(relationship=HeadOf)]
