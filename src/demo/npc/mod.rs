@@ -6,6 +6,7 @@ use crate::{
         npc::{animation::NpcAnimationState, sense::SenseTimer},
         target::TargetBase,
     },
+    movement::FloatHeight,
     third_party::landmass::AgentOf,
 };
 use avian3d::prelude::*;
@@ -62,6 +63,7 @@ fn spawn_npc(
             LockedAxes::ROTATION_LOCKED.unlock_rotation_y(),
             TnuaAnimatingState::<NpcAnimationState>::default(),
             AnimationPlayerAncestor,
+            FloatHeight(NPC_FLOAT_HEIGHT),
             SenseTimer::default(),
         ))
         .with_children(|parent| {

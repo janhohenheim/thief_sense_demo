@@ -9,6 +9,7 @@ mod audio;
 mod demo;
 #[cfg(feature = "dev")]
 mod dev_tools;
+mod movement;
 mod screens;
 mod theme;
 mod third_party;
@@ -92,6 +93,7 @@ impl Plugin for AppPlugin {
             screens::plugin,
             theme::plugin,
             rand_timer::plugin,
+            movement::plugin,
         ));
 
         // Order new `AppSystems` variants by adding them here:

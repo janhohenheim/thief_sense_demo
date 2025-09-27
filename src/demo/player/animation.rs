@@ -8,7 +8,7 @@ use bevy_tnua::{TnuaAnimatingState, TnuaAnimatingStateDirective, prelude::*};
 use crate::{
     AppSystems,
     animation::AnimationPlayers,
-    demo::player::{PLAYER_GLTF, PLAYER_MAX_SPEED, PLAYER_WALK_SPEED},
+    demo::player::{PLAYER_GLTF, PLAYER_RUN_SPEED, PLAYER_WALK_SPEED},
     screens::Screen,
 };
 
@@ -107,7 +107,7 @@ fn play_animations(
                     {
                         match state {
                             PlayerAnimationState::Run(speed) => {
-                                let anim_speed = speed / PLAYER_MAX_SPEED;
+                                let anim_speed = speed / PLAYER_RUN_SPEED;
                                 playing_animation.set_speed(anim_speed);
                             }
                             PlayerAnimationState::Walk(speed) => {

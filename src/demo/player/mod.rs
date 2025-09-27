@@ -12,6 +12,7 @@ use crate::{
     animation::AnimationPlayerAncestor,
     asset_tracking::LoadResource as _,
     demo::{link_head::link_head_bone, player::animation::PlayerAnimationState},
+    movement::FloatHeight,
     third_party::landmass::AgentOf,
 };
 
@@ -26,8 +27,8 @@ const PLAYER_GLTF: &str = "models/npc.glb";
 const PLAYER_HEIGHT: f32 = 1.6811;
 pub(crate) const PLAYER_RADIUS: f32 = 0.2;
 const PLAYER_FLOAT_HEIGHT: f32 = PLAYER_HEIGHT / 2.0 + 0.01;
-const PLAYER_MAX_SPEED: f32 = 5.0;
 const PLAYER_WALK_SPEED: f32 = 2.5;
+const PLAYER_RUN_SPEED: f32 = 5.0;
 
 #[point_class(model("models/npc.glb"))]
 pub(crate) struct Player;
@@ -50,6 +51,7 @@ fn spawn_player(
             LockedAxes::ROTATION_LOCKED.unlock_rotation_y(),
             TnuaAnimatingState::<PlayerAnimationState>::default(),
             AnimationPlayerAncestor,
+            FloatHeight(PLAYER_FLOAT_HEIGHT),
         ))
         .with_children(|parent| {
             parent
@@ -67,7 +69,7 @@ fn spawn_player(
             settings: AgentSettings {
                 radius: PLAYER_RADIUS,
                 desired_speed: PLAYER_WALK_SPEED,
-                max_speed: PLAYER_MAX_SPEED,
+                max_speed: PLAYER_WALK_SPEED + 2.0,
             },
             archipelago_ref: ArchipelagoRef3d::new(*archipelago),
         },
