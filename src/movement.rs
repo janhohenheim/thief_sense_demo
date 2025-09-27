@@ -1,6 +1,6 @@
 use crate::{screens::Screen, third_party::landmass::Agent};
 use avian3d::prelude::*;
-use bevy::{ecs::relationship::Relationship as _, prelude::*};
+use bevy::prelude::*;
 use bevy_landmass::{Velocity3d as LandmassVelocity, prelude::*};
 use bevy_tnua::prelude::*;
 

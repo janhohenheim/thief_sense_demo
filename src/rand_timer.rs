@@ -19,10 +19,6 @@ impl RandTimer {
         Self::new(Duration::from_millis(duration))
     }
 
-    pub(crate) fn from_seconds(duration: f32) -> Self {
-        Self::new(Duration::from_secs_f32(duration))
-    }
-
     pub(crate) fn new(duration: Duration) -> Self {
         Self {
             timer: Timer::new(Self::offset(duration), TimerMode::Once),
