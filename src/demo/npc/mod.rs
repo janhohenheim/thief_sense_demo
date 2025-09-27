@@ -2,9 +2,11 @@ use crate::{
     animation::AnimationPlayerAncestor,
     asset_tracking::LoadResource as _,
     demo::{
-        npc::{animation::NpcAnimationState, view_cone::spawn_view_cones},
+        link_head::link_head_bone,
+        npc::{animation::NpcAnimationState, sense::SenseTimer},
         target::TargetBase,
     },
+    movement::FloatHeight,
     third_party::landmass::AgentOf,
 };
 use avian3d::prelude::*;
@@ -15,14 +17,21 @@ use bevy_tnua_avian3d::TnuaAvian3dSensorShape;
 use bevy_trenchbroom::prelude::*;
 
 mod animation;
+mod look;
 mod movement;
+mod sense;
 mod view_cone;
 
 pub(super) fn plugin(app: &mut App) {
-    app.register_type::<Npc>();
     app.load_asset::<Gltf>(NPC_GLTF);
     app.add_observer(spawn_npc);
-    app.add_plugins((movement::plugin, animation::plugin, view_cone::plugin));
+    app.add_plugins((
+        movement::plugin,
+        animation::plugin,
+        view_cone::plugin,
+        look::plugin,
+        sense::plugin,
+    ));
 }
 
 const NPC_GLTF: &str = "models/npc.glb";
@@ -54,6 +63,8 @@ fn spawn_npc(
             LockedAxes::ROTATION_LOCKED.unlock_rotation_y(),
             TnuaAnimatingState::<NpcAnimationState>::default(),
             AnimationPlayerAncestor,
+            FloatHeight(NPC_FLOAT_HEIGHT),
+            SenseTimer::default(),
         ))
         .with_children(|parent| {
             parent
@@ -61,7 +72,7 @@ fn spawn_npc(
                     SceneRoot(assets.load(GltfAssetLabel::Scene(0).from_asset(NPC_GLTF))),
                     Transform::from_xyz(0.0, -NPC_FLOAT_HEIGHT, 0.0),
                 ))
-                .observe(spawn_view_cones);
+                .observe(link_head_bone::<Npc>("DEF-head"));
         });
     commands.spawn((
         Name::new("NPC Agent"),

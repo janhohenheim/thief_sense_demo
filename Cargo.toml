@@ -62,6 +62,8 @@ landmass_rerecast = "0.1.0"
 bevy_rerecast = { version = "0.3.0-rc", default-features = false }
 avian_rerecast = "0.3.0-rc"
 
+anyhow = "1.0.99"
+
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.3", features = ["wasm_js"] }
 
@@ -176,4 +178,5 @@ bevy-tnua = {  git = "https://github.com/janhohenheim/bevy-tnua", branch = "bevy
 bevy-tnua-avian3d = { git = "https://github.com/janhohenheim/bevy-tnua", branch = "bevy-0.17.0-dev"}
 avian_rerecast = { git = "https://github.com/janhohenheim/rerecast" }
 bevy_seedling = { git = "https://github.com/CorvusPrudens/bevy_seedling" }
-firewheel-web-audio = { git =  "https://github.com/CorvusPrudens/firewheel-web-audio" }
+firewheel-web-audio = { git = "https://github.com/CorvusPrudens/firewheel-web-audio", rev = "65888f3" }
+bevy_rerecast = { git = "https://github.com/janhohenheim/rerecast" }

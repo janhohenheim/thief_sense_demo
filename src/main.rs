@@ -9,6 +9,7 @@ mod audio;
 mod demo;
 #[cfg(feature = "dev")]
 mod dev_tools;
+mod movement;
 mod screens;
 mod theme;
 mod third_party;
@@ -18,6 +19,7 @@ use bevy::{
     image::{ImageAddressMode, ImageSamplerDescriptor},
     prelude::*,
 };
+mod rand_timer;
 
 fn main() -> AppExit {
     App::new().add_plugins(AppPlugin).run()
@@ -90,6 +92,8 @@ impl Plugin for AppPlugin {
             dev_tools::plugin,
             screens::plugin,
             theme::plugin,
+            rand_timer::plugin,
+            movement::plugin,
         ));
 
         // Order new `AppSystems` variants by adding them here:
