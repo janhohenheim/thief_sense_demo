@@ -9,6 +9,7 @@ use crate::{
         player::Player,
     },
     rand_timer::RandTimer,
+    third_party::avian::CollisionLayer,
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -41,7 +42,9 @@ fn look(
             200
         };
         **sense_timer = RandTimer::from_millis(ms);
-        let mut filter = SpatialQueryFilter::default().with_excluded_entities([npc]);
+        let mut filter = SpatialQueryFilter::default()
+            .with_mask(CollisionLayer::AiVisible)
+            .with_excluded_entities([npc]);
 
         for view_cone in view_cones.iter() {
             let intersections = spatial.shape_intersections(

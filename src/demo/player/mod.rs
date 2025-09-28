@@ -13,7 +13,7 @@ use crate::{
     asset_tracking::LoadResource as _,
     demo::{link_head::link_head_bone, player::animation::PlayerAnimationState},
     movement::FloatHeight,
-    third_party::landmass::AgentOf,
+    third_party::{avian::CollisionLayer, landmass::AgentOf},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -50,6 +50,10 @@ fn spawn_player(
             RigidBody::Dynamic,
             LockedAxes::ROTATION_LOCKED.unlock_rotation_y(),
             TnuaAnimatingState::<PlayerAnimationState>::default(),
+            CollisionLayers::new(
+                [CollisionLayer::Default, CollisionLayer::AiVisible],
+                CollisionLayer::Default,
+            ),
             AnimationPlayerAncestor,
             FloatHeight(PLAYER_FLOAT_HEIGHT),
         ))

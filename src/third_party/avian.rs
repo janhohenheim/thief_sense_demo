@@ -35,3 +35,10 @@ impl EllipticCone for Collider {
         Collider::convex_hull(points).unwrap()
     }
 }
+
+#[derive(Debug, PhysicsLayer, Default)]
+pub(crate) enum CollisionLayer {
+    #[default]
+    Default,
+    AiVisible,
+}

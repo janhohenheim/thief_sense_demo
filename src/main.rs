@@ -81,6 +81,8 @@ impl Plugin for AppPlugin {
             ),
         ));
 
+        app.set_error_handler(bevy::ecs::error::error);
+
         // Add other plugins.
         app.add_plugins((
             third_party::plugin,

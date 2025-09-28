@@ -3,11 +3,11 @@ use crate::{
     asset_tracking::LoadResource as _,
     demo::{
         link_head::link_head_bone,
-        npc::{animation::NpcAnimationState, sense::SenseTimer},
+        npc::{animation::NpcAnimationState, sense::SenseTimer, view_cone::add_debug_view_cones},
         target::TargetBase,
     },
     movement::FloatHeight,
-    third_party::landmass::AgentOf,
+    third_party::{avian::CollisionLayer, landmass::AgentOf},
 };
 use avian3d::prelude::*;
 use bevy::prelude::*;
@@ -64,6 +64,10 @@ fn spawn_npc(
             TnuaAnimatingState::<NpcAnimationState>::default(),
             AnimationPlayerAncestor,
             FloatHeight(NPC_FLOAT_HEIGHT),
+            CollisionLayers::new(
+                [CollisionLayer::Default, CollisionLayer::AiVisible],
+                CollisionLayer::Default,
+            ),
             SenseTimer::default(),
         ))
         .with_children(|parent| {
@@ -73,7 +77,8 @@ fn spawn_npc(
                     Transform::from_xyz(0.0, -NPC_FLOAT_HEIGHT, 0.0),
                 ))
                 .observe(link_head_bone::<Npc>("DEF-head"));
-        });
+        })
+        .observe(add_debug_view_cones);
     commands.spawn((
         Name::new("NPC Agent"),
         Transform::from_translation(Vec3::new(0.0, -NPC_FLOAT_HEIGHT, 0.0)),
