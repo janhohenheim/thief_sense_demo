@@ -12,6 +12,7 @@ mod path_corner;
 mod player;
 mod target;
 mod target_after;
+mod visibility;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((
@@ -22,5 +23,6 @@ pub(super) fn plugin(app: &mut App) {
         target::plugin,
         target_after::plugin,
         link_head::plugin,
+        visibility::plugin,
     ));
 }

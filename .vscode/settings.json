@@ -5,5 +5,5 @@
     // Display the directory of `mod.rs` files in the tab above the text editor.
     "workbench.editor.customLabels.patterns": {
         "**/mod.rs": "${dirname}/mod.rs"
-    },
+    }
 }
