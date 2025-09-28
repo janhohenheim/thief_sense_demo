@@ -2,12 +2,8 @@ use std::f32::consts::TAU;
 
 use avian3d::prelude::*;
 use bevy::prelude::*;
-use bevy_trenchbroom::geometry::Brushes;
 
-use crate::{
-    demo::{collision_layer::CollisionLayer, player::PLAYER_RADIUS},
-    rand_timer::RandTimer,
-};
+use crate::{demo::collision_layer::CollisionLayer, rand_timer::RandTimer};
 
 pub(super) fn plugin(app: &mut App) {
     // NOT calling `add_rand_timer` because we want to manually reset it
@@ -38,21 +34,30 @@ pub(crate) struct AiVisibility {
 pub(crate) fn get_or_update_visibility(
     In(entity): In<Entity>,
     mut timers: Query<(&mut AiVisibility, &mut VisibilityTimer)>,
-    object: Query<(&GlobalTransform, &Collider, &LinearVelocity)>,
+    object: Query<(&GlobalTransform, &LinearVelocity)>,
     spatial: SpatialQuery,
 ) -> Result<AiVisibility> {
     let (mut visibility, mut timer) = timers.get_mut(entity)?;
     if !timer.is_finished() {
         return Ok(*visibility);
     }
-    let (transform, collider, velocity) = object.get(entity)?;
+    let (transform, velocity) = object.get(entity)?;
+
+    // lighting
+    let lighting = 0.0;
+
+    // movement
+    let movement = velocity.length();
+
+    // exposure
     let translation = transform.translation();
     let closest_wall = calc_closest_wall(translation, spatial);
+    let exposure = closest_wall;
     *visibility = AiVisibility {
         // TODO: do some raycasts. Can probably first do an AABB or sphere check to gather the potential light sources. Also remember to filter out `CollisionLayer::Transparent` from raycasts.
-        lighting: 0.0,
-        movement: velocity.length(),
-        exposure: closest_wall,
+        lighting,
+        movement,
+        exposure,
     };
     // Since this system is not called every frame, but only for entities that are currently looked at by AI,
     // we only reset the timer when necessary.
