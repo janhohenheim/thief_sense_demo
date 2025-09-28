@@ -3,14 +3,11 @@ use std::f32::consts::TAU;
 use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 
-use crate::{
-    demo::{
-        npc::{Npc, sense::SenseTimer, view_cone::ViewCones},
-        player::Player,
-        visibility::{AiVisibility, get_or_update_visibility},
-    },
-    rand_timer::RandTimer,
-    third_party::avian::CollisionLayer,
+use crate::demo::{
+    collision_layer::CollisionLayer,
+    npc::{Npc, sense::SenseTimer, view_cone::ViewCones},
+    player::Player,
+    visibility::{AiVisibility, get_or_update_visibility},
 };
 
 pub(super) fn plugin(app: &mut App) {

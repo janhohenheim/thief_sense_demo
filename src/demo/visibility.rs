@@ -29,9 +29,6 @@ pub(crate) struct AiVisibility {
     pub(crate) exposure: f32,
 }
 
-// Todo:
-// - Add AiVisibility to NPCs
-//
 pub(crate) fn get_or_update_visibility(
     In(entity): In<Entity>,
     mut timers: Query<(&mut AiVisibility, &mut VisibilityTimer)>,
@@ -43,8 +40,10 @@ pub(crate) fn get_or_update_visibility(
     }
     let velocity = object.get(entity)?;
     *visibility = AiVisibility {
+        // TODO: do some raycasts. Can probably first do an AABB or sphere check to gather the potential light sources. Also remember to filter out `CollisionLayer::Transparent` from raycasts.
         lighting: 0.0,
         movement: velocity.length(),
+        // TODO: use https://docs.rs/avian3d/latest/avian3d/collision/collider/contact_query/fn.distance.html
         exposure: 0.0,
     };
     // Since this system is not called every frame, but only for entities that are currently looked at by AI,
