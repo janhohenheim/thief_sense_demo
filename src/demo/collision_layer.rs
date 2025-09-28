@@ -1,5 +1,5 @@
 use avian3d::prelude::PhysicsLayer;
-use bevy::{prelude::*, scene::SceneInstanceReady};
+use bevy::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
     let _ = app;

@@ -1,7 +1,7 @@
 use avian3d::prelude::LinearVelocity;
-use bevy::{ecs::world::DeferredWorld, prelude::*};
+use bevy::prelude::*;
 
-use crate::rand_timer::{RandTimer, RandTimerApp};
+use crate::rand_timer::RandTimer;
 
 pub(super) fn plugin(app: &mut App) {
     // NOT calling `add_rand_timer` because we want to manually reset it
