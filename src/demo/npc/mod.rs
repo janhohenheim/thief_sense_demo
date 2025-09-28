@@ -5,6 +5,7 @@ use crate::{
         link_head::link_head_bone,
         npc::{animation::NpcAnimationState, sense::SenseTimer, view_cone::add_debug_view_cones},
         target::TargetBase,
+        visibility::AiVisibility,
     },
     movement::FloatHeight,
     third_party::{avian::CollisionLayer, landmass::AgentOf},
@@ -69,6 +70,7 @@ fn spawn_npc(
                 CollisionLayer::Default,
             ),
             SenseTimer::default(),
+            AiVisibility::default(),
         ))
         .with_children(|parent| {
             parent

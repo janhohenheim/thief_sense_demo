@@ -45,6 +45,7 @@ fn look(world: &mut World) -> Result {
                         continue;
                     }
                 };
+            info!("Entity {:?}: {:?}", entity, visibility);
         }
     }
     if errors.is_empty() {
@@ -56,6 +57,10 @@ fn look(world: &mut World) -> Result {
     }
 }
 
+// TODO:
+// - use a better name lol
+// - return cone metadata: how well is every entity visible?
+// - do a raycast before adding the entity to the list, *but* add it to the filter even if the raycast doesn't hit (no need to raycast an occluded entity twice)
 fn check_view_cones(
     In(entity): In<Entity>,
     mut npcs: Query<(&Transform, &mut SenseTimer)>,
@@ -78,7 +83,7 @@ fn check_view_cones(
     } else {
         200
     };
-    **sense_timer = RandTimer::from_millis(ms);
+    sense_timer.set_base_time_millis(ms);
 
     let mut filter = SpatialQueryFilter::default()
         .with_mask(CollisionLayer::AiVisible)
