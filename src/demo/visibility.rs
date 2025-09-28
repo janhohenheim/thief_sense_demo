@@ -47,6 +47,20 @@ pub(crate) fn get_or_update_visibility(
     }
     let (transform, collider, velocity) = object.get(entity)?;
     let translation = transform.translation();
+    let closest_wall = calc_closest_wall(translation, spatial);
+    *visibility = AiVisibility {
+        // TODO: do some raycasts. Can probably first do an AABB or sphere check to gather the potential light sources. Also remember to filter out `CollisionLayer::Transparent` from raycasts.
+        lighting: 0.0,
+        movement: velocity.length(),
+        exposure: closest_wall,
+    };
+    // Since this system is not called every frame, but only for entities that are currently looked at by AI,
+    // we only reset the timer when necessary.
+    timer.reset();
+    Ok(*visibility)
+}
+
+fn calc_closest_wall(translation: Vec3, spatial: SpatialQuery) -> f32 {
     const TRIES: u8 = 8;
     // This distance is equivalent to "infinitely far away"
     const MAX_WALL_DISTANCE: f32 = 5.0;
@@ -58,22 +72,13 @@ pub(crate) fn get_or_update_visibility(
             dir,
             MAX_WALL_DISTANCE,
             true,
-            &SpatialQueryFilter::from_mask([CollisionLayer::Brush]),
+            &SpatialQueryFilter::from_mask([CollisionLayer::Static]),
         );
         if let Some(hit) = hit {
             closest_wall = closest_wall.min(hit.distance);
         }
     }
-    *visibility = AiVisibility {
-        // TODO: do some raycasts. Can probably first do an AABB or sphere check to gather the potential light sources. Also remember to filter out `CollisionLayer::Transparent` from raycasts.
-        lighting: 0.0,
-        movement: velocity.length(),
-        exposure: closest_wall,
-    };
-    // Since this system is not called every frame, but only for entities that are currently looked at by AI,
-    // we only reset the timer when necessary.
-    timer.reset();
-    Ok(*visibility)
+    closest_wall
 }
 
 fn tick_visibility_timer(mut timers: Query<&mut VisibilityTimer>, time: Res<Time>) {
