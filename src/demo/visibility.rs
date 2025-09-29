@@ -3,7 +3,11 @@ use std::{f32::consts::TAU, sync::LazyLock};
 use avian3d::prelude::*;
 use bevy::{math::FloatPow, prelude::*};
 
-use crate::{demo::collision_layer::CollisionLayer, rand_timer::RandTimer};
+use crate::{
+    cpu_lighting::{estimate_directional_light, estimate_point_light, estimate_spot_light},
+    demo::collision_layer::CollisionLayer,
+    rand_timer::RandTimer,
+};
 
 pub(super) fn plugin(app: &mut App) {
     // NOT calling `add_rand_timer` because we want to manually reset it
@@ -42,6 +46,7 @@ pub(crate) struct AiVisibilityControl {
 
 #[derive(Component, Debug, Copy, Clone, Default)]
 #[require(VisibilityTimer, AiVisibilityControl)]
+#[expect(dead_code, reason = "Needs to be implemented!")]
 pub(crate) struct AiVisibility {
     pub(crate) lighting: u32,
     pub(crate) movement: u32,
@@ -58,7 +63,12 @@ pub(crate) fn get_or_update_visibility(
         &mut VisibilityTimer,
     )>,
     object: Query<(&GlobalTransform, &LinearVelocity)>,
-    transforms: Query<&GlobalTransform>,
+    lights: Query<(
+        &GlobalTransform,
+        NameOrEntity,
+        AnyOf<(&PointLight, &SpotLight)>,
+    )>,
+    directional_lights: Query<(&GlobalTransform, &DirectionalLight)>,
     spatial: SpatialQuery,
 ) -> Result<AiVisibility> {
     let (mut visibility, control, mut timer) = timers.get_mut(entity)?;
@@ -69,37 +79,19 @@ pub(crate) fn get_or_update_visibility(
     let translation = transform.translation();
 
     // lighting
-    let lights = spatial.shape_intersections(
-        &SPHERE,
+    let lighting = calculate_light_rating(
+        entity,
+        lights,
+        directional_lights,
+        &spatial,
+        control,
         translation,
-        Quat::IDENTITY,
-        &SpatialQueryFilter::from_mask([CollisionLayer::LightSource]),
     );
-    let mut lighting = 0.0;
-    let filter =
-        SpatialQueryFilter::from_mask([CollisionLayer::Opaque]).with_excluded_entities([entity]);
-    for light in lights {
-        let Ok(light_transform) = transforms.get(light) else {
-            continue;
-        };
-        let Ok((dir, len)) = Dir3::new_and_length(light_transform.translation() - translation)
-        else {
-            lighting += 1.0;
-            continue;
-        };
-        let hit = spatial.cast_ray(translation, dir, len, true, &filter);
-        if hit.is_some() {
-            continue;
-        }
-        let light_translation = light_transform.translation();
-        let distance = translation.distance(light_translation);
-        lighting += 1.0 / distance;
-    }
 
     // movement
     let movement = match velocity.length_squared() {
-        v @ _ if v < control.low_speed => control.low_speed_mod,
-        v @ _ if v > control.high_speed => control.high_speed_mod,
+        v if v < control.low_speed => control.low_speed_mod,
+        v if v > control.high_speed => control.high_speed_mod,
         _ => control.medium_speed_mod,
     };
 
@@ -119,6 +111,112 @@ pub(crate) fn get_or_update_visibility(
     // we only reset the timer when necessary.
     timer.reset();
     Ok(*visibility)
+}
+
+fn calculate_light_rating(
+    entity: Entity,
+    lights: Query<(
+        &GlobalTransform,
+        NameOrEntity,
+        AnyOf<(&PointLight, &SpotLight)>,
+    )>,
+    directional_lights: Query<(&GlobalTransform, &DirectionalLight)>,
+    spatial: &SpatialQuery,
+    control: &AiVisibilityControl,
+    translation: Vec3,
+) -> u32 {
+    let raw_lighting =
+        compute_object_lighting(entity, lights, directional_lights, spatial, translation);
+    let raw_lighting = (raw_lighting * 100.0).clamp(1.0, 100.0) as u32;
+    const LOW_LIGHT_NORM: u32 = 25;
+    const MEDIUM_LIGHT_NORM: u32 = 50;
+    const HIGH_LIGHT_NORM: u32 = 75;
+    let (pre_norm_base, pre_norm_range, norm_base, norm_range) = match raw_lighting {
+        l if l < control.low_visibility => (0, control.low_visibility, 0, LOW_LIGHT_NORM),
+        l if l < control.medium_visibility => (
+            control.low_visibility,
+            control.medium_visibility - control.low_visibility,
+            LOW_LIGHT_NORM,
+            MEDIUM_LIGHT_NORM - LOW_LIGHT_NORM,
+        ),
+        l if l < control.high_visibility => (
+            control.medium_visibility,
+            control.high_visibility - control.medium_visibility,
+            MEDIUM_LIGHT_NORM,
+            HIGH_LIGHT_NORM - MEDIUM_LIGHT_NORM,
+        ),
+        _ => (
+            control.high_visibility,
+            100 - control.high_visibility,
+            HIGH_LIGHT_NORM,
+            100 - HIGH_LIGHT_NORM,
+        ),
+    };
+    norm_base + ((raw_lighting - pre_norm_base) as f32 / pre_norm_range as f32) as u32 + norm_range
+}
+
+fn compute_object_lighting(
+    entity: Entity,
+    lights: Query<(
+        &GlobalTransform,
+        NameOrEntity,
+        AnyOf<(&PointLight, &SpotLight)>,
+    )>,
+    directional_lights: Query<(&GlobalTransform, &DirectionalLight)>,
+    spatial: &SpatialQuery,
+    translation: Vec3,
+) -> f32 {
+    let nearby_lights = spatial.shape_intersections(
+        &SPHERE,
+        translation,
+        Quat::IDENTITY,
+        &SpatialQueryFilter::from_mask([CollisionLayer::LightSource]),
+    );
+    let mut lighting = 0.0;
+    let filter =
+        SpatialQueryFilter::from_mask([CollisionLayer::Opaque]).with_excluded_entities([entity]);
+    for (light_transform, light) in directional_lights.iter() {
+        let dir = light_transform.rotation().inverse() * Dir3::NEG_Z;
+        let hit = spatial.cast_ray(translation, dir, f32::INFINITY, true, &filter);
+        if hit.is_some() {
+            // Occluded
+            continue;
+        }
+        lighting += estimate_directional_light(light.clone());
+    }
+    for light in nearby_lights {
+        let Ok((light_transform, light_name, (point_light, spot_light))) = lights.get(light) else {
+            continue;
+        };
+
+        let Ok((dir, len)) = Dir3::new_and_length(light_transform.translation() - translation)
+        else {
+            // This object *is* the light source
+            if let Some(light) = point_light {
+                lighting += estimate_point_light(*light, 0.0);
+            } else if let Some(light) = spot_light {
+                lighting += estimate_spot_light(*light, 0.0, 1.0);
+            } else {
+                error!("{light_name}: Invalid light type")
+            }
+            continue;
+        };
+        let hit = spatial.cast_ray(translation, dir, len, true, &filter);
+        if hit.is_some() {
+            // Occluded
+            continue;
+        }
+        let light_translation = light_transform.translation();
+        let distance_squared = translation.distance_squared(light_translation);
+        if let Some(light) = point_light {
+            lighting += estimate_point_light(*light, distance_squared);
+        } else if let Some(light) = spot_light {
+            lighting += estimate_spot_light(*light, 0.0, 1.0);
+        } else {
+            error!("{light_name}: Invalid light type")
+        }
+    }
+    lighting
 }
 
 fn calc_closest_wall(translation: Vec3, spatial: SpatialQuery, entity: Entity) -> f32 {

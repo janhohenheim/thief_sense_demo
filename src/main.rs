@@ -6,6 +6,7 @@
 mod animation;
 mod asset_tracking;
 mod audio;
+mod cpu_lighting;
 mod demo;
 #[cfg(feature = "dev")]
 mod dev_tools;
@@ -96,6 +97,7 @@ impl Plugin for AppPlugin {
             theme::plugin,
             rand_timer::plugin,
             movement::plugin,
+            cpu_lighting::plugin,
         ));
 
         // Order new `AppSystems` variants by adding them here:
