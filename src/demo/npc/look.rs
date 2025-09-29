@@ -49,7 +49,7 @@ fn look(world: &mut World) -> Result {
         Ok(())
     } else {
         Err(BevyError::from(
-            errors.iter().fold(String::new(), |acc, err| acc + &err),
+            errors.iter().fold(String::new(), |acc, err| acc + err),
         ))
     }
 }
