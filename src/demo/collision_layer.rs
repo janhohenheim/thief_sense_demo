@@ -12,15 +12,20 @@ pub(crate) enum CollisionLayer {
     Default,
     AiVisible,
     LightSource,
-    Transparent,
+    Opaque,
     Static,
 }
+
+/// Add this to an entity as a required component to ensure that it does not get marked as [`CollisionLayer::Opaque`]
+#[derive(Component)]
+pub(crate) struct Transparent;
 
 fn mark_static_colliders(
     add: On<Add, RigidBodyColliders>,
     rigid_body: Query<(&RigidBody, &RigidBodyColliders)>,
     mut layers: Query<&mut CollisionLayers>,
     mut commands: Commands,
+    transparent: Query<(), With<Transparent>>,
 ) -> Result {
     let (rigid_body, colliders) = rigid_body.get(add.entity)?;
     if !rigid_body.is_static() {
@@ -30,11 +35,18 @@ fn mark_static_colliders(
     for entity in colliders.iter() {
         if let Ok(mut layer) = layers.get_mut(entity) {
             layer.memberships.add(CollisionLayer::Static);
+            if !transparent.contains(entity) {
+                layer.memberships.add(CollisionLayer::Opaque);
+            }
         } else {
-            commands.entity(entity).insert(CollisionLayers::new(
+            let mut layers = CollisionLayers::new(
                 [CollisionLayer::Default, CollisionLayer::Static],
                 [CollisionLayer::Default],
-            ));
+            );
+            if !transparent.contains(entity) {
+                layers.memberships.add(CollisionLayer::Opaque);
+            }
+            commands.entity(entity).insert(layers);
         }
     }
     Ok(())
