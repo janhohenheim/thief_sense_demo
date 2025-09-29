@@ -25,6 +25,7 @@ impl Default for VisibilityTimer {
 
 #[derive(Component, Debug, Copy, Clone, Default)]
 #[require(VisibilityTimer)]
+#[expect(dead_code, reason = "not implemented yet hehe")]
 pub(crate) struct AiVisibility {
     pub(crate) lighting: f32,
     pub(crate) movement: f32,
