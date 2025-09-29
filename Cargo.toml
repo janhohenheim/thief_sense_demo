@@ -48,7 +48,7 @@ tracing = { version = "0.1", features = [
     "release_max_level_warn",
 ] }
 bevy_trenchbroom = {version = "0.9.3", features = ["avian"]}
-avian3d = "0.3.0"
+avian3d = "0.4.0-dev"
 bevy_seedling = "0.6.0-rc"
 firewheel-web-audio = { version = "0.3.0-rc", optional = true }
 
