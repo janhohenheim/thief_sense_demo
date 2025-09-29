@@ -2,12 +2,14 @@ use crate::{
     animation::AnimationPlayerAncestor,
     asset_tracking::LoadResource as _,
     demo::{
+        collision_layer::CollisionLayer,
         link_head::link_head_bone,
         npc::{animation::NpcAnimationState, sense::SenseTimer, view_cone::add_debug_view_cones},
         target::TargetBase,
+        visibility::AiVisibility,
     },
     movement::FloatHeight,
-    third_party::{avian::CollisionLayer, landmass::AgentOf},
+    third_party::landmass::AgentOf,
 };
 use avian3d::prelude::*;
 use bevy::prelude::*;
@@ -69,6 +71,7 @@ fn spawn_npc(
                 CollisionLayer::Default,
             ),
             SenseTimer::default(),
+            AiVisibility::default(),
         ))
         .with_children(|parent| {
             parent

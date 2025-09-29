@@ -27,7 +27,7 @@
 // entity 1
 {
 "classname" "light_point"
-"origin" "-32 0 144"
+"origin" "0 0 80"
 "shadows_enabled" "true"
 }
 // entity 2

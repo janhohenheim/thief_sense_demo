@@ -7,9 +7,8 @@ pub(super) fn plugin(app: &mut App) {
     let _ = app;
 }
 
-#[derive(Debug, Deref, DerefMut)]
+#[derive(Debug)]
 pub(crate) struct RandTimer {
-    #[deref]
     timer: Timer,
     base_time: Duration,
 }
@@ -26,7 +25,29 @@ impl RandTimer {
         }
     }
 
-    pub(crate) fn reset_offset(&mut self) {
+    pub(crate) fn tick(&mut self, time: impl AsRef<Time>) {
+        self.timer.tick(time.as_ref().delta());
+    }
+
+    pub(crate) fn is_finished(&self) -> bool {
+        self.timer.is_finished()
+    }
+
+    pub(crate) fn finish(&mut self) {
+        self.timer.finish();
+    }
+
+    /// Does *not* reset the timer
+    pub(crate) fn set_base_time(&mut self, duration: Duration) {
+        self.base_time = duration;
+    }
+
+    /// Does *not* reset the timer
+    pub(crate) fn set_base_time_millis(&mut self, duration: u64) {
+        self.set_base_time(Duration::from_millis(duration));
+    }
+
+    pub(crate) fn reset(&mut self) {
         self.timer = Timer::new(Self::offset(self.base_time), TimerMode::Once);
     }
 
@@ -62,8 +83,8 @@ fn tick_rand_timer<T: Component<Mutability = Mutable> + core::ops::DerefMut<Targ
     for mut timer in timers.iter_mut() {
         // doing the is_finished check before the tick so that the frame has time to read the is_finished state
         if timer.is_finished() {
-            timer.reset_offset();
+            timer.reset();
         }
-        timer.tick(time.delta());
+        timer.tick(&time);
     }
 }

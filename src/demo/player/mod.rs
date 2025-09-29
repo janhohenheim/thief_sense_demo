@@ -11,9 +11,12 @@ mod movement;
 use crate::{
     animation::AnimationPlayerAncestor,
     asset_tracking::LoadResource as _,
-    demo::{link_head::link_head_bone, player::animation::PlayerAnimationState},
+    demo::{
+        collision_layer::CollisionLayer, link_head::link_head_bone,
+        player::animation::PlayerAnimationState, visibility::AiVisibility,
+    },
     movement::FloatHeight,
-    third_party::{avian::CollisionLayer, landmass::AgentOf},
+    third_party::landmass::AgentOf,
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -56,6 +59,7 @@ fn spawn_player(
             ),
             AnimationPlayerAncestor,
             FloatHeight(PLAYER_FLOAT_HEIGHT),
+            AiVisibility::default(),
         ))
         .with_children(|parent| {
             parent
