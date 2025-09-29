@@ -1,9 +1,9 @@
 use avian3d::prelude::*;
-use bevy::{ecs::entity_disabling::Disabled, prelude::*};
-use bevy_trenchbroom::geometry::Brushes;
+use bevy::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_observer(mark_static_colliders);
+    app.add_observer(mark_static_colliders)
+        .add_observer(add_point_light_collider);
 }
 
 #[derive(Debug, PhysicsLayer, Default)]
@@ -37,5 +37,21 @@ fn mark_static_colliders(
             ));
         }
     }
+    Ok(())
+}
+
+fn add_point_light_collider(
+    add: On<Add, PointLight>,
+    point_lights: Query<&PointLight>,
+    mut commands: Commands,
+) -> Result {
+    let point_light = point_lights.get(add.entity)?;
+    commands.entity(add.entity).insert((
+        // Has no rigid body
+        Collider::sphere(point_light.range),
+        // Does not collide with anything
+        CollisionLayers::new([CollisionLayer::LightSource], LayerMask::NONE),
+    ));
+
     Ok(())
 }

@@ -1,4 +1,4 @@
-use std::f32::consts::TAU;
+use std::{f32::consts::TAU, sync::LazyLock};
 
 use avian3d::prelude::*;
 use bevy::prelude::*;
@@ -31,10 +31,13 @@ pub(crate) struct AiVisibility {
     pub(crate) exposure: f32,
 }
 
+static SPHERE: LazyLock<Collider> = LazyLock::new(|| Collider::sphere(1.0));
+
 pub(crate) fn get_or_update_visibility(
     In(entity): In<Entity>,
     mut timers: Query<(&mut AiVisibility, &mut VisibilityTimer)>,
     object: Query<(&GlobalTransform, &LinearVelocity)>,
+    transforms: Query<&GlobalTransform>,
     spatial: SpatialQuery,
 ) -> Result<AiVisibility> {
     let (mut visibility, mut timer) = timers.get_mut(entity)?;
@@ -42,19 +45,33 @@ pub(crate) fn get_or_update_visibility(
         return Ok(*visibility);
     }
     let (transform, velocity) = object.get(entity)?;
+    let translation = transform.translation();
 
     // lighting
-    let lighting = 0.0;
+    let lights = spatial.shape_intersections(
+        &SPHERE,
+        translation,
+        Quat::IDENTITY,
+        &SpatialQueryFilter::from_mask([CollisionLayer::LightSource]),
+    );
+    let mut lighting = 0.0;
+    for light in lights {
+        let Ok(light_transform) = transforms.get(light) else {
+            continue;
+        };
+        let light_translation = light_transform.translation();
+        let distance = translation.distance(light_translation);
+        lighting += 1.0 / distance;
+    }
 
     // movement
     let movement = velocity.length();
 
     // exposure
-    let translation = transform.translation();
     let closest_wall = calc_closest_wall(translation, spatial);
     let exposure = closest_wall;
+
     *visibility = AiVisibility {
-        // TODO: do some raycasts. Can probably first do an AABB or sphere check to gather the potential light sources. Also remember to filter out `CollisionLayer::Transparent` from raycasts.
         lighting,
         movement,
         exposure,
