@@ -1,7 +1,7 @@
 use std::{f32::consts::TAU, sync::LazyLock};
 
 use avian3d::prelude::*;
-use bevy::{math::FloatPow, prelude::*};
+use bevy::prelude::*;
 
 use crate::{
     cpu_lighting::{estimate_directional_light, estimate_point_light, estimate_spot_light},
@@ -188,14 +188,13 @@ fn compute_object_lighting(
         let Ok((light_transform, light_name, (point_light, spot_light))) = lights.get(light) else {
             continue;
         };
-
-        let Ok((dir, len)) = Dir3::new_and_length(light_transform.translation() - translation)
-        else {
+        let light_transform = light_transform.compute_transform();
+        let Ok((dir, len)) = Dir3::new_and_length(light_transform.translation - translation) else {
             // This object *is* the light source
             if let Some(light) = point_light {
-                lighting += estimate_point_light(*light, 0.0);
+                lighting += estimate_point_light(*light, light_transform.translation, translation);
             } else if let Some(light) = spot_light {
-                lighting += estimate_spot_light(*light, 0.0, 1.0);
+                lighting += estimate_spot_light(*light, light_transform, translation);
             } else {
                 error!("{light_name}: Invalid light type")
             }
@@ -206,12 +205,10 @@ fn compute_object_lighting(
             // Occluded
             continue;
         }
-        let light_translation = light_transform.translation();
-        let distance_squared = translation.distance_squared(light_translation);
         if let Some(light) = point_light {
-            lighting += estimate_point_light(*light, distance_squared);
+            lighting += estimate_point_light(*light, light_transform.translation, translation);
         } else if let Some(light) = spot_light {
-            lighting += estimate_spot_light(*light, 0.0, 1.0);
+            lighting += estimate_spot_light(*light, light_transform, translation);
         } else {
             error!("{light_name}: Invalid light type")
         }

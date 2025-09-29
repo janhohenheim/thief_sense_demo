@@ -29,9 +29,8 @@ pub(crate) fn estimate_point_light(
 
 pub(crate) fn estimate_spot_light(
     light: SpotLight,
-    light_position: Vec3,
+    light_transform: Transform,
     point_position: Vec3,
-    light_direction: Dir3,
 ) -> f32 {
     let point_light_equivalent = PointLight {
         color: light.color,
@@ -39,11 +38,14 @@ pub(crate) fn estimate_spot_light(
         range: light.range,
         ..default()
     };
-    let point_light_contribution =
-        estimate_point_light(point_light_equivalent, light_position, point_position);
+    let point_light_contribution = estimate_point_light(
+        point_light_equivalent,
+        light_transform.translation,
+        point_position,
+    );
 
-    let light_to_point = (point_position - light_position).normalize();
-    let cos_angle = light_direction.dot(light_to_point);
+    let light_to_point = (point_position - light_transform.translation).normalize();
+    let cos_angle = light_transform.forward().dot(light_to_point);
 
     let cos_inner = light.inner_angle.cos();
     let cos_outer = light.outer_angle.cos();
