@@ -1,7 +1,7 @@
 use std::{f32::consts::TAU, sync::LazyLock};
 
 use avian3d::prelude::*;
-use bevy::prelude::*;
+use bevy::{math::FloatPow, prelude::*};
 
 use crate::{demo::collision_layer::CollisionLayer, rand_timer::RandTimer};
 
@@ -24,24 +24,44 @@ impl Default for VisibilityTimer {
 }
 
 #[derive(Component, Debug, Copy, Clone, Default)]
-#[require(VisibilityTimer)]
-#[expect(dead_code, reason = "not implemented yet hehe")]
+pub(crate) struct AiVisibilityControl {
+    pub(crate) low_visibility: u32,
+    pub(crate) medium_visibility: u32,
+    pub(crate) high_visibility: u32,
+
+    pub(crate) low_speed: f32,
+    pub(crate) high_speed: f32,
+
+    pub(crate) low_speed_mod: u32,
+    pub(crate) medium_speed_mod: u32,
+    pub(crate) high_speed_mod: u32,
+
+    pub(crate) wall_dist: f32,
+    pub(crate) wall_mod: u32,
+}
+
+#[derive(Component, Debug, Copy, Clone, Default)]
+#[require(VisibilityTimer, AiVisibilityControl)]
 pub(crate) struct AiVisibility {
-    pub(crate) lighting: f32,
-    pub(crate) movement: f32,
-    pub(crate) exposure: f32,
+    pub(crate) lighting: u32,
+    pub(crate) movement: u32,
+    pub(crate) exposure: u32,
 }
 
 static SPHERE: LazyLock<Collider> = LazyLock::new(|| Collider::sphere(1.0));
 
 pub(crate) fn get_or_update_visibility(
     In(entity): In<Entity>,
-    mut timers: Query<(&mut AiVisibility, &mut VisibilityTimer)>,
+    mut timers: Query<(
+        &mut AiVisibility,
+        &AiVisibilityControl,
+        &mut VisibilityTimer,
+    )>,
     object: Query<(&GlobalTransform, &LinearVelocity)>,
     transforms: Query<&GlobalTransform>,
     spatial: SpatialQuery,
 ) -> Result<AiVisibility> {
-    let (mut visibility, mut timer) = timers.get_mut(entity)?;
+    let (mut visibility, control, mut timer) = timers.get_mut(entity)?;
     if !timer.is_finished() {
         return Ok(*visibility);
     }
@@ -77,12 +97,19 @@ pub(crate) fn get_or_update_visibility(
     }
 
     // movement
-    let movement = velocity.length();
+    let movement = match velocity.length_squared() {
+        v @ _ if v < control.low_speed => control.low_speed_mod,
+        v @ _ if v > control.high_speed => control.high_speed_mod,
+        _ => control.medium_speed_mod,
+    };
 
     // exposure
     let closest_wall = calc_closest_wall(translation, spatial, entity);
-    let exposure = closest_wall;
-
+    let exposure = if closest_wall < control.wall_dist {
+        control.wall_mod
+    } else {
+        0
+    };
     *visibility = AiVisibility {
         lighting,
         movement,
