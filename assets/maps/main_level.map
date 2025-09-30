@@ -26,19 +26,12 @@
 }
 // entity 1
 {
-"classname" "light_point"
-"origin" "0 0 80"
-"shadows_enabled" "true"
-"intensity" "1e+05"
-}
-// entity 2
-{
 "classname" "npc"
 "origin" "24 40 32"
 "angle" "180"
 "target" "a"
 }
-// entity 3
+// entity 2
 {
 "classname" "path_corner"
 "origin" "104 -152 40"
@@ -46,7 +39,7 @@
 "target" "b"
 "wait" "2.5"
 }
-// entity 4
+// entity 3
 {
 "classname" "path_corner"
 "origin" "-184 -152 40"
@@ -54,7 +47,7 @@
 "target" "c"
 "wait" "2.5"
 }
-// entity 5
+// entity 4
 {
 "classname" "path_corner"
 "origin" "-184 40 40"
@@ -62,7 +55,7 @@
 "target" "d"
 "wait" "2.5"
 }
-// entity 6
+// entity 5
 {
 "classname" "path_corner"
 "origin" "104 56 40"
@@ -70,10 +63,18 @@
 "target" "a"
 "wait" "2.5"
 }
-// entity 7
+// entity 6
 {
 "classname" "player"
 "origin" "-72 -264 40"
+}
+// entity 7
+{
+"classname" "light_directional"
+"origin" "296 -8 88"
+"angles" "45 180 180"
+"shadows_enabled" "true"
+"illuminance" "100"
 }
 // entity 8
 {
@@ -85,9 +86,8 @@
 }
 // entity 9
 {
-"classname" "light_directional"
-"origin" "296 -8 88"
-"angles" "45 180 180"
+"classname" "light_point"
+"origin" "32 -16 96"
 "shadows_enabled" "true"
-"illuminance" "100"
+"intensity" "5e+05"
 }

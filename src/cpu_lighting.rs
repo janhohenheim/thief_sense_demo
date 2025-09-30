@@ -21,7 +21,8 @@ pub(crate) fn estimate_tone_mapped_lighting(
     world: &mut World,
 ) -> Result<f32> {
     let lighting = world.run_system_cached_with(estimate_total_lighting, entity)?;
-    Ok(estimate_tone_mapping(lighting))
+    let ldr = estimate_tone_mapping(lighting);
+    Ok(ldr)
 }
 
 fn estimate_total_lighting(
@@ -88,6 +89,7 @@ fn estimate_total_lighting(
 }
 
 // ignore the object's color by assuming it's perfect white.
+// lambertian = albedo / pi = 1 / pi
 const MATERIAL_COLOR: f32 = FRAC_1_PI;
 // approximate the object as a sphere
 const N_DOT_L: f32 = 1.0;
@@ -148,7 +150,7 @@ fn get_distance_attenuation(distance_square: f32, range: f32) -> f32 {
 fn estimate_tone_mapping(light_contribution: f32) -> f32 {
     let exposure = Exposure::default().exposure();
     let hdr = light_contribution * exposure;
-    let ldr = reinhard_ext(hdr);
+    let ldr = custom_tone_mapping(hdr);
     ldr.clamp(0.0, 1.0)
 }
 
@@ -157,7 +159,29 @@ fn luminance(color: Vec3) -> f32 {
 }
 
 fn reinhard_ext(color: f32) -> f32 {
-    const MAX_WHITE: f32 = 8.0;
+    const MAX_WHITE: f32 = 4.0;
     let numerator = color * (1.0 + (color / MAX_WHITE.squared()));
     numerator / (1.0 + color)
+}
+
+/// A custom-tuned tonemap that preserves contrast in dark areas and compresses bright areas.
+/// This is needed because a stealth system cares much more about dark details than bright ones.
+fn custom_tone_mapping(hdr: f32) -> f32 {
+    const DARK_STOP: f32 = 0.2;
+    const REINHARD_START: f32 = 0.25;
+    const DARK_BOOST: f32 = 3.5;
+
+    if hdr <= DARK_STOP {
+        // boost contrast in dark areas
+        (hdr / DARK_STOP).powf(1.0 / DARK_BOOST) * DARK_STOP
+    } else if hdr <= REINHARD_START {
+        // Linear zone
+        let t = (hdr - DARK_STOP) / (REINHARD_START - DARK_STOP);
+        DARK_STOP + t * (REINHARD_START - DARK_STOP)
+    } else {
+        // Apply Reinhard to the excess above the threshold
+        let excess = hdr - REINHARD_START;
+        let reinhard_result = reinhard_ext(excess);
+        REINHARD_START + reinhard_result
+    }
 }
