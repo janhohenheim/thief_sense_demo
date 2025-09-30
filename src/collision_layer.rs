@@ -3,7 +3,8 @@ use bevy::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(mark_static_colliders)
-        .add_observer(add_point_light_collider);
+        .add_observer(add_point_light_collider)
+        .add_observer(add_spot_light_collider);
 }
 
 #[derive(Debug, PhysicsLayer, Default)]
@@ -61,6 +62,22 @@ fn add_point_light_collider(
     commands.entity(add.entity).insert((
         // Has no rigid body
         Collider::sphere(point_light.range),
+        // Does not collide with anything
+        CollisionLayers::new([CollisionLayer::LightSource], LayerMask::NONE),
+    ));
+
+    Ok(())
+}
+
+fn add_spot_light_collider(
+    add: On<Add, SpotLight>,
+    spot_lights: Query<&SpotLight>,
+    mut commands: Commands,
+) -> Result {
+    let spot_light = spot_lights.get(add.entity)?;
+    commands.entity(add.entity).insert((
+        // Has no rigid body
+        Collider::sphere(spot_light.range),
         // Does not collide with anything
         CollisionLayers::new([CollisionLayer::LightSource], LayerMask::NONE),
     ));

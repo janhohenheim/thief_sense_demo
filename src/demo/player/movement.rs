@@ -4,47 +4,68 @@ use bevy_landmass::{
 };
 
 use crate::{
-    cpu_lighting::{estimate_point_light, estimate_spot_light, estimate_tone_mapping},
+    cpu_lighting::estimate_tone_mapped_lighting,
     demo::player::{PLAYER_RADIUS, PLAYER_RUN_SPEED, PLAYER_WALK_SPEED, Player},
     third_party::landmass::Agent,
 };
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(Update, draw_cursor_intersections);
+    app.add_systems(
+        Update,
+        (update_pointer_gizmo_lighting, draw_pointer_gizmo).chain(),
+    );
     app.add_observer(move_player);
+    app.add_systems(Startup, |mut commands: Commands| {
+        commands.spawn(PointerGizmoLighting(1.0));
+    });
 }
 
+#[derive(Component)]
+#[require(GlobalTransform)]
+struct PointerGizmoLighting(f32);
+
 /// A system that draws hit indicators for every pointer.
-fn draw_cursor_intersections(
-    pointers: Query<&PointerInteraction>,
-    mut gizmos: Gizmos,
-    point_lights: Query<(&GlobalTransform, &PointLight)>,
-    spot_lights: Query<(&GlobalTransform, &SpotLight)>,
-    directional_lights: Query<&DirectionalLight>,
-) {
-    for point in pointers
+fn update_pointer_gizmo_lighting(world: &mut World) -> Result {
+    let Some(point) = world
+        .query::<&PointerInteraction>()
+        .query(world)
         .iter()
         .filter_map(|interaction| interaction.get_nearest_hit())
         .filter_map(|(_entity, hit)| hit.position)
+        .next()
+    else {
+        return Ok(());
+    };
+    let point = point + Vec3::Y * 0.05;
     {
-        let mut intensity = 0.0;
-        for (light_transform, light) in &point_lights {
-            intensity += estimate_point_light(*light, light_transform.translation(), point);
-        }
-        for (light_transform, light) in &spot_lights {
-            intensity += estimate_spot_light(*light, light_transform.compute_transform(), point);
-        }
-        for _light in &directional_lights {
-            //intensity += estimate_directional_light(light.clone());
-        }
-        let brightness = estimate_tone_mapping(intensity);
-
-        gizmos.sphere(
-            point,
-            0.5,
-            (Color::WHITE.to_srgba() * brightness).with_alpha(1.0),
-        );
+        let mut global_transform = world
+            .query_filtered::<&mut GlobalTransform, With<PointerGizmoLighting>>()
+            .single_mut(world)?;
+        *global_transform = GlobalTransform::from(Transform::from_translation(point));
     }
+    let entity = world
+        .query_filtered::<Entity, With<PointerGizmoLighting>>()
+        .single(world)?;
+    let lighting = world.run_system_cached_with(estimate_tone_mapped_lighting, entity)?;
+    world
+        .query::<&mut PointerGizmoLighting>()
+        .single_mut(world)?
+        .0 = lighting;
+
+    Ok(())
+}
+
+fn draw_pointer_gizmo(
+    pointer: Single<(&GlobalTransform, &PointerGizmoLighting)>,
+    mut gizmos: Gizmos,
+) {
+    let (transform, lighting) = pointer.into_inner();
+    info!("Lighting: {}", lighting.0);
+    gizmos.sphere(
+        transform.translation(),
+        0.5,
+        (Color::WHITE.to_srgba() * lighting.0).with_alpha(1.0),
+    );
 }
 
 fn move_player(

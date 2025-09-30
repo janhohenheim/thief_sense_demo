@@ -6,6 +6,7 @@
 mod animation;
 mod asset_tracking;
 mod audio;
+mod collision_layer;
 mod cpu_lighting;
 mod demo;
 #[cfg(feature = "dev")]
@@ -105,6 +106,7 @@ impl Plugin for AppPlugin {
             movement::plugin,
             cpu_lighting::plugin,
             solid_color::plugin,
+            collision_layer::plugin,
         ));
 
         // Order new `AppSystems` variants by adding them here:

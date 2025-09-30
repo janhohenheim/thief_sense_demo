@@ -2,12 +2,89 @@
 //! - bevy/crates/bevy_pbr/src/render/light.rs: prepare_lights
 //! - bevy/crates/bevy_pbr/src/render/pbr_lighting.wgsl: point_light, spot_light, directional_light, getDistanceAttenuation
 
-use std::f32::consts::FRAC_1_PI;
+use std::{f32::consts::FRAC_1_PI, sync::LazyLock};
 
+use avian3d::prelude::*;
 use bevy::{camera::Exposure, math::FloatPow, prelude::*};
+
+use crate::collision_layer::CollisionLayer;
 
 pub(super) fn plugin(app: &mut App) {
     let _ = app;
+}
+
+const MAX_LIGHT_DISTANCE: f32 = 30.0;
+static SPHERE: LazyLock<Collider> = LazyLock::new(|| Collider::sphere(MAX_LIGHT_DISTANCE));
+
+pub(crate) fn estimate_tone_mapped_lighting(
+    In(entity): In<Entity>,
+    world: &mut World,
+) -> Result<f32> {
+    let lighting = world.run_system_cached_with(estimate_total_lighting, entity)?;
+    Ok(estimate_tone_mapping(lighting))
+}
+
+fn estimate_total_lighting(
+    In(entity): In<Entity>,
+    transforms: Query<&GlobalTransform>,
+    lights: Query<(
+        &GlobalTransform,
+        NameOrEntity,
+        AnyOf<(&PointLight, &SpotLight)>,
+    )>,
+    directional_lights: Query<(&GlobalTransform, &DirectionalLight)>,
+    spatial: SpatialQuery,
+) -> Result<f32> {
+    let translation = transforms.get(entity)?.translation();
+
+    let mut lighting = 0.0;
+    let filter =
+        SpatialQueryFilter::from_mask([CollisionLayer::Opaque]).with_excluded_entities([entity]);
+    for (light_transform, light) in directional_lights.iter() {
+        let dir = light_transform.back();
+        let hit = spatial.cast_ray(translation, dir, f32::INFINITY, true, &filter);
+        if hit.is_some() {
+            // Occluded
+            continue;
+        }
+        lighting += estimate_directional_light(light.clone());
+    }
+    let nearby_lights = spatial.shape_intersections(
+        &SPHERE,
+        translation,
+        Quat::IDENTITY,
+        &SpatialQueryFilter::from_mask([CollisionLayer::LightSource]),
+    );
+    for light in nearby_lights {
+        let Ok((light_transform, light_name, (point_light, spot_light))) = lights.get(light) else {
+            continue;
+        };
+        let light_transform = light_transform.compute_transform();
+        let Ok((dir, len)) = Dir3::new_and_length(light_transform.translation - translation) else {
+            // This object *is* the light source
+            if let Some(light) = point_light {
+                lighting += estimate_point_light(*light, light_transform.translation, translation);
+            } else if let Some(light) = spot_light {
+                lighting += estimate_spot_light(*light, light_transform, translation);
+            } else {
+                error!("{light_name}: Invalid light type")
+            }
+            continue;
+        };
+        let hit = spatial.cast_ray(translation, dir, len, true, &filter);
+        if hit.is_some() {
+            // Occluded
+            continue;
+        }
+        if let Some(light) = point_light {
+            lighting += estimate_point_light(*light, light_transform.translation, translation);
+        } else if let Some(light) = spot_light {
+            lighting += estimate_spot_light(*light, light_transform, translation);
+        } else {
+            error!("{light_name}: Invalid light type")
+        }
+    }
+    Ok(lighting)
 }
 
 // ignore the object's color by assuming it's perfect white.
@@ -15,11 +92,7 @@ const MATERIAL_COLOR: f32 = FRAC_1_PI;
 // approximate the object as a sphere
 const N_DOT_L: f32 = 1.0;
 
-pub(crate) fn estimate_point_light(
-    light: PointLight,
-    light_position: Vec3,
-    point_position: Vec3,
-) -> f32 {
+fn estimate_point_light(light: PointLight, light_position: Vec3, point_position: Vec3) -> f32 {
     let distance_squared = light_position.distance_squared(point_position);
     let range_attenuation = get_distance_attenuation(distance_squared, light.range);
     let color_intensity =
@@ -29,11 +102,7 @@ pub(crate) fn estimate_point_light(
     MATERIAL_COLOR * luminance * range_attenuation * N_DOT_L
 }
 
-pub(crate) fn estimate_spot_light(
-    light: SpotLight,
-    light_transform: Transform,
-    point_position: Vec3,
-) -> f32 {
+fn estimate_spot_light(light: SpotLight, light_transform: Transform, point_position: Vec3) -> f32 {
     let point_light_equivalent = PointLight {
         color: light.color,
         intensity: light.intensity,
@@ -60,7 +129,7 @@ pub(crate) fn estimate_spot_light(
     point_light_contribution * spot_attenuation
 }
 
-pub(crate) fn estimate_directional_light(light: DirectionalLight) -> f32 {
+fn estimate_directional_light(light: DirectionalLight) -> f32 {
     let color_intensity =
         Vec3::from_array(light.color.to_linear().to_f32_array_no_alpha()) * light.illuminance;
     let luminance = luminance(color_intensity);
@@ -74,7 +143,7 @@ fn get_distance_attenuation(distance_square: f32, range: f32) -> f32 {
     attenuation / distance_square.max(0.0001)
 }
 
-pub(crate) fn estimate_tone_mapping(light_contribution: f32) -> f32 {
+fn estimate_tone_mapping(light_contribution: f32) -> f32 {
     let exposure = Exposure::default().exposure();
     let hdr = light_contribution * exposure;
     let ldr = reinhard_ext(hdr);

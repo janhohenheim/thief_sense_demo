@@ -11,9 +11,10 @@ mod movement;
 use crate::{
     animation::AnimationPlayerAncestor,
     asset_tracking::LoadResource as _,
+    collision_layer::CollisionLayer,
     demo::{
-        collision_layer::CollisionLayer, link_head::link_head_bone,
-        player::animation::PlayerAnimationState, visibility::AiVisibility,
+        link_head::link_head_bone, player::animation::PlayerAnimationState,
+        visibility::AiVisibility,
     },
     movement::FloatHeight,
     third_party::landmass::AgentOf,

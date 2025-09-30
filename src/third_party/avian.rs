@@ -4,7 +4,7 @@ use avian3d::prelude::*;
 use bevy::{math::ops::sin_cos, prelude::*};
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()));
+    app.add_plugins(PhysicsPlugins::default());
 }
 
 pub(crate) trait EllipticCone {
