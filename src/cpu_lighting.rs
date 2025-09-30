@@ -89,12 +89,8 @@ fn luminance(color: Vec3) -> f32 {
     Color::linear_rgb(color.x, color.y, color.z).luminance()
 }
 
-fn reinhard(color: f32) -> f32 {
-    color / (1.0 + color)
-}
-
 fn reinhard_ext(color: f32) -> f32 {
-    const MAX_WHITE: f32 = 8.0;
+    const MAX_WHITE: f32 = 11.0;
     let numerator = color * (1.0 + (color / MAX_WHITE.squared()));
     return numerator / (1.0 + color);
 }
