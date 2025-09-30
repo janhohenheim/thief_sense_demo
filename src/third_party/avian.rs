@@ -14,7 +14,12 @@ pub(crate) trait EllipticCone {
 }
 
 impl EllipticCone for Collider {
-    fn elliptic_cone(half_width: f32, half_height: f32, height: f32) -> Collider {
+    fn elliptic_cone(angle_xy: f32, angle_z: f32, height: f32) -> Collider {
+        // Convert angles to half_width and half_height using trigonometry
+        // The angles represent the half-angle of the cone from vertical axis
+        let half_width = height * angle_xy.tan();
+        let half_height = height * angle_z.tan();
+
         // The following is adapted from Bevy's implementation of building a mesh from an ellipse
         const RESOLUTION: usize = 8;
         // Add pi/2 so that there is a vertex at the top (sin is 1.0 and cos is 0.0)

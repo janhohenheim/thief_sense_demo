@@ -5898,6 +5898,7 @@ dependencies = [
  "bevy_rerecast",
  "bevy_seedling",
  "bevy_trenchbroom",
+ "bitflags 2.9.4",
  "firewheel-web-audio",
  "getrandom",
  "landmass_rerecast",

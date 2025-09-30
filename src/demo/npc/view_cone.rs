@@ -27,14 +27,14 @@ pub(crate) struct DebugViewCones {
 
 impl FromWorld for ViewCones {
     fn from_world(_world: &mut World) -> Self {
-        Self(vec![
-            ViewCone {
-                collider: Collider::elliptic_cone(0.4, 0.8, 3.5),
-            },
-            ViewCone {
-                collider: Collider::elliptic_cone(1.2, 1.2, 2.5),
-            },
-        ])
+        Self(vec![ViewCone {
+            collider: Collider::elliptic_cone(170.0_f32.to_radians(), 17.0_f32.to_radians(), 1.5),
+            flags: ViewConeFlags::Active
+                | ViewConeFlags::LowLight
+                | ViewConeFlags::NoAlert0
+                | ViewConeFlags::NoAlert1,
+            acuity: 1500.0,
+        }])
     }
 }
 
@@ -66,7 +66,77 @@ impl FromWorld for DebugViewCones {
 #[derive(Debug)]
 pub(crate) struct ViewCone {
     pub(crate) collider: Collider,
+    pub(crate) acuity: f32,
+    pub(crate) flags: ViewConeFlags,
 }
+
+bitflags::bitflags! {
+    #[derive(Debug)]
+    pub(crate) struct ViewConeFlags: u16 {
+        const Active   =  0x01;
+        const NoAlert0 =  0x02;
+        const NoAlert1 =  0x04;
+        const NoAlert2 =  0x08;
+        const NoAlert3 =  0x10;
+
+        const AlertnessRestricted = Self::NoAlert0.bits() | Self::NoAlert1.bits() | Self::NoAlert2.bits() | Self::NoAlert3.bits();
+
+        const Periph   =  0x20;
+        const Omni     =  0x40;
+        const LowLight =  0x80;
+
+        const Behind   = 0x100;
+    }
+}
+
+const VISIBILITY_ACUITIES: VisibilityAcuities = VisibilityAcuities {
+    normal: VisibilityAcuity {
+        lighting: 1.0,
+        movement: 1.0,
+        exposure: 1.0,
+    },
+    periphery: VisibilityAcuity {
+        lighting: 0.3,
+        movement: 3.0,
+        exposure: 1.0,
+    },
+    omnidirectional: VisibilityAcuity {
+        lighting: 0.8,
+        movement: 1.4,
+        exposure: 1.2,
+    },
+    light: VisibilityAcuity {
+        lighting: 1.0,
+        movement: 0.0,
+        exposure: 0.0,
+    },
+    movement: VisibilityAcuity {
+        lighting: 0.0,
+        movement: 5.0,
+        exposure: 0.0,
+    },
+    low_light: VisibilityAcuity {
+        lighting: 6.0,
+        movement: 1.0,
+        exposure: 1.0,
+    },
+};
+
+struct VisibilityAcuities {
+    normal: VisibilityAcuity,
+    periphery: VisibilityAcuity,
+    omnidirectional: VisibilityAcuity,
+    light: VisibilityAcuity,
+    movement: VisibilityAcuity,
+    low_light: VisibilityAcuity,
+}
+
+struct VisibilityAcuity {
+    lighting: f32,
+    movement: f32,
+    exposure: f32,
+}
+
 impl ViewCone {
     fn as_mesh(&self) -> Mesh {
         let mut mesh = Mesh::new(
