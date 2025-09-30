@@ -1,4 +1,4 @@
-use std::f32::consts::{FRAC_PI_2, TAU};
+use std::f32::consts::{FRAC_PI_2, PI, TAU};
 
 use avian3d::prelude::*;
 use bevy::{math::ops::sin_cos, prelude::*};
@@ -15,6 +15,22 @@ pub(crate) trait EllipticCone {
 
 impl EllipticCone for Collider {
     fn elliptic_cone(angle_xy: f32, angle_z: f32, height: f32) -> Collider {
+        if angle_xy <= 0.0 || angle_z <= 0.0 {
+            panic!(
+                "angle_xy and angle_z must be positive, but got angle_xy = {:.1}°, angle_z = {:.1}°",
+                angle_xy.to_degrees(),
+                angle_z.to_degrees()
+            );
+        }
+        if angle_xy >= PI || angle_z >= PI {
+            panic!(
+                "angle_xy and angle_z must be less than 180 degrees, but got angle_xy = {:.1}°, angle_z = {:.1}°",
+                angle_xy.to_degrees(),
+                angle_z.to_degrees()
+            );
+        }
+        let angle_xy = angle_xy / 2.0;
+        let angle_z = angle_z / 2.0;
         // Convert angles to half_width and half_height using trigonometry
         // The angles represent the half-angle of the cone from vertical axis
         let half_width = height * angle_xy.tan();
