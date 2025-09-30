@@ -1,4 +1,4 @@
-//! Yoinked from https://github.com/bevyengine/bevy/pull/18207
+//! Yoinked from <https://github.com/bevyengine/bevy/pull/18207>
 
 use bevy::{
     asset::RenderAssetUsages,

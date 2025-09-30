@@ -157,5 +157,5 @@ fn luminance(color: Vec3) -> f32 {
 fn reinhard_ext(color: f32) -> f32 {
     const MAX_WHITE: f32 = 11.0;
     let numerator = color * (1.0 + (color / MAX_WHITE.squared()));
-    return numerator / (1.0 + color);
+    numerator / (1.0 + color)
 }
