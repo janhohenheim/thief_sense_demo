@@ -6,6 +6,8 @@
 mod animation;
 mod asset_tracking;
 mod audio;
+mod collision_layer;
+mod cpu_lighting;
 mod demo;
 #[cfg(feature = "dev")]
 mod dev_tools;
@@ -15,11 +17,15 @@ mod theme;
 mod third_party;
 use bevy::{
     asset::AssetMetaCheck,
+    color::palettes::tailwind,
     gltf::GltfPlugin,
     image::{ImageAddressMode, ImageSamplerDescriptor},
     prelude::*,
 };
+
+use crate::solid_color::SolidColorEnvironmentMapLight as _;
 mod rand_timer;
+mod solid_color;
 
 fn main() -> AppExit {
     App::new().add_plugins(AppPlugin).run()
@@ -83,6 +89,8 @@ impl Plugin for AppPlugin {
 
         app.set_error_handler(bevy::ecs::error::error);
 
+        app.insert_resource(AmbientLight::NONE);
+
         // Add other plugins.
         app.add_plugins((
             third_party::plugin,
@@ -96,6 +104,9 @@ impl Plugin for AppPlugin {
             theme::plugin,
             rand_timer::plugin,
             movement::plugin,
+            cpu_lighting::plugin,
+            solid_color::plugin,
+            collision_layer::plugin,
         ));
 
         // Order new `AppSystems` variants by adding them here:
@@ -127,10 +138,14 @@ enum AppSystems {
     Update,
 }
 
-fn spawn_camera(mut commands: Commands) {
+fn spawn_camera(mut commands: Commands, mut image_assets: ResMut<Assets<Image>>) {
     commands.spawn((
         Name::new("Camera"),
         Camera3d::default(),
         Transform::from_xyz(0.0, 10.0, 8.0).looking_to(Vec3::new(0.0, -1.0, -0.7), Vec3::Y),
+        EnvironmentMapLight {
+            intensity: 10.0,
+            ..EnvironmentMapLight::solid_color(&mut image_assets, tailwind::AMBER_100.into())
+        },
     ));
 }

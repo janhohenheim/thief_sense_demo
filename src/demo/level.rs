@@ -1,6 +1,6 @@
 //! Spawn the main level.
 
-use bevy::{color::palettes::tailwind, prelude::*};
+use bevy::prelude::*;
 use bevy_landmass::prelude::*;
 use bevy_rerecast::Navmesh;
 use landmass_rerecast::{Island3dBundle, NavMeshHandle3d};
@@ -41,9 +41,4 @@ pub(crate) fn spawn_level(mut commands: Commands, assets: Res<AssetServer>) {
             nav_mesh: NavMeshHandle3d(assets.load(NAVMESH)),
         },
     ));
-    commands.insert_resource(AmbientLight {
-        color: tailwind::AMBER_200.into(),
-        brightness: 150.0,
-        ..default()
-    });
 }

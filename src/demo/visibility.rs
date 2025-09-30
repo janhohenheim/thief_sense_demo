@@ -1,9 +1,12 @@
-use std::{f32::consts::TAU, sync::LazyLock};
+use std::f32::consts::TAU;
 
 use avian3d::prelude::*;
 use bevy::prelude::*;
 
-use crate::{demo::collision_layer::CollisionLayer, rand_timer::RandTimer};
+use crate::{
+    collision_layer::CollisionLayer, cpu_lighting::estimate_tone_mapped_lighting,
+    rand_timer::RandTimer,
+};
 
 pub(super) fn plugin(app: &mut App) {
     // NOT calling `add_rand_timer` because we want to manually reset it
@@ -24,77 +27,81 @@ impl Default for VisibilityTimer {
 }
 
 #[derive(Component, Debug, Copy, Clone, Default)]
-#[require(VisibilityTimer)]
-#[expect(dead_code, reason = "not implemented yet hehe")]
-pub(crate) struct AiVisibility {
-    pub(crate) lighting: f32,
-    pub(crate) movement: f32,
-    pub(crate) exposure: f32,
+pub(crate) struct AiVisibilityControl {
+    pub(crate) low_visibility: u32,
+    pub(crate) medium_visibility: u32,
+    pub(crate) high_visibility: u32,
+
+    pub(crate) low_speed: f32,
+    pub(crate) high_speed: f32,
+
+    pub(crate) low_speed_mod: u32,
+    pub(crate) medium_speed_mod: u32,
+    pub(crate) high_speed_mod: u32,
+
+    pub(crate) wall_dist: f32,
+    pub(crate) wall_mod: u32,
 }
 
-static SPHERE: LazyLock<Collider> = LazyLock::new(|| Collider::sphere(1.0));
+#[derive(Component, Debug, Copy, Clone, Default)]
+#[require(VisibilityTimer, AiVisibilityControl)]
+#[expect(dead_code, reason = "Needs to be implemented!")]
+pub(crate) struct AiVisibility {
+    pub(crate) lighting: u32,
+    pub(crate) movement: u32,
+    pub(crate) exposure: u32,
+}
 
 pub(crate) fn get_or_update_visibility(
     In(entity): In<Entity>,
-    mut timers: Query<(&mut AiVisibility, &mut VisibilityTimer)>,
-    object: Query<(&GlobalTransform, &LinearVelocity)>,
-    transforms: Query<&GlobalTransform>,
-    spatial: SpatialQuery,
+    world: &mut World,
 ) -> Result<AiVisibility> {
-    let (mut visibility, mut timer) = timers.get_mut(entity)?;
-    if !timer.is_finished() {
-        return Ok(*visibility);
-    }
-    let (transform, velocity) = object.get(entity)?;
-    let translation = transform.translation();
-
-    // lighting
-    let lights = spatial.shape_intersections(
-        &SPHERE,
-        translation,
-        Quat::IDENTITY,
-        &SpatialQueryFilter::from_mask([CollisionLayer::LightSource]),
-    );
-    let mut lighting = 0.0;
-    let filter =
-        SpatialQueryFilter::from_mask([CollisionLayer::Opaque]).with_excluded_entities([entity]);
-    for light in lights {
-        let Ok(light_transform) = transforms.get(light) else {
-            continue;
-        };
-        let Ok((dir, len)) = Dir3::new_and_length(light_transform.translation() - translation)
-        else {
-            lighting += 1.0;
-            continue;
-        };
-        let hit = spatial.cast_ray(translation, dir, len, true, &filter);
-        if hit.is_some() {
-            continue;
-        }
-        let light_translation = light_transform.translation();
-        let distance = translation.distance(light_translation);
-        lighting += 1.0 / distance;
+    if !world
+        .entity(entity)
+        .get::<VisibilityTimer>()
+        .ok_or("No Timer on Entity")?
+        .is_finished()
+    {
+        return Ok(*world
+            .entity(entity)
+            .get::<AiVisibility>()
+            .ok_or("No Visibility on Entity")?);
     }
 
-    // movement
-    let movement = velocity.length();
+    let raw_lighting = world.run_system_cached_with(estimate_tone_mapped_lighting, entity)?;
+    let lighting = world.run_system_cached_with(calculate_light_rating, (entity, raw_lighting))?;
 
-    // exposure
-    let closest_wall = calc_closest_wall(translation, spatial, entity);
-    let exposure = closest_wall;
+    let movement = world.run_system_cached_with(calculate_movement_rating, entity)?;
 
+    let exposure = world.run_system_cached_with(calculate_exposure_rating, entity)?;
+
+    // Since this system is not called every frame, but only for entities that are currently looked at by AI,
+    // we only reset the timer when necessary.
+    let mut entity_mut = world.entity_mut(entity);
+    entity_mut
+        .get_mut::<VisibilityTimer>()
+        .ok_or("No Timer on Entity")?
+        .reset();
+
+    let mut visibility = entity_mut
+        .get_mut::<AiVisibility>()
+        .ok_or("No Visibility on Entity")?;
     *visibility = AiVisibility {
         lighting,
         movement,
         exposure,
     };
-    // Since this system is not called every frame, but only for entities that are currently looked at by AI,
-    // we only reset the timer when necessary.
-    timer.reset();
     Ok(*visibility)
 }
 
-fn calc_closest_wall(translation: Vec3, spatial: SpatialQuery, entity: Entity) -> f32 {
+fn calculate_exposure_rating(
+    In(entity): In<Entity>,
+    spatial: SpatialQuery,
+    object: Query<(&AiVisibilityControl, &GlobalTransform)>,
+) -> Result<u32> {
+    let (control, transform) = object.get(entity)?;
+    let translation = transform.translation();
+
     const TRIES: u8 = 8;
     // This distance is equivalent to "infinitely far away"
     const MAX_WALL_DISTANCE: f32 = 5.0;
@@ -108,7 +115,62 @@ fn calc_closest_wall(translation: Vec3, spatial: SpatialQuery, entity: Entity) -
             closest_wall = closest_wall.min(hit.distance);
         }
     }
-    closest_wall
+
+    let exposure = if closest_wall < control.wall_dist {
+        control.wall_mod
+    } else {
+        0
+    };
+    Ok(exposure)
+}
+
+fn calculate_movement_rating(
+    In(entity): In<Entity>,
+    object: Query<(&AiVisibilityControl, &LinearVelocity)>,
+) -> Result<u32> {
+    let (control, velocity) = object.get(entity)?;
+    let movement = match velocity.length_squared() {
+        v if v < control.low_speed => control.low_speed_mod,
+        v if v > control.high_speed => control.high_speed_mod,
+        _ => control.medium_speed_mod,
+    };
+    Ok(movement)
+}
+
+fn calculate_light_rating(
+    In((entity, raw_lighting)): In<(Entity, f32)>,
+    object: Query<&AiVisibilityControl>,
+) -> Result<u32> {
+    let control = object.get(entity)?;
+    let raw_lighting = (raw_lighting * 100.0).clamp(1.0, 100.0) as u32;
+    const LOW_LIGHT_NORM: u32 = 25;
+    const MEDIUM_LIGHT_NORM: u32 = 50;
+    const HIGH_LIGHT_NORM: u32 = 75;
+    let (pre_norm_base, pre_norm_range, norm_base, norm_range) = match raw_lighting {
+        l if l < control.low_visibility => (0, control.low_visibility, 0, LOW_LIGHT_NORM),
+        l if l < control.medium_visibility => (
+            control.low_visibility,
+            control.medium_visibility - control.low_visibility,
+            LOW_LIGHT_NORM,
+            MEDIUM_LIGHT_NORM - LOW_LIGHT_NORM,
+        ),
+        l if l < control.high_visibility => (
+            control.medium_visibility,
+            control.high_visibility - control.medium_visibility,
+            MEDIUM_LIGHT_NORM,
+            HIGH_LIGHT_NORM - MEDIUM_LIGHT_NORM,
+        ),
+        _ => (
+            control.high_visibility,
+            100 - control.high_visibility,
+            HIGH_LIGHT_NORM,
+            100 - HIGH_LIGHT_NORM,
+        ),
+    };
+    let result = norm_base
+        + ((raw_lighting - pre_norm_base) as f32 / pre_norm_range as f32) as u32
+        + norm_range;
+    Ok(result)
 }
 
 fn tick_visibility_timer(mut timers: Query<&mut VisibilityTimer>, time: Res<Time>) {

@@ -1,8 +1,8 @@
 use crate::{
     animation::AnimationPlayerAncestor,
     asset_tracking::LoadResource as _,
+    collision_layer::CollisionLayer,
     demo::{
-        collision_layer::CollisionLayer,
         link_head::link_head_bone,
         npc::{animation::NpcAnimationState, sense::SenseTimer, view_cone::add_debug_view_cones},
         target::TargetBase,

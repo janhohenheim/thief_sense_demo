@@ -1,27 +1,70 @@
-use bevy::{color::palettes::tailwind, picking::pointer::PointerInteraction, prelude::*};
+use bevy::{picking::pointer::PointerInteraction, prelude::*};
 use bevy_landmass::{
     AgentSettings, AgentTarget3d, Archipelago3d, FromAgentRadius as _, PointSampleDistance3d,
 };
 
 use crate::{
+    cpu_lighting::estimate_tone_mapped_lighting,
     demo::player::{PLAYER_RADIUS, PLAYER_RUN_SPEED, PLAYER_WALK_SPEED, Player},
     third_party::landmass::Agent,
 };
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(Update, draw_mesh_intersections);
+    app.add_systems(
+        Update,
+        (update_pointer_gizmo_lighting, draw_pointer_gizmo).chain(),
+    );
     app.add_observer(move_player);
+    app.add_systems(Startup, |mut commands: Commands| {
+        commands.spawn(PointerGizmoLighting(1.0));
+    });
 }
 
+#[derive(Component)]
+#[require(GlobalTransform)]
+struct PointerGizmoLighting(f32);
+
 /// A system that draws hit indicators for every pointer.
-fn draw_mesh_intersections(pointers: Query<&PointerInteraction>, mut gizmos: Gizmos) {
-    for point in pointers
+fn update_pointer_gizmo_lighting(world: &mut World) -> Result {
+    let Some(point) = world
+        .query::<&PointerInteraction>()
+        .query(world)
         .iter()
         .filter_map(|interaction| interaction.get_nearest_hit())
         .filter_map(|(_entity, hit)| hit.position)
+        .next()
+    else {
+        return Ok(());
+    };
+    let point = point + Vec3::Y * 0.05;
     {
-        gizmos.sphere(point, 0.1, tailwind::RED_500);
+        let mut global_transform = world
+            .query_filtered::<&mut GlobalTransform, With<PointerGizmoLighting>>()
+            .single_mut(world)?;
+        *global_transform = GlobalTransform::from(Transform::from_translation(point));
     }
+    let entity = world
+        .query_filtered::<Entity, With<PointerGizmoLighting>>()
+        .single(world)?;
+    let lighting = world.run_system_cached_with(estimate_tone_mapped_lighting, entity)?;
+    world
+        .query::<&mut PointerGizmoLighting>()
+        .single_mut(world)?
+        .0 = lighting;
+
+    Ok(())
+}
+
+fn draw_pointer_gizmo(
+    pointer: Single<(&GlobalTransform, &PointerGizmoLighting)>,
+    mut gizmos: Gizmos,
+) {
+    let (transform, lighting) = pointer.into_inner();
+    gizmos.sphere(
+        transform.translation(),
+        0.5,
+        (Color::WHITE.to_srgba() * lighting.0).with_alpha(1.0),
+    );
 }
 
 fn move_player(

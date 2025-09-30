@@ -5,7 +5,6 @@
 
 use bevy::prelude::*;
 
-mod collision_layer;
 pub(crate) mod level;
 pub(crate) mod link_head;
 pub(crate) mod npc;
@@ -25,6 +24,5 @@ pub(super) fn plugin(app: &mut App) {
         target_after::plugin,
         link_head::plugin,
         visibility::plugin,
-        collision_layer::plugin,
     ));
 }

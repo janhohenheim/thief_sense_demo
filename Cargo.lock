@@ -347,8 +347,8 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "avian3d"
-version = "0.3.0"
-source = "git+https://github.com/Jondolf/avian?branch=bevy-0.17#19f4c2ca692d2541fd5fa58c5bcaf1c2fe87ee22"
+version = "0.4.0-dev"
+source = "git+https://github.com/Jondolf/avian?branch=bevy-0.17#db3484aa528eabc32ea48b7975366cf3c086da5a"
 dependencies = [
  "approx",
  "avian_derive",
@@ -366,14 +366,14 @@ dependencies = [
  "parry3d-f64",
  "slab",
  "smallvec",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "thread_local",
 ]
 
 [[package]]
 name = "avian_derive"
 version = "0.2.2"
-source = "git+https://github.com/Jondolf/avian?branch=bevy-0.17#19f4c2ca692d2541fd5fa58c5bcaf1c2fe87ee22"
+source = "git+https://github.com/Jondolf/avian?branch=bevy-0.17#db3484aa528eabc32ea48b7975366cf3c086da5a"
 dependencies = [
  "proc-macro-error2",
  "proc-macro2",
@@ -384,7 +384,7 @@ dependencies = [
 [[package]]
 name = "avian_rerecast"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/janhohenheim/rerecast#13c29eab8478b5587006683793fc8d26834c1782"
+source = "git+https://github.com/janhohenheim/rerecast#afee1449385a4b2e6ae1ec9b7eab0635b02b1514"
 dependencies = [
  "avian3d",
  "bevy_app",
@@ -428,18 +428,18 @@ dependencies = [
 [[package]]
 name = "bevy-tnua"
 version = "0.25.0-rc"
-source = "git+https://github.com/janhohenheim/bevy-tnua?branch=bevy-0.17.0-dev#21b31cb7ac2f653006f6bb825d77585a164bb635"
+source = "git+https://github.com/janhohenheim/bevy-tnua?branch=bevy-0.17.0-dev#da55a55a8b2881c2afa74f607b12db4001757141"
 dependencies = [
  "bevy",
  "bevy-tnua-physics-integration-layer",
  "derive_more 1.0.0",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
 name = "bevy-tnua-avian3d"
 version = "0.6.0-rc"
-source = "git+https://github.com/janhohenheim/bevy-tnua?branch=bevy-0.17.0-dev#21b31cb7ac2f653006f6bb825d77585a164bb635"
+source = "git+https://github.com/janhohenheim/bevy-tnua?branch=bevy-0.17.0-dev#da55a55a8b2881c2afa74f607b12db4001757141"
 dependencies = [
  "avian3d",
  "bevy",
@@ -449,7 +449,7 @@ dependencies = [
 [[package]]
 name = "bevy-tnua-physics-integration-layer"
 version = "0.9.0-rc"
-source = "git+https://github.com/janhohenheim/bevy-tnua?branch=bevy-0.17.0-dev#21b31cb7ac2f653006f6bb825d77585a164bb635"
+source = "git+https://github.com/janhohenheim/bevy-tnua?branch=bevy-0.17.0-dev#da55a55a8b2881c2afa74f607b12db4001757141"
 dependencies = [
  "bevy",
 ]
@@ -504,7 +504,7 @@ dependencies = [
  "ron",
  "serde",
  "smallvec",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "thread_local",
  "tracing",
  "uuid",
@@ -560,7 +560,7 @@ dependencies = [
  "ctrlc",
  "downcast-rs 2.0.2",
  "log",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "variadics_please",
  "wasm-bindgen",
  "web-sys",
@@ -599,7 +599,7 @@ dependencies = [
  "ron",
  "serde",
  "stackfuture",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "uuid",
  "wasm-bindgen",
@@ -641,7 +641,7 @@ dependencies = [
  "downcast-rs 2.0.2",
  "serde",
  "smallvec",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "wgpu-types",
 ]
 
@@ -657,7 +657,7 @@ dependencies = [
  "derive_more 2.0.1",
  "encase",
  "serde",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "wgpu-types",
 ]
 
@@ -686,7 +686,7 @@ dependencies = [
  "nonmax",
  "radsort",
  "smallvec",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
 ]
 
@@ -778,7 +778,7 @@ dependencies = [
  "serde",
  "slotmap",
  "smallvec",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "variadics_please",
 ]
 
@@ -805,6 +805,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_framepace"
+version = "0.20.0-rc.1"
+source = "git+https://github.com/aevyrie/bevy_framepace#39427768d741b939d8595a000a48da7a91a8a5c0"
+dependencies = [
+ "bevy_app",
+ "bevy_diagnostic",
+ "bevy_ecs",
+ "bevy_log",
+ "bevy_platform",
+ "bevy_reflect",
+ "bevy_render",
+ "bevy_time",
+ "bevy_window",
+ "bevy_winit",
+ "spin_sleep",
+]
+
+[[package]]
 name = "bevy_gilrs"
 version = "0.17.0-rc.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -816,7 +834,7 @@ dependencies = [
  "bevy_platform",
  "bevy_time",
  "gilrs",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
 ]
 
@@ -891,7 +909,7 @@ dependencies = [
  "serde",
  "serde_json",
  "smallvec",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
 ]
 
@@ -929,7 +947,7 @@ dependencies = [
  "rectangle-pack",
  "ruzstd",
  "serde",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "wgpu-types",
 ]
@@ -949,7 +967,7 @@ dependencies = [
  "log",
  "serde",
  "smol_str",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -966,7 +984,7 @@ dependencies = [
  "bevy_reflect",
  "bevy_window",
  "log",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1100,7 +1118,7 @@ source = "git+https://github.com/Noxmore/bevy_materialize.git?branch=bevy-0.17#8
 dependencies = [
  "bevy",
  "serde",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "toml",
 ]
 
@@ -1120,7 +1138,7 @@ dependencies = [
  "rand_distr",
  "serde",
  "smallvec",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "variadics_please",
 ]
 
@@ -1145,7 +1163,7 @@ dependencies = [
  "derive_more 2.0.1",
  "hexasphere",
  "serde",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "wgpu-types",
 ]
@@ -1188,7 +1206,7 @@ dependencies = [
  "offset-allocator",
  "smallvec",
  "static_assertions",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
 ]
 
@@ -1265,7 +1283,7 @@ dependencies = [
  "serde",
  "smallvec",
  "smol_str",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "uuid",
  "variadics_please",
  "wgpu-types",
@@ -1351,7 +1369,7 @@ dependencies = [
  "offset-allocator",
  "send_wrapper",
  "smallvec",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "variadics_please",
  "wasm-bindgen",
@@ -1374,7 +1392,7 @@ dependencies = [
 [[package]]
 name = "bevy_rerecast"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/janhohenheim/rerecast#13c29eab8478b5587006683793fc8d26834c1782"
+source = "git+https://github.com/janhohenheim/rerecast#afee1449385a4b2e6ae1ec9b7eab0635b02b1514"
 dependencies = [
  "bevy_app",
  "bevy_math",
@@ -1385,7 +1403,7 @@ dependencies = [
 [[package]]
 name = "bevy_rerecast_core"
 version = "0.3.0-rc.1"
-source = "git+https://github.com/janhohenheim/rerecast#13c29eab8478b5587006683793fc8d26834c1782"
+source = "git+https://github.com/janhohenheim/rerecast#afee1449385a4b2e6ae1ec9b7eab0635b02b1514"
 dependencies = [
  "anyhow",
  "bevy_app",
@@ -1405,14 +1423,14 @@ dependencies = [
  "glam 0.30.8",
  "rerecast",
  "serde",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
 ]
 
 [[package]]
 name = "bevy_rerecast_editor_integration"
 version = "0.3.0-rc.1"
-source = "git+https://github.com/janhohenheim/rerecast#13c29eab8478b5587006683793fc8d26834c1782"
+source = "git+https://github.com/janhohenheim/rerecast#afee1449385a4b2e6ae1ec9b7eab0635b02b1514"
 dependencies = [
  "anyhow",
  "base64",
@@ -1438,7 +1456,7 @@ dependencies = [
  "rerecast",
  "serde",
  "serde_json",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "wgpu-types",
 ]
@@ -1460,7 +1478,7 @@ dependencies = [
  "bevy_utils",
  "derive_more 2.0.1",
  "serde",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "uuid",
 ]
 
@@ -1512,7 +1530,7 @@ dependencies = [
  "naga",
  "naga_oil",
  "serde",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "wgpu-types",
 ]
@@ -1642,7 +1660,7 @@ dependencies = [
  "serde",
  "smallvec",
  "sys-locale",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "wgpu-types",
 ]
@@ -1677,7 +1695,7 @@ dependencies = [
  "bevy_utils",
  "derive_more 2.0.1",
  "serde",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1691,7 +1709,7 @@ dependencies = [
 [[package]]
 name = "bevy_trenchbroom"
 version = "0.9.3"
-source = "git+https://github.com/Noxmore/bevy_trenchbroom?branch=bevy-0.17#f692f17a2946e3af6d2beffc11d97b06e2362bdb"
+source = "git+https://github.com/Noxmore/bevy_trenchbroom?branch=bevy-0.17#4b36faee58006f7faa1d5da781b0031c8b37896a"
 dependencies = [
  "anyhow",
  "atomicow",
@@ -1715,14 +1733,14 @@ dependencies = [
  "serde",
  "serde_json",
  "strum",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "wgpu-types",
 ]
 
 [[package]]
 name = "bevy_trenchbroom_macros"
 version = "0.9.3"
-source = "git+https://github.com/Noxmore/bevy_trenchbroom?branch=bevy-0.17#f692f17a2946e3af6d2beffc11d97b06e2362bdb"
+source = "git+https://github.com/Noxmore/bevy_trenchbroom?branch=bevy-0.17#4b36faee58006f7faa1d5da781b0031c8b37896a"
 dependencies = [
  "deluxe",
  "heck 0.5.0",
@@ -1760,7 +1778,7 @@ dependencies = [
  "serde",
  "smallvec",
  "taffy",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "uuid",
 ]
@@ -2599,7 +2617,7 @@ dependencies = [
  "const_panic",
  "encase_derive",
  "glam 0.30.8",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -2772,7 +2790,7 @@ dependencies = [
  "firewheel-graph",
  "firewheel-nodes",
  "firewheel-pool",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -2796,7 +2814,7 @@ dependencies = [
  "ringbuf",
  "smallvec",
  "symphonium",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "thunderdome",
  "wmidi",
 ]
@@ -2815,7 +2833,7 @@ dependencies = [
  "fixed-resample",
  "log",
  "ringbuf",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -2830,7 +2848,7 @@ dependencies = [
  "log",
  "ringbuf",
  "smallvec",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "thunderdome",
  "triple_buffer",
 ]
@@ -2886,7 +2904,7 @@ dependencies = [
  "firewheel-graph",
  "firewheel-nodes",
  "smallvec",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "thunderdome",
 ]
 
@@ -3807,7 +3825,7 @@ dependencies = [
  "glam 0.30.8",
  "kdtree",
  "slotmap",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -4030,7 +4048,7 @@ dependencies = [
  "pp-rs",
  "rustc-hash",
  "spirv",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "unicode-ident",
 ]
 
@@ -4046,7 +4064,7 @@ dependencies = [
  "naga",
  "regex",
  "rustc-hash",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "unicode-ident",
 ]
@@ -4694,7 +4712,7 @@ dependencies = [
  "smallvec",
  "spade",
  "static_assertions",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -4722,7 +4740,7 @@ dependencies = [
  "slab",
  "smallvec",
  "spade",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -4956,9 +4974,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.40"
+version = "1.0.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
+checksum = "ce25767e7b499d1b604768e7cde645d14cc8584231ea6b295e9c9eb22c02e1d1"
 dependencies = [
  "proc-macro2",
 ]
@@ -5139,7 +5157,7 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 [[package]]
 name = "rerecast"
 version = "0.2.0-rc"
-source = "git+https://github.com/janhohenheim/rerecast#13c29eab8478b5587006683793fc8d26834c1782"
+source = "git+https://github.com/janhohenheim/rerecast#afee1449385a4b2e6ae1ec9b7eab0635b02b1514"
 dependencies = [
  "anyhow",
  "bevy_reflect",
@@ -5147,7 +5165,7 @@ dependencies = [
  "glam 0.30.8",
  "serde",
  "slotmap",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
 ]
 
@@ -5568,6 +5586,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "spin_sleep"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c07347b7c0301b9adba4350bdcf09c039d0e7160922050db0439b3c6723c8ab"
+dependencies = [
+ "windows-sys 0.61.1",
+]
+
+[[package]]
 name = "spirv"
 version = "0.3.0+sdk-1.3.268.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5866,6 +5893,7 @@ dependencies = [
  "bevy",
  "bevy-tnua",
  "bevy-tnua-avian3d",
+ "bevy_framepace",
  "bevy_landmass",
  "bevy_rerecast",
  "bevy_seedling",
@@ -5888,11 +5916,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.16"
+version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3467d614147380f2e4e374161426ff399c91084acd2363eaf549172b3d5e60c0"
+checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
 dependencies = [
- "thiserror-impl 2.0.16",
+ "thiserror-impl 2.0.17",
 ]
 
 [[package]]
@@ -5908,9 +5936,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.16"
+version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c5e1be1c48b9172ee610da68fd9cd2770e7a4056cb3fc98710ee6906f0c7960"
+checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6587,7 +6615,7 @@ dependencies = [
  "raw-window-handle",
  "rustc-hash",
  "smallvec",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "wgpu-core-deps-apple",
  "wgpu-core-deps-windows-linux-android",
  "wgpu-hal",
@@ -6647,7 +6675,7 @@ dependencies = [
  "raw-window-handle",
  "renderdoc-sys",
  "smallvec",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "wgpu-types",
  "windows 0.58.0",
  "windows-core 0.58.0",
@@ -6664,7 +6692,7 @@ dependencies = [
  "js-sys",
  "log",
  "serde",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "web-sys",
 ]
 
