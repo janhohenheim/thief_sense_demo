@@ -41,9 +41,4 @@ pub(crate) fn spawn_level(mut commands: Commands, assets: Res<AssetServer>) {
             nav_mesh: NavMeshHandle3d(assets.load(NAVMESH)),
         },
     ));
-    commands.insert_resource(AmbientLight {
-        color: tailwind::AMBER_200.into(),
-        brightness: 150.0,
-        ..default()
-    });
 }

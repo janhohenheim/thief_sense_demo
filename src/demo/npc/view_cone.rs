@@ -51,7 +51,7 @@ impl FromWorld for DebugViewCones {
         let material = world
             .resource_mut::<Assets<StandardMaterial>>()
             .add(StandardMaterial {
-                base_color: Color::from(tailwind::GREEN_400.with_alpha(0.2)),
+                base_color: Color::from(tailwind::GREEN_400.with_alpha(0.1)),
                 alpha_mode: AlphaMode::Blend,
                 unlit: true,
                 ..default()

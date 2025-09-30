@@ -2,14 +2,20 @@
 //! - bevy/crates/bevy_pbr/src/render/light.rs: prepare_lights
 //! - bevy/crates/bevy_pbr/src/render/pbr_lighting.wgsl: point_light, spot_light, directional_light, getDistanceAttenuation
 
-use bevy::{math::FloatPow, prelude::*};
+use std::f32::consts::FRAC_1_PI;
+
+use bevy::{
+    camera::Exposure,
+    math::{FloatPow, VectorSpace},
+    prelude::*,
+};
 
 pub(super) fn plugin(app: &mut App) {
     let _ = app;
 }
 
 // ignore the object's color by assuming it's perfect white.
-const MATERIAL_COLOR: f32 = 1.0;
+const MATERIAL_COLOR: f32 = FRAC_1_PI;
 // approximate the object as a sphere
 const N_DOT_L: f32 = 1.0;
 
@@ -22,7 +28,7 @@ pub(crate) fn estimate_point_light(
     let range_attenuation = get_distance_attenuation(distance_squared, light.range);
     let color_intensity =
         Vec3::from_array(light.color.to_linear().to_f32_array_no_alpha()) * light.intensity;
-    let luminance = color_intensity.length();
+    let luminance = luminance(color_intensity);
 
     MATERIAL_COLOR * luminance * range_attenuation * N_DOT_L
 }
@@ -61,13 +67,34 @@ pub(crate) fn estimate_spot_light(
 pub(crate) fn estimate_directional_light(light: DirectionalLight) -> f32 {
     let color_intensity =
         Vec3::from_array(light.color.to_linear().to_f32_array_no_alpha()) * light.illuminance;
-    let luminance = color_intensity.length();
+    let luminance = luminance(color_intensity);
     MATERIAL_COLOR * luminance * N_DOT_L
 }
 
 fn get_distance_attenuation(distance_square: f32, range: f32) -> f32 {
     let factor = distance_square / range.squared();
-    let smooth_factor = (1.0 - factor * factor).clamp(0.0, 1.0);
-    let attenuation = smooth_factor * smooth_factor;
-    attenuation * 1.0 / distance_square.max(0.0001)
+    let smooth_factor = (1.0 - factor.squared()).clamp(0.0, 1.0);
+    let attenuation = smooth_factor.squared();
+    attenuation / distance_square.max(0.0001)
+}
+
+pub(crate) fn estimate_tone_mapping(light_contribution: f32) -> f32 {
+    let exposure = Exposure::default().exposure();
+    let hdr = light_contribution * exposure;
+    let ldr = reinhard_ext(hdr);
+    ldr.clamp(0.0, 1.0)
+}
+
+fn luminance(color: Vec3) -> f32 {
+    Color::linear_rgb(color.x, color.y, color.z).luminance()
+}
+
+fn reinhard(color: f32) -> f32 {
+    color / (1.0 + color)
+}
+
+fn reinhard_ext(color: f32) -> f32 {
+    const MAX_WHITE: f32 = 8.0;
+    let numerator = color * (1.0 + (color / MAX_WHITE.squared()));
+    return numerator / (1.0 + color);
 }
