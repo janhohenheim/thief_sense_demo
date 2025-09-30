@@ -37,6 +37,13 @@ impl EllipticCone for Collider {
 
             points.push(Vec3::new(x, -height, z));
         }
-        Collider::convex_hull(points).unwrap()
+        Collider::convex_hull(points).unwrap_or_else(|| {
+            panic!(
+                "Failed to create elliptic cone with angle_xy: {:.1}°, angle_z: {:.1}°, height: {} m",
+                angle_xy.to_degrees(),
+                angle_z.to_degrees(),
+                height
+            )
+        })
     }
 }
