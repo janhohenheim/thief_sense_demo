@@ -1,6 +1,6 @@
 //! Spawn the main level.
 
-use bevy::{color::palettes::tailwind, prelude::*};
+use bevy::prelude::*;
 use bevy_landmass::prelude::*;
 use bevy_rerecast::Navmesh;
 use landmass_rerecast::{Island3dBundle, NavMeshHandle3d};

@@ -4,11 +4,7 @@
 
 use std::f32::consts::FRAC_1_PI;
 
-use bevy::{
-    camera::Exposure,
-    math::{FloatPow, VectorSpace},
-    prelude::*,
-};
+use bevy::{camera::Exposure, math::FloatPow, prelude::*};
 
 pub(super) fn plugin(app: &mut App) {
     let _ = app;

@@ -16,6 +16,7 @@ mod theme;
 mod third_party;
 use bevy::{
     asset::AssetMetaCheck,
+    color::palettes::tailwind,
     gltf::GltfPlugin,
     image::{ImageAddressMode, ImageSamplerDescriptor},
     prelude::*,
@@ -142,7 +143,7 @@ fn spawn_camera(mut commands: Commands, mut image_assets: ResMut<Assets<Image>>)
         Transform::from_xyz(0.0, 10.0, 8.0).looking_to(Vec3::new(0.0, -1.0, -0.7), Vec3::Y),
         EnvironmentMapLight {
             intensity: 10.0,
-            ..EnvironmentMapLight::solid_color(&mut image_assets, Color::WHITE)
+            ..EnvironmentMapLight::solid_color(&mut image_assets, tailwind::AMBER_100.into())
         },
     ));
 }

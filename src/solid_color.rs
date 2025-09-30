@@ -1,7 +1,7 @@
 //! Yoinked from https://github.com/bevyengine/bevy/pull/18207
 
 use bevy::{
-    asset::{RenderAssetUsages, uuid_handle},
+    asset::RenderAssetUsages,
     prelude::*,
     render::render_resource::{
         Extent3d, TextureDimension, TextureFormat, TextureViewDescriptor, TextureViewDimension,
@@ -79,6 +79,3 @@ fn hemispherical_gradient_cubemap(
         )
     }
 }
-
-pub const DEFAULT_ENVIRONMENT_MAP_TEXTURE_HANDLE: Handle<Image> =
-    uuid_handle!("99e3f21e-9c08-4924-9895-fa8599416316");

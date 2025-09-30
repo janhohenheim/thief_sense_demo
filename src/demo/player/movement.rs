@@ -1,17 +1,10 @@
-use avian3d::prelude::SpatialQuery;
-use bevy::{
-    camera::Exposure, color::palettes::tailwind, math::ops::exp2,
-    picking::pointer::PointerInteraction, prelude::*,
-};
+use bevy::{picking::pointer::PointerInteraction, prelude::*};
 use bevy_landmass::{
     AgentSettings, AgentTarget3d, Archipelago3d, FromAgentRadius as _, PointSampleDistance3d,
 };
 
 use crate::{
-    cpu_lighting::{
-        estimate_directional_light, estimate_point_light, estimate_spot_light,
-        estimate_tone_mapping,
-    },
+    cpu_lighting::{estimate_point_light, estimate_spot_light, estimate_tone_mapping},
     demo::player::{PLAYER_RADIUS, PLAYER_RUN_SPEED, PLAYER_WALK_SPEED, Player},
     third_party::landmass::Agent,
 };
