@@ -68,7 +68,7 @@ fn spawn_npc(
             FloatHeight(NPC_FLOAT_HEIGHT),
             CollisionLayers::new(
                 [CollisionLayer::Default, CollisionLayer::AiVisible],
-                CollisionLayer::Default,
+                LayerMask::ALL,
             ),
             SenseTimer::default(),
             AiVisibility::default(),

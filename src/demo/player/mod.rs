@@ -56,7 +56,7 @@ fn spawn_player(
             TnuaAnimatingState::<PlayerAnimationState>::default(),
             CollisionLayers::new(
                 [CollisionLayer::Default, CollisionLayer::AiVisible],
-                CollisionLayer::Default,
+                LayerMask::ALL,
             ),
             AnimationPlayerAncestor,
             FloatHeight(PLAYER_FLOAT_HEIGHT),
