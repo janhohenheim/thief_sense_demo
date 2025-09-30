@@ -2,7 +2,7 @@
 //! - bevy/crates/bevy_pbr/src/render/light.rs: prepare_lights
 //! - bevy/crates/bevy_pbr/src/render/pbr_lighting.wgsl: point_light, spot_light, directional_light, getDistanceAttenuation
 
-use std::{f32::consts::FRAC_1_PI, f64::consts::FRAC_PI_4, sync::LazyLock};
+use std::{f32::consts::FRAC_1_PI, sync::LazyLock};
 
 use avian3d::{math::PI, prelude::*};
 use bevy::{camera::Exposure, math::FloatPow, prelude::*};
