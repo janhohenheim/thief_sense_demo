@@ -60,7 +60,6 @@ fn draw_pointer_gizmo(
     mut gizmos: Gizmos,
 ) {
     let (transform, lighting) = pointer.into_inner();
-    info!("Lighting: {}", lighting.0);
     gizmos.sphere(
         transform.translation(),
         0.5,
