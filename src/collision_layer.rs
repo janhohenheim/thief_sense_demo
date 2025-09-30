@@ -23,28 +23,31 @@ pub(crate) struct Transparent;
 
 fn mark_static_colliders(
     add: On<Add, RigidBodyColliders>,
-    rigid_body: Query<(&RigidBody, &RigidBodyColliders)>,
+    rigid_body: Query<(&RigidBody, &RigidBodyColliders, Has<Transparent>)>,
     mut layers: Query<&mut CollisionLayers>,
     mut commands: Commands,
     transparent: Query<(), With<Transparent>>,
 ) -> Result {
-    let (rigid_body, colliders) = rigid_body.get(add.entity)?;
-    if !rigid_body.is_static() {
+    let (rigid_body, colliders, is_transparent) = rigid_body.get(add.entity)?;
+    let is_static = rigid_body.is_static();
+    if !is_static && is_transparent {
         return Ok(());
     }
 
     for entity in colliders.iter() {
         if let Ok(mut layer) = layers.get_mut(entity) {
-            layer.memberships.add(CollisionLayer::Static);
-            if !transparent.contains(entity) {
+            if is_static {
+                layer.memberships.add(CollisionLayer::Static);
+            }
+            if !is_transparent {
                 layer.memberships.add(CollisionLayer::Opaque);
             }
         } else {
-            let mut layers = CollisionLayers::new(
-                [CollisionLayer::Default, CollisionLayer::Static],
-                [CollisionLayer::Default],
-            );
-            if !transparent.contains(entity) {
+            let mut layers = CollisionLayers::DEFAULT;
+            if is_static {
+                layers.memberships.add(CollisionLayer::Static);
+            }
+            if !is_transparent {
                 layers.memberships.add(CollisionLayer::Opaque);
             }
             commands.entity(entity).insert(layers);
