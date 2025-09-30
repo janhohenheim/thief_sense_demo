@@ -4,7 +4,9 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 
 use crate::{
-    collision_layer::CollisionLayer, cpu_lighting::estimate_tone_mapped_lighting,
+    collision_layer::CollisionLayer,
+    cpu_lighting::estimate_tone_mapped_lighting,
+    demo::player::{PLAYER_RUN_SPEED, PLAYER_WALK_SPEED},
     rand_timer::RandTimer,
 };
 
@@ -26,7 +28,7 @@ impl Default for VisibilityTimer {
     }
 }
 
-#[derive(Component, Debug, Copy, Clone, Default)]
+#[derive(Component, Debug, Copy, Clone)]
 pub(crate) struct AiVisibilityControl {
     pub(crate) low_visibility: u8,
     pub(crate) medium_visibility: u8,
@@ -43,9 +45,25 @@ pub(crate) struct AiVisibilityControl {
     pub(crate) wall_mod: u8,
 }
 
+impl Default for AiVisibilityControl {
+    fn default() -> Self {
+        Self {
+            low_visibility: 13,
+            medium_visibility: 19,
+            high_visibility: 44,
+            low_speed: PLAYER_WALK_SPEED - 0.01,
+            high_speed: PLAYER_RUN_SPEED,
+            low_speed_mod: 0,
+            medium_speed_mod: 5,
+            high_speed_mod: 10,
+            wall_dist: 0.5,
+            wall_mod: 1,
+        }
+    }
+}
+
 #[derive(Component, Debug, Copy, Clone, Default)]
 #[require(VisibilityTimer, AiVisibilityControl)]
-#[expect(dead_code, reason = "Needs to be implemented!")]
 pub(crate) struct AiVisibility {
     pub(crate) lighting: u8,
     pub(crate) movement: u8,

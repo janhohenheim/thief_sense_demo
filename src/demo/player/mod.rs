@@ -31,8 +31,8 @@ const PLAYER_GLTF: &str = "models/npc.glb";
 const PLAYER_HEIGHT: f32 = 1.6811;
 pub(crate) const PLAYER_RADIUS: f32 = 0.2;
 const PLAYER_FLOAT_HEIGHT: f32 = PLAYER_HEIGHT / 2.0 + 0.01;
-const PLAYER_WALK_SPEED: f32 = 2.5;
-const PLAYER_RUN_SPEED: f32 = 5.0;
+pub(crate) const PLAYER_WALK_SPEED: f32 = 2.5;
+pub(crate) const PLAYER_RUN_SPEED: f32 = 5.0;
 
 #[point_class(model("models/npc.glb"))]
 pub(crate) struct Player;
