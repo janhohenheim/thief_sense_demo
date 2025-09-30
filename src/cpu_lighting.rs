@@ -2,9 +2,9 @@
 //! - bevy/crates/bevy_pbr/src/render/light.rs: prepare_lights
 //! - bevy/crates/bevy_pbr/src/render/pbr_lighting.wgsl: point_light, spot_light, directional_light, getDistanceAttenuation
 
-use std::{f32::consts::FRAC_1_PI, sync::LazyLock};
+use std::{f32::consts::FRAC_1_PI, f64::consts::FRAC_PI_4, sync::LazyLock};
 
-use avian3d::prelude::*;
+use avian3d::{math::PI, prelude::*};
 use bevy::{camera::Exposure, math::FloatPow, prelude::*};
 
 use crate::collision_layer::CollisionLayer;
@@ -95,8 +95,10 @@ const N_DOT_L: f32 = 1.0;
 fn estimate_point_light(light: PointLight, light_position: Vec3, point_position: Vec3) -> f32 {
     let distance_squared = light_position.distance_squared(point_position);
     let range_attenuation = get_distance_attenuation(distance_squared, light.range);
+    // luminous power to luminous intensity
+    let intensity = light.intensity / (4.0 * PI);
     let color_intensity =
-        Vec3::from_array(light.color.to_linear().to_f32_array_no_alpha()) * light.intensity;
+        Vec3::from_array(light.color.to_linear().to_f32_array_no_alpha()) * intensity;
     let luminance = luminance(color_intensity);
 
     MATERIAL_COLOR * luminance * range_attenuation * N_DOT_L
@@ -155,7 +157,7 @@ fn luminance(color: Vec3) -> f32 {
 }
 
 fn reinhard_ext(color: f32) -> f32 {
-    const MAX_WHITE: f32 = 11.0;
+    const MAX_WHITE: f32 = 8.0;
     let numerator = color * (1.0 + (color / MAX_WHITE.squared()));
     numerator / (1.0 + color)
 }
