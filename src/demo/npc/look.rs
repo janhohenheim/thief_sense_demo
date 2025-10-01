@@ -93,7 +93,7 @@ fn check_view_cones(
         let intersections = spatial.shape_intersections(
             &view_cone.collider,
             npc_transform.translation,
-            npc_transform.rotation * Quat::from_rotation_x(TAU / 4.0),
+            npc_transform.rotation,
             &filter,
         );
         filter.excluded_entities.extend(&intersections);

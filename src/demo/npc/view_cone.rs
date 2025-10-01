@@ -28,7 +28,6 @@ pub(crate) struct DebugViewCones {
 impl FromWorld for ViewCones {
     fn from_world(_world: &mut World) -> Self {
         Self(vec![
-            /*
             // Close up near perfect vision, high alert
             ViewCone {
                 collider: Collider::view_cone(170.0_f32.to_radians(), 170.0_f32.to_radians(), 1.5),
@@ -58,7 +57,7 @@ impl FromWorld for ViewCones {
                 flags: ViewConeFlags::Active,
                 acuity: 200.0,
             },
-            */
+            /*
             // Round the back magic vision
             ViewCone {
                 collider: Collider::view_cone(320.0_f32.to_radians(), 90.0_f32.to_radians(), 1.8),
@@ -67,8 +66,7 @@ impl FromWorld for ViewCones {
                     | ViewConeFlags::NoAlert1
                     | ViewConeFlags::Omni,
                 acuity: 70.0,
-            },
-            /*
+            }, */
             // Normal near binocular vision
             ViewCone {
                 collider: Collider::view_cone(120.0_f32.to_radians(), 90.0_f32.to_radians(), 6.7),
@@ -76,6 +74,7 @@ impl FromWorld for ViewCones {
                 acuity: 120.0,
             },
             // Mid-range sight
+            /*
             ViewCone {
                 collider: Collider::view_cone(150.0_f32.to_radians(), 70.0_f32.to_radians(), 10.6),
                 flags: ViewConeFlags::Active,
@@ -92,7 +91,8 @@ impl FromWorld for ViewCones {
                 collider: Collider::view_cone(230.0_f32.to_radians(), 110.0_f32.to_radians(), 24.3),
                 flags: ViewConeFlags::Active | ViewConeFlags::Periph,
                 acuity: 12.1,
-            }, */
+            },
+            */
         ])
     }
 }
