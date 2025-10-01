@@ -1,7 +1,13 @@
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
 
 use avian3d::prelude::*;
-use bevy::{math::ops::sin_cos, prelude::*};
+use bevy::{
+    math::{
+        bounding::{BoundingSphere, RayCast3d},
+        ops::sin_cos,
+    },
+    prelude::*,
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins(PhysicsPlugins::default());
@@ -10,55 +16,30 @@ pub(super) fn plugin(app: &mut App) {
 pub(crate) trait EllipticCone {
     /// Like [`Collider::cone`], but using an elliptical base. `half_width` is along the x-axis, `half_height` is along the z-axis.
     /// The origin is at the tip of the cone.
-    fn elliptic_cone(half_width: f32, half_height: f32, height: f32) -> Collider;
+    fn view_cone(phi: f32, theta: f32, r: f32) -> Collider;
 }
 
 impl EllipticCone for Collider {
-    fn elliptic_cone(angle_xy: f32, angle_z: f32, height: f32) -> Collider {
-        if angle_xy <= 0.0 || angle_z <= 0.0 {
-            panic!(
-                "angle_xy and angle_z must be positive, but got angle_xy = {:.1}°, angle_z = {:.1}°",
-                angle_xy.to_degrees(),
-                angle_z.to_degrees()
-            );
+    fn view_cone(xy_angle: f32, z_angle: f32, range: f32) -> Collider {
+        let mut verts = vec![Vec3::ZERO];
+        let half_subdiv = 8;
+        let phi = xy_angle / 2.0;
+        let theta = z_angle / 2.0;
+        for i in -half_subdiv..half_subdiv {
+            for j in -half_subdiv..half_subdiv {
+                let phi = phi * i as f32 / half_subdiv as f32;
+                let theta = theta * j as f32 / half_subdiv as f32;
+                let dir = Quat::from_rotation_x(phi) * Quat::from_rotation_y(theta) * Dir3::NEG_Z;
+                let point = dir * range;
+                verts.push(point);
+            }
         }
-        if angle_xy >= PI || angle_z >= PI {
+        Collider::convex_hull(verts).unwrap_or_else(|| {
             panic!(
-                "angle_xy and angle_z must be less than 180 degrees, but got angle_xy = {:.1}°, angle_z = {:.1}°",
-                angle_xy.to_degrees(),
-                angle_z.to_degrees()
-            );
-        }
-        let angle_xy = angle_xy / 2.0;
-        let angle_z = angle_z / 2.0;
-        // Convert angles to half_width and half_height using trigonometry
-        // The angles represent the half-angle of the cone from vertical axis
-        let half_width = height * angle_xy.tan();
-        let half_height = height * angle_z.tan();
-
-        // The following is adapted from Bevy's implementation of building a mesh from an ellipse
-        const RESOLUTION: usize = 8;
-        // Add pi/2 so that there is a vertex at the top (sin is 1.0 and cos is 0.0)
-        let start_angle = FRAC_PI_2;
-        let step = TAU / RESOLUTION as f32;
-
-        let tip = Vec3::ZERO;
-        let mut points = vec![tip];
-        for i in 0..RESOLUTION {
-            // Compute vertex position at angle theta
-            let theta = start_angle + i as f32 * step;
-            let (sin, cos) = sin_cos(theta);
-            let x = cos * half_width;
-            let z = sin * half_height;
-
-            points.push(Vec3::new(x, -height, z));
-        }
-        Collider::convex_hull(points).unwrap_or_else(|| {
-            panic!(
-                "Failed to create elliptic cone with angle_xy: {:.1}°, angle_z: {:.1}°, height: {} m",
-                angle_xy.to_degrees(),
-                angle_z.to_degrees(),
-                height
+                "Failed to create rounded cone with angle_xy: {:.1}°, angle_z: {:.1}°, slant: {} m",
+                xy_angle.to_degrees(),
+                z_angle.to_degrees(),
+                range
             )
         })
     }
