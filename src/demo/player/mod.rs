@@ -12,10 +12,8 @@ use crate::{
     animation::AnimationPlayerAncestor,
     asset_tracking::LoadResource as _,
     collision_layer::CollisionLayer,
-    demo::{
-        link_head::link_head_bone, player::animation::PlayerAnimationState,
-        visibility::AiVisibility,
-    },
+    demo::{ai::visibility::AiVisibility, player::animation::PlayerAnimationState},
+    link_head::link_head_bone,
     movement::FloatHeight,
     third_party::landmass::AgentOf,
 };

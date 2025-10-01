@@ -3,11 +3,11 @@ use crate::{
     asset_tracking::LoadResource as _,
     collision_layer::CollisionLayer,
     demo::{
-        link_head::link_head_bone,
-        npc::{animation::NpcAnimationState, sense::SenseTimer, view_cone::add_debug_view_cones},
+        ai::{sense::SenseTimer, view_cone::add_debug_view_cones, visibility::AiVisibility},
+        npc::animation::NpcAnimationState,
         target::TargetBase,
-        visibility::AiVisibility,
     },
+    link_head::link_head_bone,
     movement::FloatHeight,
     third_party::landmass::AgentOf,
 };
@@ -19,21 +19,12 @@ use bevy_tnua_avian3d::TnuaAvian3dSensorShape;
 use bevy_trenchbroom::prelude::*;
 
 mod animation;
-mod look;
 mod movement;
-mod sense;
-mod view_cone;
 
 pub(super) fn plugin(app: &mut App) {
     app.load_asset::<Gltf>(NPC_GLTF);
     app.add_observer(spawn_npc);
-    app.add_plugins((
-        movement::plugin,
-        animation::plugin,
-        view_cone::plugin,
-        look::plugin,
-        sense::plugin,
-    ));
+    app.add_plugins((movement::plugin, animation::plugin));
 }
 
 const NPC_GLTF: &str = "models/npc.glb";

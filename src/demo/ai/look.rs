@@ -6,9 +6,13 @@ use bevy::prelude::*;
 use crate::{
     collision_layer::CollisionLayer,
     demo::{
-        npc::{Npc, sense::SenseTimer, view_cone::ViewCones},
+        ai::{
+            sense::SenseTimer,
+            view_cone::ViewCones,
+            visibility::{AiVisibility, get_or_update_visibility},
+        },
+        npc::Npc,
         player::Player,
-        visibility::{AiVisibility, get_or_update_visibility},
     },
 };
 

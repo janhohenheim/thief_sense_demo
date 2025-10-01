@@ -1,6 +1,6 @@
 use std::f32::consts::TAU;
 
-use crate::{demo::link_head::Head, third_party::avian::EllipticCone as _};
+use crate::{link_head::Head, third_party::avian::EllipticCone as _};
 use avian3d::prelude::*;
 use bevy::{
     asset::RenderAssetUsages,
