@@ -1,13 +1,7 @@
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
 
 use avian3d::prelude::*;
-use bevy::{
-    math::{
-        bounding::{BoundingSphere, RayCast3d},
-        ops::sin_cos,
-    },
-    prelude::*,
-};
+use bevy::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins(PhysicsPlugins::default());

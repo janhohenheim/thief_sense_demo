@@ -1,5 +1,3 @@
-use std::f32::consts::TAU;
-
 use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 

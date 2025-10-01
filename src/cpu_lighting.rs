@@ -48,7 +48,7 @@ fn estimate_total_lighting(
             // Occluded
             continue;
         }
-        lighting += estimate_directional_light(light.clone());
+        lighting += estimate_directional_light(*light);
     }
     let nearby_lights = spatial.shape_intersections(
         &SPHERE,
