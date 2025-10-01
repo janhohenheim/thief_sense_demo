@@ -28,6 +28,7 @@ pub(crate) struct DebugViewCones {
 impl FromWorld for ViewCones {
     fn from_world(_world: &mut World) -> Self {
         Self(vec![
+            /*
             // Close up near perfect vision, high alert
             ViewCone {
                 collider: Collider::view_cone(170.0_f32.to_radians(), 170.0_f32.to_radians(), 1.5),
@@ -57,15 +58,17 @@ impl FromWorld for ViewCones {
                 flags: ViewConeFlags::Active,
                 acuity: 200.0,
             },
+            */
             // Round the back magic vision
             ViewCone {
-                collider: Collider::view_cone(320.0_f32.to_radians(), 90.0_f32.to_radians(), -1.8),
+                collider: Collider::view_cone(320.0_f32.to_radians(), 90.0_f32.to_radians(), 1.8),
                 flags: ViewConeFlags::Active
                     | ViewConeFlags::NoAlert0
                     | ViewConeFlags::NoAlert1
                     | ViewConeFlags::Omni,
                 acuity: 70.0,
             },
+            /*
             // Normal near binocular vision
             ViewCone {
                 collider: Collider::view_cone(120.0_f32.to_radians(), 90.0_f32.to_radians(), 6.7),
@@ -78,7 +81,6 @@ impl FromWorld for ViewCones {
                 flags: ViewConeFlags::Active,
                 acuity: 80.0,
             },
-            /*
             // Long range and wide range peripheral vision
             ViewCone {
                 collider: Collider::view_cone(230.0_f32.to_radians(), 70.0_f32.to_radians(), 10.6),
@@ -203,11 +205,21 @@ impl ViewCone {
         let (verts, indices) = self
             .collider
             .shape()
-            .as_convex_polyhedron()
+            .as_compound()
             .unwrap()
-            .to_trimesh();
-        let verts = verts.into_iter().map(Vec3::from).collect::<Vec<_>>();
-        let indices = indices.into_iter().flatten().collect();
+            .shapes()
+            .iter()
+            .map(|(_, shape)| shape.as_convex_polyhedron().unwrap())
+            .fold(
+                (Vec::new(), Vec::new()),
+                |(mut verts, mut indices), shape| {
+                    let (shape_verts, shape_indices) = shape.to_trimesh();
+                    let next_index = verts.len() as u32;
+                    verts.extend(shape_verts.into_iter().map(Vec3::from));
+                    indices.extend(shape_indices.into_iter().flatten().map(|i| i + next_index));
+                    (verts, indices)
+                },
+            );
 
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, verts);
         mesh.insert_indices(Indices::U32(indices));

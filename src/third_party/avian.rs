@@ -34,13 +34,14 @@ impl EllipticCone for Collider {
                 verts.push(point);
             }
         }
-        Collider::convex_hull(verts).unwrap_or_else(|| {
+        let hull = Collider::convex_hull(verts).unwrap_or_else(|| {
             panic!(
                 "Failed to create rounded cone with angle_xy: {:.1}°, angle_z: {:.1}°, slant: {} m",
                 xy_angle.to_degrees(),
                 z_angle.to_degrees(),
                 range
             )
-        })
+        });
+        Collider::compound(vec![(Vec3::ZERO, Quat::IDENTITY, hull)])
     }
 }
