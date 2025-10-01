@@ -18,13 +18,14 @@ impl EllipticCone for Collider {
         let theta = z_angle / 2.0;
         let phi_step = phi / half_subdiv as f32;
         let theta_step = theta / half_subdiv as f32;
-        // intersection between pyramid and sphere
-        //
         // corners
         verts.push(point(-phi, -theta)); // idx 1
         verts.push(point(phi, -theta)); // idx 2
         verts.push(point(-phi, theta)); // idx 3
         verts.push(point(phi, theta)); // idx 4
+
+        // LOS tip
+        verts.push(point(0.0, 0.0)); // idx 5
 
         let mut indices = Vec::new();
 
@@ -37,9 +38,11 @@ impl EllipticCone for Collider {
             let idx = verts.len() as u32;
             verts.push(point(phi, theta));
             indices.push([0, prev_idx, idx]);
+            indices.push([5, idx, prev_idx]);
             prev_idx = idx;
         }
         indices.push([0, prev_idx, 2]);
+        indices.push([5, 2, prev_idx]);
 
         //  +theta: 3 -> 4
         prev_idx = 3;
@@ -49,9 +52,11 @@ impl EllipticCone for Collider {
             let idx = verts.len() as u32;
             verts.push(point(phi, theta));
             indices.push([0, idx, prev_idx]);
+            indices.push([5, prev_idx, idx]);
             prev_idx = idx;
         }
         indices.push([0, 4, prev_idx]);
+        indices.push([5, prev_idx, 4]);
 
         // -phi: 1 -> 3
         prev_idx = 1;
@@ -61,9 +66,11 @@ impl EllipticCone for Collider {
             let idx = verts.len() as u32;
             verts.push(point(phi, theta));
             indices.push([0, idx, prev_idx]);
+            indices.push([5, prev_idx, idx]);
             prev_idx = idx;
         }
         indices.push([0, 3, prev_idx]);
+        indices.push([5, prev_idx, 3]);
 
         // +phi: 2 -> 4
         prev_idx = 2;
@@ -73,9 +80,13 @@ impl EllipticCone for Collider {
             let idx = verts.len() as u32;
             verts.push(point(phi, theta));
             indices.push([0, prev_idx, idx]);
+            indices.push([5, idx, prev_idx]);
             prev_idx = idx;
         }
         indices.push([0, prev_idx, 4]);
+        indices.push([5, 4, prev_idx]);
+
+        let rings = 1;
 
         /*
         // sphere
