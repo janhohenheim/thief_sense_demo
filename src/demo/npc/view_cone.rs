@@ -61,6 +61,7 @@ impl FromWorld for ViewCones {
                 flags: ViewConeFlags::Active,
                 acuity: 200.0,
             },
+            /*
             // Round the back magic vision
             ViewCone {
                 collider: Collider::view_cone(320.0_f32.to_radians(), 90.0_f32.to_radians(), 1.8),
@@ -81,7 +82,7 @@ impl FromWorld for ViewCones {
                 collider: Collider::view_cone(150.0_f32.to_radians(), 70.0_f32.to_radians(), 10.6),
                 flags: ViewConeFlags::Active,
                 acuity: 80.0,
-            },
+            }, */
             /*
             // Long range and wide range peripheral vision
             ViewCone {
