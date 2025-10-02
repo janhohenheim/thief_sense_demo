@@ -12,6 +12,7 @@ use crate::{
     animation::AnimationPlayerAncestor,
     asset_tracking::LoadResource as _,
     collision_layer::CollisionLayer,
+    cpu_lighting::LightTransform,
     demo::{ai::visibility::AiVisibility, player::animation::PlayerAnimationState},
     link_head::link_head_bone,
     movement::FloatHeight,
@@ -59,6 +60,7 @@ fn spawn_player(
             AnimationPlayerAncestor,
             FloatHeight(PLAYER_FLOAT_HEIGHT),
             AiVisibility::default(),
+            LightTransform(Vec3::Y * -PLAYER_FLOAT_HEIGHT),
         ))
         .with_children(|parent| {
             parent

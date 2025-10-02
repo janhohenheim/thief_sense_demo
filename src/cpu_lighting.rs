@@ -5,7 +5,7 @@
 use std::{f32::consts::FRAC_1_PI, sync::LazyLock};
 
 use avian3d::{math::PI, prelude::*};
-use bevy::{camera::Exposure, math::FloatPow, prelude::*};
+use bevy::{camera::Exposure, ecs::query::QueryData, math::FloatPow, prelude::*};
 
 use crate::collision_layer::CollisionLayer;
 
@@ -25,9 +25,28 @@ pub(crate) fn estimate_tone_mapped_lighting(
     Ok(ldr)
 }
 
+#[derive(Debug, Component, Deref, DerefMut)]
+pub(crate) struct LightTransform(pub(crate) Vec3);
+
+#[derive(QueryData)]
+#[query_data(derive(Debug))]
+struct LightOrGlobalTranslation {
+    pub light: Option<&'static LightTransform>,
+    pub global: &'static GlobalTransform,
+}
+
+impl<'w, 's> LightOrGlobalTranslationItem<'w, 's> {
+    fn translation(&self) -> Vec3 {
+        match self.light {
+            Some(light) => self.global.translation() + light.0,
+            None => self.global.translation(),
+        }
+    }
+}
+
 fn estimate_total_lighting(
     In(entity): In<Entity>,
-    transforms: Query<&GlobalTransform>,
+    transforms: Query<LightOrGlobalTranslation>,
     lights: Query<(
         &GlobalTransform,
         NameOrEntity,
