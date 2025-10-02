@@ -64,7 +64,7 @@ fn look(world: &mut World) -> Result {
                 _ => Alertness::High,
             };
             info!(
-                "Entity {:?} ({visibility} -> {pulse:?}): {ai_visibility:?}",
+                "Entity {:?} ({visibility} -> {pulse:?}): {ai_visibility:?} ",
                 entity
             );
         }

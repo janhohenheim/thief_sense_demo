@@ -48,7 +48,7 @@ pub(crate) struct AiVisibilityControl {
 impl Default for AiVisibilityControl {
     fn default() -> Self {
         Self {
-            low_visibility: 13,
+            low_visibility: 9,
             medium_visibility: 19,
             high_visibility: 44,
             low_speed: PLAYER_WALK_SPEED,
@@ -87,6 +87,7 @@ pub(crate) fn get_or_update_visibility(
     }
 
     let raw_lighting = world.run_system_cached_with(estimate_tone_mapped_lighting, entity)?;
+    info!("raw_lighting: {:?}", raw_lighting);
     let lighting = world.run_system_cached_with(calculate_light_rating, (entity, raw_lighting))?;
 
     let movement = world.run_system_cached_with(calculate_movement_rating, entity)?;

@@ -60,7 +60,7 @@ fn spawn_player(
             AnimationPlayerAncestor,
             FloatHeight(PLAYER_FLOAT_HEIGHT),
             AiVisibility::default(),
-            LightTransform(Vec3::Y * -PLAYER_FLOAT_HEIGHT),
+            LightTransform(Vec3::Y * -(PLAYER_HEIGHT / 2.0)),
         ))
         .with_children(|parent| {
             parent
