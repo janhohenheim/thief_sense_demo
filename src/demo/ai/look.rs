@@ -40,7 +40,7 @@ fn look(world: &mut World) -> Result {
             };
         for (entity, view_cone) in entities_in_view {
             // Process entities in view
-            let visibility: AiVisibility =
+            let ai_visibility: AiVisibility =
                 match world.run_system_cached_with(get_or_update_visibility, entity) {
                     Ok(visibility) => visibility,
                     Err(err) => {
@@ -49,7 +49,7 @@ fn look(world: &mut World) -> Result {
                     }
                 };
             let visibility: u8 = match world
-                .run_system_cached_with(visibility_to_viewer, (entity, view_cone, visibility))
+                .run_system_cached_with(visibility_to_viewer, (entity, view_cone, ai_visibility))
             {
                 Ok(visibility) => visibility,
                 Err(err) => {
@@ -57,7 +57,16 @@ fn look(world: &mut World) -> Result {
                     continue;
                 }
             };
-            info!("Entity {:?}: {:?}", entity, visibility);
+            let pulse = match visibility {
+                v if v < 25 => Alertness::Lowest,
+                v if v < 50 => Alertness::Low,
+                v if v < 75 => Alertness::Moderate,
+                _ => Alertness::High,
+            };
+            info!(
+                "Entity {:?} ({visibility} -> {pulse:?}): {ai_visibility:?}",
+                entity
+            );
         }
     }
     if errors.is_empty() {
