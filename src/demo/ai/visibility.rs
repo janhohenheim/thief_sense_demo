@@ -4,7 +4,9 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 
 use crate::{
-    collision_layer::CollisionLayer, cpu_lighting::estimate_tone_mapped_lighting,
+    collision_layer::CollisionLayer,
+    cpu_lighting::estimate_tone_mapped_lighting,
+    demo::player::{PLAYER_RUN_SPEED, PLAYER_WALK_SPEED},
     rand_timer::RandTimer,
 };
 
@@ -26,30 +28,46 @@ impl Default for VisibilityTimer {
     }
 }
 
-#[derive(Component, Debug, Copy, Clone, Default)]
+#[derive(Component, Debug, Copy, Clone)]
 pub(crate) struct AiVisibilityControl {
-    pub(crate) low_visibility: u32,
-    pub(crate) medium_visibility: u32,
-    pub(crate) high_visibility: u32,
+    pub(crate) low_visibility: u8,
+    pub(crate) medium_visibility: u8,
+    pub(crate) high_visibility: u8,
 
     pub(crate) low_speed: f32,
     pub(crate) high_speed: f32,
 
-    pub(crate) low_speed_mod: u32,
-    pub(crate) medium_speed_mod: u32,
-    pub(crate) high_speed_mod: u32,
+    pub(crate) low_speed_mod: u8,
+    pub(crate) medium_speed_mod: u8,
+    pub(crate) high_speed_mod: u8,
 
     pub(crate) wall_dist: f32,
-    pub(crate) wall_mod: u32,
+    pub(crate) wall_mod: i8,
+}
+
+impl Default for AiVisibilityControl {
+    fn default() -> Self {
+        Self {
+            low_visibility: 13,
+            medium_visibility: 19,
+            high_visibility: 44,
+            low_speed: PLAYER_WALK_SPEED,
+            high_speed: PLAYER_RUN_SPEED + 2.0,
+            low_speed_mod: 0,
+            medium_speed_mod: 5,
+            high_speed_mod: 10,
+            wall_dist: 0.5,
+            wall_mod: -1,
+        }
+    }
 }
 
 #[derive(Component, Debug, Copy, Clone, Default)]
 #[require(VisibilityTimer, AiVisibilityControl)]
-#[expect(dead_code, reason = "Needs to be implemented!")]
 pub(crate) struct AiVisibility {
-    pub(crate) lighting: u32,
-    pub(crate) movement: u32,
-    pub(crate) exposure: u32,
+    pub(crate) lighting: u8,
+    pub(crate) movement: u8,
+    pub(crate) exposure: i8,
 }
 
 pub(crate) fn get_or_update_visibility(
@@ -98,7 +116,7 @@ fn calculate_exposure_rating(
     In(entity): In<Entity>,
     spatial: SpatialQuery,
     object: Query<(&AiVisibilityControl, &GlobalTransform)>,
-) -> Result<u32> {
+) -> Result<i8> {
     let (control, transform) = object.get(entity)?;
     let translation = transform.translation();
 
@@ -127,7 +145,7 @@ fn calculate_exposure_rating(
 fn calculate_movement_rating(
     In(entity): In<Entity>,
     object: Query<(&AiVisibilityControl, &LinearVelocity)>,
-) -> Result<u32> {
+) -> Result<u8> {
     let (control, velocity) = object.get(entity)?;
     let movement = match velocity.length_squared() {
         v if v < control.low_speed => control.low_speed_mod,
@@ -140,12 +158,12 @@ fn calculate_movement_rating(
 fn calculate_light_rating(
     In((entity, raw_lighting)): In<(Entity, f32)>,
     object: Query<&AiVisibilityControl>,
-) -> Result<u32> {
+) -> Result<u8> {
     let control = object.get(entity)?;
-    let raw_lighting = (raw_lighting * 100.0).clamp(1.0, 100.0) as u32;
-    const LOW_LIGHT_NORM: u32 = 25;
-    const MEDIUM_LIGHT_NORM: u32 = 50;
-    const HIGH_LIGHT_NORM: u32 = 75;
+    let raw_lighting = (raw_lighting * 100.0).clamp(1.0, 100.0) as u8;
+    const LOW_LIGHT_NORM: u8 = 25;
+    const MEDIUM_LIGHT_NORM: u8 = 50;
+    const HIGH_LIGHT_NORM: u8 = 75;
     let (pre_norm_base, pre_norm_range, norm_base, norm_range) = match raw_lighting {
         l if l < control.low_visibility => (0, control.low_visibility, 0, LOW_LIGHT_NORM),
         l if l < control.medium_visibility => (
@@ -168,7 +186,7 @@ fn calculate_light_rating(
         ),
     };
     let result = norm_base
-        + ((raw_lighting - pre_norm_base) as f32 / pre_norm_range as f32) as u32
+        + ((raw_lighting - pre_norm_base) as f32 / pre_norm_range as f32) as u8
         + norm_range;
     Ok(result)
 }

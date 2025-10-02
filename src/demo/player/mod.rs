@@ -12,10 +12,8 @@ use crate::{
     animation::AnimationPlayerAncestor,
     asset_tracking::LoadResource as _,
     collision_layer::CollisionLayer,
-    demo::{
-        link_head::link_head_bone, player::animation::PlayerAnimationState,
-        visibility::AiVisibility,
-    },
+    demo::{ai::visibility::AiVisibility, player::animation::PlayerAnimationState},
+    link_head::link_head_bone,
     movement::FloatHeight,
     third_party::landmass::AgentOf,
 };
@@ -31,8 +29,8 @@ const PLAYER_GLTF: &str = "models/npc.glb";
 const PLAYER_HEIGHT: f32 = 1.6811;
 pub(crate) const PLAYER_RADIUS: f32 = 0.2;
 const PLAYER_FLOAT_HEIGHT: f32 = PLAYER_HEIGHT / 2.0 + 0.01;
-const PLAYER_WALK_SPEED: f32 = 2.5;
-const PLAYER_RUN_SPEED: f32 = 5.0;
+pub(crate) const PLAYER_WALK_SPEED: f32 = 2.5;
+pub(crate) const PLAYER_RUN_SPEED: f32 = 5.0;
 
 #[point_class(model("models/npc.glb"))]
 pub(crate) struct Player;
@@ -56,7 +54,7 @@ fn spawn_player(
             TnuaAnimatingState::<PlayerAnimationState>::default(),
             CollisionLayers::new(
                 [CollisionLayer::Default, CollisionLayer::AiVisible],
-                CollisionLayer::Default,
+                LayerMask::ALL,
             ),
             AnimationPlayerAncestor,
             FloatHeight(PLAYER_FLOAT_HEIGHT),

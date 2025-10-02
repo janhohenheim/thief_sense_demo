@@ -11,6 +11,7 @@ mod cpu_lighting;
 mod demo;
 #[cfg(feature = "dev")]
 mod dev_tools;
+mod link_head;
 mod movement;
 mod screens;
 mod theme;
@@ -107,6 +108,7 @@ impl Plugin for AppPlugin {
             cpu_lighting::plugin,
             solid_color::plugin,
             collision_layer::plugin,
+            link_head::plugin,
         ));
 
         // Order new `AppSystems` variants by adding them here:

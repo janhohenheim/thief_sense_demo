@@ -5,14 +5,13 @@
 
 use bevy::prelude::*;
 
+pub(crate) mod ai;
 pub(crate) mod level;
-pub(crate) mod link_head;
 pub(crate) mod npc;
 mod path_corner;
 mod player;
 mod target;
 mod target_after;
-mod visibility;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((
@@ -22,7 +21,6 @@ pub(super) fn plugin(app: &mut App) {
         player::plugin,
         target::plugin,
         target_after::plugin,
-        link_head::plugin,
-        visibility::plugin,
+        ai::plugin,
     ));
 }

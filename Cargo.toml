@@ -64,6 +64,7 @@ avian_rerecast = "0.3.0-rc"
 
 anyhow = "1.0.99"
 bevy_framepace = "0.20.0-rc"
+bitflags = "2.9.4"
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.3", features = ["wasm_js"] }
