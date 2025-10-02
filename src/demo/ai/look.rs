@@ -61,13 +61,13 @@ fn look(world: &mut World) -> Result {
 // TODO:
 // - use a better name lol
 // - return cone metadata: how well is every entity visible?
-// - do a raycast before adding the entity to the list, *but* add it to the filter even if the raycast doesn't hit (no need to raycast an occluded entity twice)
 fn check_view_cones(
     In(entity): In<Entity>,
     mut npcs: Query<(&Transform, &mut SenseTimer)>,
     player: Single<&Transform, With<Player>>,
     spatial: SpatialQuery,
     view_cones: Res<ViewCones>,
+    transforms: Query<&GlobalTransform>,
 ) -> Result<Vec<Entity>> {
     let player_transform = player.into_inner();
     let (npc_transform, mut sense_timer) = npcs.get_mut(entity)?;
@@ -91,6 +91,9 @@ fn check_view_cones(
         .with_excluded_entities([entity]);
 
     let mut entities = Vec::new();
+    let mut occlusion_filter = SpatialQueryFilter::default()
+        .with_mask(CollisionLayer::Opaque)
+        .with_excluded_entities([entity]);
     for view_cone in view_cones.iter() {
         let intersections = spatial.shape_intersections(
             &view_cone.collider,
@@ -99,7 +102,28 @@ fn check_view_cones(
             &filter,
         );
         filter.excluded_entities.extend(&intersections);
-        entities.extend(intersections);
+        occlusion_filter.excluded_entities.extend(&intersections);
+        for intersection in intersections {
+            let Ok(transform) = transforms.get(intersection) else {
+                continue;
+            };
+            let translation = transform.translation();
+            let (dir, len) = match Dir3::new_and_length(translation - npc_transform.translation) {
+                Ok(ok) => ok,
+                Err(_) => {
+                    warn!("NPC is intersecting with another entity");
+                    entities.push(intersection);
+                    continue;
+                }
+            };
+
+            if spatial
+                .cast_ray(npc_transform.translation, dir, len, true, &occlusion_filter)
+                .is_none()
+            {
+                entities.push(intersection);
+            }
+        }
     }
     Ok(entities)
 }
