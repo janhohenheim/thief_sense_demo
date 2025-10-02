@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+pub(crate) mod alertness;
 mod look;
 pub(crate) mod sense;
 pub(crate) mod view_cone;
@@ -11,5 +12,6 @@ pub(super) fn plugin(app: &mut App) {
         sense::plugin,
         view_cone::plugin,
         visibility::plugin,
+        alertness::plugin,
     ));
 }

@@ -1,5 +1,6 @@
 use bevy::{
     asset::RenderAssetUsages,
+    camera::visibility::VisibilitySystems,
     color::palettes::tailwind,
     light::{NotShadowCaster, NotShadowReceiver},
     mesh::{Indices, PrimitiveTopology},
@@ -7,12 +8,19 @@ use bevy::{
 };
 
 use crate::{
-    demo::ai::view_cone::{ViewCone, ViewCones},
+    demo::ai::{
+        alertness::Alertness,
+        view_cone::{ViewCone, ViewCones},
+    },
     link_head::Head,
 };
 
 pub(super) fn plugin(app: &mut App) {
     app.init_resource::<DebugViewCones>();
+    app.add_systems(
+        PostUpdate,
+        update_cone_visibility.before(VisibilitySystems::CalculateBounds),
+    );
 }
 
 /// Guaranteed to have the same order and number of items as [`ViewCones`].
@@ -79,15 +87,15 @@ impl ViewCone {
 }
 
 pub(crate) fn add_debug_view_cones(
-    head: On<Add, Head>,
+    add: On<Add, Head>,
     heads: Query<&Head>,
     mut commands: Commands,
     debug_view_cones: Res<DebugViewCones>,
 ) -> Result {
-    let head = heads.get(head.entity)?;
+    let head = heads.get(add.entity)?;
     // is this really the best way? :hmm:
     let head = head.iter().next().unwrap();
-    for mesh in &debug_view_cones.meshes {
+    for (index, mesh) in debug_view_cones.meshes.iter().enumerate() {
         commands.entity(head).with_child((
             Mesh3d(mesh.clone()),
             MeshMaterial3d(debug_view_cones.material.clone()),
@@ -95,8 +103,43 @@ pub(crate) fn add_debug_view_cones(
             Visibility::default(),
             NotShadowCaster,
             NotShadowReceiver,
+            DebugConeIndex(index),
+            DebugConeOf(add.entity),
         ));
     }
 
     Ok(())
+}
+
+#[derive(Component)]
+struct DebugConeIndex(usize);
+
+#[derive(Component, Debug)]
+#[relationship(relationship_target=DebugCones)]
+pub(crate) struct DebugConeOf(pub(crate) Entity);
+
+#[derive(Component, Debug)]
+#[relationship_target(relationship=DebugConeOf)]
+pub(crate) struct DebugCones(Vec<Entity>);
+
+fn update_cone_visibility(
+    mut cone: Query<(&mut Visibility, &DebugConeOf, &DebugConeIndex)>,
+    alertness: Query<&Alertness>,
+    cones: Res<ViewCones>,
+) {
+    for (mut visibility, cone_of, DebugConeIndex(index)) in &mut cone {
+        let Ok(alertness) = alertness.get(cone_of.0) else {
+            error!("Failed to get alertness for entity {:?}", cone_of.0);
+            continue;
+        };
+        let Some(cone) = cones.get(*index) else {
+            error!("Failed to get view cone for index {index}");
+            continue;
+        };
+        *visibility = if cone.flags.active() && cone.flags.allowed_by(*alertness) {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
+    }
 }

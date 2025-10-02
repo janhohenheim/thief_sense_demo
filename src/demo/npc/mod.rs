@@ -3,7 +3,10 @@ use crate::{
     asset_tracking::LoadResource as _,
     collision_layer::CollisionLayer,
     demo::{
-        ai::{sense::SenseTimer, view_cone::debug::add_debug_view_cones, visibility::AiVisibility},
+        ai::{
+            alertness::Alertness, sense::SenseTimer, view_cone::debug::add_debug_view_cones,
+            visibility::AiVisibility,
+        },
         npc::animation::NpcAnimationState,
         target::TargetBase,
     },
@@ -63,6 +66,7 @@ fn spawn_npc(
             ),
             SenseTimer::default(),
             AiVisibility::default(),
+            Alertness::default(),
         ))
         .with_children(|parent| {
             parent

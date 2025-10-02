@@ -26,7 +26,6 @@ fn mark_static_colliders(
     rigid_body: Query<(&RigidBody, &RigidBodyColliders, Has<Transparent>)>,
     mut layers: Query<&mut CollisionLayers>,
     mut commands: Commands,
-    transparent: Query<(), With<Transparent>>,
 ) -> Result {
     let (rigid_body, colliders, is_transparent) = rigid_body.get(add.entity)?;
     let is_static = rigid_body.is_static();

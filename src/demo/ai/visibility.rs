@@ -42,7 +42,7 @@ pub(crate) struct AiVisibilityControl {
     pub(crate) high_speed_mod: u8,
 
     pub(crate) wall_dist: f32,
-    pub(crate) wall_mod: u8,
+    pub(crate) wall_mod: i8,
 }
 
 impl Default for AiVisibilityControl {
@@ -57,7 +57,7 @@ impl Default for AiVisibilityControl {
             medium_speed_mod: 5,
             high_speed_mod: 10,
             wall_dist: 0.5,
-            wall_mod: 1,
+            wall_mod: -1,
         }
     }
 }
@@ -67,13 +67,7 @@ impl Default for AiVisibilityControl {
 pub(crate) struct AiVisibility {
     pub(crate) lighting: u8,
     pub(crate) movement: u8,
-    pub(crate) exposure: u8,
-}
-
-impl AiVisibility {
-    pub(crate) fn level(self) -> u8 {
-        (self.lighting + self.movement + self.exposure).min(100)
-    }
+    pub(crate) exposure: i8,
 }
 
 pub(crate) fn get_or_update_visibility(
@@ -122,7 +116,7 @@ fn calculate_exposure_rating(
     In(entity): In<Entity>,
     spatial: SpatialQuery,
     object: Query<(&AiVisibilityControl, &GlobalTransform)>,
-) -> Result<u8> {
+) -> Result<i8> {
     let (control, transform) = object.get(entity)?;
     let translation = transform.translation();
 

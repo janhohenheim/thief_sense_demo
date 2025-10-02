@@ -20,7 +20,7 @@ impl FromWorld for ViewCones {
                     | ViewConeFlags::LowLight
                     | ViewConeFlags::NoAlert0
                     | ViewConeFlags::NoAlert1,
-                acuity: 1500.0,
+                acuity: 15.0,
             },
             // Close up near perfect vision, low alert
             ViewCone {
@@ -29,20 +29,19 @@ impl FromWorld for ViewCones {
                     | ViewConeFlags::LowLight
                     | ViewConeFlags::NoAlert2
                     | ViewConeFlags::NoAlert3,
-                acuity: 1500.0,
+                acuity: 15.0,
             },
             ViewCone {
                 collider: Collider::view_cone(170.0_f32.to_radians(), 17.0_f32.to_radians(), 1.5),
                 flags: ViewConeFlags::Active | ViewConeFlags::NoAlert2 | ViewConeFlags::NoAlert3,
-                acuity: 1500.0,
+                acuity: 15.0,
             },
             // Near cone perfect vision
             ViewCone {
                 collider: Collider::view_cone(60.0_f32.to_radians(), 90.0_f32.to_radians(), 3.0),
                 flags: ViewConeFlags::Active,
-                acuity: 200.0,
+                acuity: 2.0,
             },
-            /*
             // Round the back magic vision
             ViewCone {
                 collider: Collider::view_cone(320.0_f32.to_radians(), 90.0_f32.to_radians(), 1.8),
@@ -50,67 +49,61 @@ impl FromWorld for ViewCones {
                     | ViewConeFlags::NoAlert0
                     | ViewConeFlags::NoAlert1
                     | ViewConeFlags::Omni,
-                acuity: 70.0,
-            }, */
+                acuity: 0.7,
+            },
             // Normal near binocular vision
             ViewCone {
                 collider: Collider::view_cone(120.0_f32.to_radians(), 90.0_f32.to_radians(), 6.7),
                 flags: ViewConeFlags::Active,
-                acuity: 120.0,
+                acuity: 1.2,
             },
             // Mid-range sight
             /*
             ViewCone {
                 collider: Collider::view_cone(150.0_f32.to_radians(), 70.0_f32.to_radians(), 10.6),
                 flags: ViewConeFlags::Active,
-                acuity: 80.0,
+                acuity: 0.8,
             },
             // Long range and wide range peripheral vision
             ViewCone {
                 collider: Collider::view_cone(230.0_f32.to_radians(), 70.0_f32.to_radians(), 10.6),
                 flags: ViewConeFlags::Active | ViewConeFlags::Periph,
-                acuity: 18.2,
+                acuity: 0.182,
             },
             // Long range and high Z
             ViewCone {
                 collider: Collider::view_cone(230.0_f32.to_radians(), 110.0_f32.to_radians(), 24.3),
                 flags: ViewConeFlags::Active | ViewConeFlags::Periph,
-                acuity: 12.1,
+                acuity: 0.121,
             },
             */
         ])
     }
 }
 
-const VISIBILITY_ACUITIES: VisibilityAcuities = VisibilityAcuities {
-    normal: VisibilityAcuity {
-        lighting: 1.0,
-        movement: 1.0,
-        exposure: 1.0,
-    },
-    periphery: VisibilityAcuity {
-        lighting: 0.3,
-        movement: 3.0,
-        exposure: 1.0,
-    },
-    omnidirectional: VisibilityAcuity {
-        lighting: 0.8,
-        movement: 1.4,
-        exposure: 1.2,
-    },
-    light: VisibilityAcuity {
-        lighting: 1.0,
-        movement: 0.0,
-        exposure: 0.0,
-    },
-    movement: VisibilityAcuity {
-        lighting: 0.0,
-        movement: 5.0,
-        exposure: 0.0,
-    },
-    low_light: VisibilityAcuity {
-        lighting: 6.0,
-        movement: 1.0,
-        exposure: 1.0,
-    },
-};
+impl FromWorld for VisibilityAcuities {
+    fn from_world(_world: &mut World) -> Self {
+        Self {
+            normal: VisibilityAcuity {
+                lighting: 1.0,
+                movement: 1.0,
+                exposure: 1.0,
+            },
+            periphery: VisibilityAcuity {
+                lighting: 0.3,
+                movement: 3.0,
+                exposure: 1.0,
+            },
+            omnidirectional: VisibilityAcuity {
+                lighting: 0.8,
+                movement: 1.4,
+                exposure: 1.2,
+            },
+            low_light: VisibilityAcuity {
+                lighting: 6.0,
+                movement: 1.0,
+                exposure: 1.0,
+            },
+        }
+    }
+}

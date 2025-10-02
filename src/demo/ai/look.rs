@@ -5,8 +5,9 @@ use crate::{
     collision_layer::CollisionLayer,
     demo::{
         ai::{
+            alertness::Alertness,
             sense::SenseTimer,
-            view_cone::ViewCones,
+            view_cone::{ViewCone, ViewCones, VisibilityAcuities},
             visibility::{AiVisibility, get_or_update_visibility},
         },
         npc::Npc,
@@ -28,7 +29,8 @@ fn look(world: &mut World) -> Result {
         .collect::<Vec<_>>();
     let mut errors = Vec::new();
     for npc in npcs {
-        let entities_in_view: Vec<Entity> =
+        // TODO: check / update awareness flags (kAIAF_CanRaycast, kAIAF_HaveLOS, etc)
+        let entities_in_view: Vec<(Entity, ViewCone)> =
             match world.run_system_cached_with(check_view_cones, npc) {
                 Ok(entities) => entities,
                 Err(err) => {
@@ -36,7 +38,7 @@ fn look(world: &mut World) -> Result {
                     continue;
                 }
             };
-        for entity in entities_in_view {
+        for (entity, view_cone) in entities_in_view {
             // Process entities in view
             let visibility: AiVisibility =
                 match world.run_system_cached_with(get_or_update_visibility, entity) {
@@ -46,6 +48,15 @@ fn look(world: &mut World) -> Result {
                         continue;
                     }
                 };
+            let visibility: u8 = match world
+                .run_system_cached_with(visibility_to_viewer, (entity, view_cone, visibility))
+            {
+                Ok(visibility) => visibility,
+                Err(err) => {
+                    errors.push(err.to_string());
+                    continue;
+                }
+            };
             info!("Entity {:?}: {:?}", entity, visibility);
         }
     }
@@ -58,19 +69,32 @@ fn look(world: &mut World) -> Result {
     }
 }
 
-// TODO:
-// - use a better name lol
-// - return cone metadata: how well is every entity visible?
+fn visibility_to_viewer(
+    In((_entity, view_cone, visibility)): In<(Entity, ViewCone, AiVisibility)>,
+    acuities: Res<VisibilityAcuities>,
+) -> Result<u8> {
+    let acuity = acuities.for_cone(view_cone.flags);
+    let mut visibility_to_viewer = visibility.lighting as f32 * acuity.lighting
+        + visibility.movement as f32 * acuity.movement
+        + visibility.exposure as f32 * acuity.exposure;
+    visibility_to_viewer = visibility_to_viewer.max(1.0) * view_cone.acuity;
+
+    // TODO: factor in visibility types
+    Ok(visibility_to_viewer.clamp(0.0, 100.0) as u8)
+}
+
+/// Returns a list of entities that the NPC can see, along with their view cones.
+/// Cloning view cones around like this is surprisingly cheap because they use Arcs internally.
 fn check_view_cones(
     In(entity): In<Entity>,
-    mut npcs: Query<(&Transform, &mut SenseTimer)>,
+    mut npcs: Query<(&Transform, &mut SenseTimer, &Alertness)>,
     player: Single<&Transform, With<Player>>,
     spatial: SpatialQuery,
     view_cones: Res<ViewCones>,
     transforms: Query<&GlobalTransform>,
-) -> Result<Vec<Entity>> {
+) -> Result<Vec<(Entity, ViewCone)>> {
     let player_transform = player.into_inner();
-    let (npc_transform, mut sense_timer) = npcs.get_mut(entity)?;
+    let (npc_transform, mut sense_timer, alertness) = npcs.get_mut(entity)?;
     if !sense_timer.is_finished() {
         return Ok(Vec::new());
     }
@@ -95,6 +119,12 @@ fn check_view_cones(
         .with_mask(CollisionLayer::Opaque)
         .with_excluded_entities([entity]);
     for view_cone in view_cones.iter() {
+        if !view_cone.flags.active() {
+            continue;
+        }
+        if !view_cone.flags.allowed_by(*alertness) {
+            continue;
+        }
         let intersections = spatial.shape_intersections(
             &view_cone.collider,
             npc_transform.translation,
@@ -112,7 +142,7 @@ fn check_view_cones(
                 Ok(ok) => ok,
                 Err(_) => {
                     warn!("NPC is intersecting with another entity");
-                    entities.push(intersection);
+                    entities.push((intersection, view_cone.clone()));
                     continue;
                 }
             };
@@ -121,7 +151,7 @@ fn check_view_cones(
                 .cast_ray(npc_transform.translation, dir, len, true, &occlusion_filter)
                 .is_none()
             {
-                entities.push(intersection);
+                entities.push((intersection, view_cone.clone()));
             }
         }
     }
