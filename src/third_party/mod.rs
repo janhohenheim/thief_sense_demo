@@ -6,6 +6,7 @@ pub(crate) mod landmass;
 mod rerecast;
 mod tnua;
 mod trenchbroom;
+pub(crate) mod ui_anchor;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((
@@ -15,5 +16,6 @@ pub(super) fn plugin(app: &mut App) {
         landmass::plugin,
         tnua::plugin,
         framepace::plugin,
+        ui_anchor::plugin,
     ));
 }

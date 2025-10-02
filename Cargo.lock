@@ -1784,6 +1784,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_ui_anchor"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1bd2ecbd6344feeaf8c70750a5ecc1ee00df74d5aff2b9147584cec4d87e6c6c"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bevy_ui_render"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5907,6 +5916,7 @@ dependencies = [
  "bevy_rerecast",
  "bevy_seedling",
  "bevy_trenchbroom",
+ "bevy_ui_anchor",
  "bitflags 2.9.4",
  "firewheel-web-audio",
  "getrandom",

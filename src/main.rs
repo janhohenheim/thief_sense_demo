@@ -24,7 +24,9 @@ use bevy::{
     prelude::*,
 };
 
-use crate::solid_color::SolidColorEnvironmentMapLight as _;
+use crate::{
+    solid_color::SolidColorEnvironmentMapLight as _, third_party::ui_anchor::UiAnchorCamera,
+};
 mod rand_timer;
 mod solid_color;
 
@@ -149,5 +151,6 @@ fn spawn_camera(mut commands: Commands, mut image_assets: ResMut<Assets<Image>>)
             intensity: 10.0,
             ..EnvironmentMapLight::solid_color(&mut image_assets, tailwind::AMBER_100.into())
         },
+        UiAnchorCamera,
     ));
 }

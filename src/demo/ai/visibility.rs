@@ -87,7 +87,6 @@ pub(crate) fn get_or_update_visibility(
     }
 
     let raw_lighting = world.run_system_cached_with(estimate_tone_mapped_lighting, entity)?;
-    info!("raw_lighting: {:?}", raw_lighting);
     let lighting = world.run_system_cached_with(calculate_light_rating, (entity, raw_lighting))?;
 
     let movement = world.run_system_cached_with(calculate_movement_rating, entity)?;
