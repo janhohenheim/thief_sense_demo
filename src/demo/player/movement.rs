@@ -2,6 +2,7 @@ use bevy::{picking::pointer::PointerInteraction, prelude::*};
 use bevy_landmass::{
     AgentSettings, AgentTarget3d, Archipelago3d, FromAgentRadius as _, PointSampleDistance3d,
 };
+use bevy_ui_anchor::{AnchorPoint, AnchorUiConfig, AnchoredUiNodes};
 
 use crate::{
     cpu_lighting::estimate_tone_mapped_lighting,
@@ -16,12 +17,25 @@ pub(super) fn plugin(app: &mut App) {
     );
     app.add_observer(move_player);
     app.add_systems(Startup, |mut commands: Commands| {
-        commands.spawn(PointerGizmoLighting(1.0));
+        commands.spawn((
+            PointerGizmoLighting(1.0),
+            AnchoredUiNodes::spawn_one((
+                AnchorUiConfig {
+                    anchorpoint: AnchorPoint::bottommid(),
+                    offset: Some(Vec3::new(0.0, 0.5, 0.0)),
+                    ..default()
+                },
+                children![(Text::default(), GizmoText)],
+            )),
+        ));
     });
 }
 
 #[derive(Component)]
-#[require(GlobalTransform)]
+struct GizmoText;
+
+#[derive(Component)]
+#[require(Transform)]
 struct PointerGizmoLighting(f32);
 
 /// A system that draws hit indicators for every pointer.
@@ -38,10 +52,10 @@ fn update_pointer_gizmo_lighting(world: &mut World) -> Result {
     };
     let point = point + Vec3::Y * 0.05;
     {
-        let mut global_transform = world
-            .query_filtered::<&mut GlobalTransform, With<PointerGizmoLighting>>()
+        let mut transform = world
+            .query_filtered::<&mut Transform, With<PointerGizmoLighting>>()
             .single_mut(world)?;
-        *global_transform = GlobalTransform::from(Transform::from_translation(point));
+        transform.translation = point;
     }
     let entity = world
         .query_filtered::<Entity, With<PointerGizmoLighting>>()
@@ -57,6 +71,7 @@ fn update_pointer_gizmo_lighting(world: &mut World) -> Result {
 
 fn draw_pointer_gizmo(
     pointer: Single<(&GlobalTransform, &PointerGizmoLighting)>,
+    mut text: Single<&mut Text, With<GizmoText>>,
     mut gizmos: Gizmos,
 ) {
     let (transform, lighting) = pointer.into_inner();
@@ -65,6 +80,7 @@ fn draw_pointer_gizmo(
         0.5,
         (Color::WHITE.to_srgba() * lighting.0).with_alpha(1.0),
     );
+    ***text = format!("{:.3}", lighting.0);
 }
 
 fn move_player(
