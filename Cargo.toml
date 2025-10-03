@@ -47,7 +47,7 @@ tracing = { version = "0.1", features = [
     "max_level_debug",
     "release_max_level_warn",
 ] }
-bevy_trenchbroom = {version = "0.9.3", features = ["avian"]}
+bevy_trenchbroom = {version = "0.10.0", features = ["avian"]}
 avian3d = "0.4.0-dev"
 bevy_seedling = "0.6.0-rc"
 firewheel-web-audio = { version = "0.3.0-rc", optional = true }
@@ -66,6 +66,7 @@ anyhow = "1.0.99"
 bevy_framepace = "0.20.0-rc"
 bitflags = "2.9.4"
 bevy_ui_anchor = "0.10.0"
+evergreen_relations = "0.2"
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.3", features = ["wasm_js"] }
@@ -176,7 +177,7 @@ bevy_landmass = { git = "https://github.com/andriyDev/landmass", branch = "bevy-
 landmass = { git = "https://github.com/andriyDev/landmass", branch = "bevy-0.17" }
 landmass_rerecast = { git = "https://github.com/andriyDev/landmass", branch = "bevy-0.17" }
 bevy_trenchbroom = { git = "https://github.com/Noxmore/bevy_trenchbroom", branch = "bevy-0.17" }
-avian3d = { git = "https://github.com/Jondolf/avian", branch = "bevy-0.17" }
+avian3d = { git = "https://github.com/Jondolf/avian", branch = "main" }
 bevy-tnua = {  git = "https://github.com/janhohenheim/bevy-tnua", branch = "bevy-0.17.0-dev"}
 bevy-tnua-avian3d = { git = "https://github.com/janhohenheim/bevy-tnua", branch = "bevy-0.17.0-dev"}
 avian_rerecast = { git = "https://github.com/janhohenheim/rerecast" }
@@ -184,3 +185,4 @@ bevy_seedling = { git = "https://github.com/CorvusPrudens/bevy_seedling" }
 firewheel-web-audio = { git = "https://github.com/CorvusPrudens/firewheel-web-audio", rev = "65888f3" }
 bevy_rerecast = { git = "https://github.com/janhohenheim/rerecast" }
 bevy_framepace = { git = "https://github.com/aevyrie/bevy_framepace" }
+evergreen_relations = { git = "https://github.com/janhohenheim/evergreen_relations", branch = "bevy-0.17" }

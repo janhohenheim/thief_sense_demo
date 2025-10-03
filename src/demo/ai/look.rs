@@ -5,7 +5,7 @@ use crate::{
     collision_layer::CollisionLayer,
     demo::{
         ai::{
-            alertness::Alertness,
+            awareness::{Alertness, AwarenessLevel},
             sense::SenseTimer,
             view_cone::{ViewCone, ViewCones, VisibilityAcuities},
             visibility::{AiVisibility, get_or_update_visibility},
@@ -58,10 +58,10 @@ fn look(world: &mut World) -> Result {
                 }
             };
             let pulse = match visibility {
-                v if v < 25 => Alertness::Lowest,
-                v if v < 50 => Alertness::Low,
-                v if v < 75 => Alertness::Moderate,
-                _ => Alertness::High,
+                v if v < 25 => AwarenessLevel::Lowest,
+                v if v < 50 => AwarenessLevel::Low,
+                v if v < 75 => AwarenessLevel::Moderate,
+                _ => AwarenessLevel::High,
             };
             info!(
                 "Entity {:?} ({visibility} -> {pulse:?}): {ai_visibility:?} ",
@@ -131,7 +131,7 @@ fn check_view_cones(
         if !view_cone.flags.active() {
             continue;
         }
-        if !view_cone.flags.allowed_by(*alertness) {
+        if !view_cone.flags.allowed_by(alertness.0) {
             continue;
         }
         let intersections = spatial.shape_intersections(
