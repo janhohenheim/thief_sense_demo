@@ -5,7 +5,7 @@ use crate::{
     collision_layer::CollisionLayer,
     demo::{
         ai::{
-            alertness::Alertness,
+            awareness::{Alertness, AwarenessLevel},
             sense::SenseTimer,
             view_cone::{ViewCone, ViewCones, VisibilityAcuities},
             visibility::{AiVisibility, get_or_update_visibility},
@@ -18,63 +18,83 @@ use crate::{
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         RunFixedMainLoop,
-        look.in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
+        update_all_senses.in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
     );
 }
 
-fn look(world: &mut World) -> Result {
+fn update_all_senses(world: &mut World) -> Result {
     let npcs = world
         .query_filtered::<Entity, With<Npc>>()
         .iter(world)
         .collect::<Vec<_>>();
     let mut errors = Vec::new();
     for npc in npcs {
-        // TODO: check / update awareness flags (kAIAF_CanRaycast, kAIAF_HaveLOS, etc)
-        let entities_in_view: Vec<(Entity, ViewCone)> =
-            match world.run_system_cached_with(check_view_cones, npc) {
-                Ok(entities) => entities,
-                Err(err) => {
-                    errors.push(err.to_string());
-                    continue;
-                }
-            };
-        for (entity, view_cone) in entities_in_view {
-            // Process entities in view
-            let ai_visibility: AiVisibility =
-                match world.run_system_cached_with(get_or_update_visibility, entity) {
-                    Ok(visibility) => visibility,
-                    Err(err) => {
-                        errors.push(err.to_string());
-                        continue;
-                    }
-                };
-            let visibility: u8 = match world
-                .run_system_cached_with(visibility_to_viewer, (entity, view_cone, ai_visibility))
-            {
+        if let Err(err) = update_senses(In(npc), world) {
+            errors.push(err);
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(BevyError::from(
+            errors
+                .iter()
+                .fold(String::new(), |acc, err| acc + &err.to_string()),
+        ))
+    }
+}
+
+fn update_senses(In(npc): In<Entity>, world: &mut World) -> Result {
+    // TODO: handle the whole sense updating at once for the NPC, and not first all vision, then all sounds, etc.
+    // For example, this approach here completely removes all information about which entities we are even sensing!
+    let _vision_pulses: Vec<AwarenessLevel> = look(In(npc), world)?;
+    Ok(())
+}
+
+fn look(In(npc): In<Entity>, world: &mut World) -> Result<Vec<AwarenessLevel>> {
+    // TODO: check / update awareness flags (kAIAF_CanRaycast, kAIAF_HaveLOS, etc)
+    let entities_in_view: Vec<(Entity, ViewCone)> =
+        world.run_system_cached_with(check_view_cones, npc)?;
+    let mut pulses = Vec::new();
+    let mut errors = Vec::new();
+    for (entity, view_cone) in entities_in_view {
+        // Process entities in view
+        let ai_visibility: AiVisibility =
+            match world.run_system_cached_with(get_or_update_visibility, entity) {
                 Ok(visibility) => visibility,
                 Err(err) => {
                     errors.push(err.to_string());
                     continue;
                 }
             };
-            let pulse = match visibility {
-                v if v < 25 => Alertness::Lowest,
-                v if v < 50 => Alertness::Low,
-                v if v < 75 => Alertness::Moderate,
-                _ => Alertness::High,
-            };
-            info!(
-                "Entity {:?} ({visibility} -> {pulse:?}): {ai_visibility:?} ",
-                entity
-            );
-        }
+        let visibility: u8 = match world
+            .run_system_cached_with(visibility_to_viewer, (entity, view_cone, ai_visibility))
+        {
+            Ok(visibility) => visibility,
+            Err(err) => {
+                errors.push(err.to_string());
+                continue;
+            }
+        };
+        let pulse = match visibility {
+            v if v < 25 => AwarenessLevel::Lowest,
+            v if v < 50 => AwarenessLevel::Low,
+            v if v < 75 => AwarenessLevel::Moderate,
+            _ => AwarenessLevel::High,
+        };
+        info!(
+            "Entity {:?} ({visibility} -> {pulse:?}): {ai_visibility:?} ",
+            entity
+        );
+        pulses.push(pulse);
     }
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(BevyError::from(
+    // Todo: don't fail the entire fn when a single pulse fails
+    match errors {
+        errors if errors.is_empty() => Ok(pulses),
+        errors => Err(BevyError::from(
             errors.iter().fold(String::new(), |acc, err| acc + err),
-        ))
+        )),
     }
 }
 
@@ -131,7 +151,7 @@ fn check_view_cones(
         if !view_cone.flags.active() {
             continue;
         }
-        if !view_cone.flags.allowed_by(*alertness) {
+        if !view_cone.flags.allowed_by(alertness.0) {
             continue;
         }
         let intersections = spatial.shape_intersections(

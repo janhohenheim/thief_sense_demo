@@ -1,7 +1,7 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
 
-use crate::demo::ai::alertness::Alertness;
+use crate::demo::ai::awareness::AwarenessLevel;
 
 mod collider;
 pub(crate) mod debug;
@@ -47,17 +47,17 @@ impl ViewConeFlags {
         self.contains(Self::Active)
     }
 
-    pub(crate) fn allowed_by(self, alertness: Alertness) -> bool {
-        if self.contains(Self::NoAlert0) && alertness == Alertness::Lowest {
+    pub(crate) fn allowed_by(self, alertness: AwarenessLevel) -> bool {
+        if self.contains(Self::NoAlert0) && alertness == AwarenessLevel::Lowest {
             return false;
         }
-        if self.contains(Self::NoAlert1) && alertness == Alertness::Low {
+        if self.contains(Self::NoAlert1) && alertness == AwarenessLevel::Low {
             return false;
         }
-        if self.contains(Self::NoAlert2) && alertness == Alertness::Moderate {
+        if self.contains(Self::NoAlert2) && alertness == AwarenessLevel::Moderate {
             return false;
         }
-        if self.contains(Self::NoAlert3) && alertness == Alertness::High {
+        if self.contains(Self::NoAlert3) && alertness == AwarenessLevel::High {
             return false;
         }
         true

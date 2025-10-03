@@ -4,8 +4,7 @@ use crate::{
     collision_layer::CollisionLayer,
     demo::{
         ai::{
-            alertness::Alertness, sense::SenseTimer, view_cone::debug::add_debug_view_cones,
-            visibility::AiVisibility,
+            awareness::Alertness, view_cone::debug::add_debug_view_cones, visibility::AiVisibility,
         },
         npc::animation::NpcAnimationState,
         target::TargetBase,
@@ -64,7 +63,6 @@ fn spawn_npc(
                 [CollisionLayer::Default, CollisionLayer::AiVisible],
                 LayerMask::ALL,
             ),
-            SenseTimer::default(),
             AiVisibility::default(),
             Alertness::default(),
         ))
