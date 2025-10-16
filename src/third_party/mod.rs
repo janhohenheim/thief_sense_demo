@@ -4,6 +4,7 @@ pub(crate) mod avian;
 mod framepace;
 pub(crate) mod landmass;
 mod rerecast;
+mod steam_audio;
 mod tnua;
 mod trenchbroom;
 pub(crate) mod ui_anchor;
@@ -17,5 +18,6 @@ pub(super) fn plugin(app: &mut App) {
         tnua::plugin,
         framepace::plugin,
         ui_anchor::plugin,
+        steam_audio::plugin,
     ));
 }

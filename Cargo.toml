@@ -5,7 +5,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.17.0-rc", default-features = false, features = [
+bevy = { version = "0.17.0", default-features = false, features = [
     "animation",
     "bevy_asset",
     "bevy_color",
@@ -48,18 +48,17 @@ tracing = { version = "0.1", features = [
     "release_max_level_warn",
 ] }
 bevy_trenchbroom = {version = "0.10.0", features = ["avian"]}
-avian3d = "0.4.0-dev"
-bevy_seedling = "0.6.0-rc"
-firewheel-web-audio = { version = "0.3.0-rc", optional = true }
+avian3d = "0.4.0"
+bevy_seedling = "0.6.0"
 
 # character controller
-bevy-tnua = "0.25.0-rc"
-bevy-tnua-avian3d = "0.6.0-rc"
+bevy-tnua = "0.26"
+bevy-tnua-avian3d = "0.7"
 
 # navigation
 bevy_landmass = "0.10.0"
 landmass_rerecast = "0.1.0"
-bevy_rerecast = { version = "0.3.0-rc", default-features = false }
+bevy_rerecast = "0.3.0"
 avian_rerecast = "0.3.0-rc"
 
 anyhow = "1.0.99"
@@ -68,12 +67,16 @@ bitflags = "2.9.4"
 bevy_ui_anchor = "0.10.0"
 evergreen_relations = "0.2"
 
-[target.wasm32-unknown-unknown.dependencies]
-getrandom = { version = "0.3", features = ["wasm_js"] }
+# Audio
+audionimbus = "0.9.0"
+audionimbus-sys =  "4.7.1-rc.1"
+bevy_steam_audio = { git = "https://github.com/janhohenheim/bevy_steam_audio" }
+avian_steam_audio = { git = "https://github.com/janhohenheim/bevy_steam_audio" }
+trenchbroom_steam_audio = { git = "https://github.com/janhohenheim/bevy_steam_audio" }
 
 [features]
 # Default to a native dev build.
-default = ["dev_native"]
+default = ["dev"]
 dev = [
     # Improve compile times for dev builds by linking Bevy as a dynamic library.
     "bevy/dynamic_linking",
@@ -81,11 +84,7 @@ dev = [
     "bevy/bevy_ui_debug",
     # Improve error messages coming from Bevy
     "bevy/track_location",
-    "avian3d/debug-plugin"
-]
-dev_native = [
-    "dev",
-    "native",
+    "avian3d/debug-plugin",
     # Enable asset hot reloading for native dev builds.
     "bevy/file_watcher",
     # Enable embedded asset hot reloading for native dev builds.
@@ -93,8 +92,6 @@ dev_native = [
     "bevy/bevy_remote",
     "bevy_rerecast/editor_integration",
 ]
-native = []
-web = ["dep:firewheel-web-audio"]
 
 
 [package.metadata.bevy_cli.release]
@@ -173,16 +170,8 @@ codegen-units = 4
 opt-level = 0
 
 [patch.crates-io]
-bevy_landmass = { git = "https://github.com/andriyDev/landmass", branch = "bevy-0.17" }
-landmass = { git = "https://github.com/andriyDev/landmass", branch = "bevy-0.17" }
-landmass_rerecast = { git = "https://github.com/andriyDev/landmass", branch = "bevy-0.17" }
-bevy_trenchbroom = { git = "https://github.com/Noxmore/bevy_trenchbroom", branch = "bevy-0.17" }
-avian3d = { git = "https://github.com/Jondolf/avian", branch = "main" }
-bevy-tnua = {  git = "https://github.com/janhohenheim/bevy-tnua", branch = "bevy-0.17.0-dev"}
-bevy-tnua-avian3d = { git = "https://github.com/janhohenheim/bevy-tnua", branch = "bevy-0.17.0-dev"}
-avian_rerecast = { git = "https://github.com/janhohenheim/rerecast" }
-bevy_seedling = { git = "https://github.com/CorvusPrudens/bevy_seedling" }
-firewheel-web-audio = { git = "https://github.com/CorvusPrudens/firewheel-web-audio", rev = "65888f3" }
-bevy_rerecast = { git = "https://github.com/janhohenheim/rerecast" }
+bevy_trenchbroom = { git = "https://github.com/Noxmore/bevy_trenchbroom"}
+firewheel = { git = "https://github.com/BillyDM/firewheel" }
+bevy_seedling = { git = "https://github.com/corvusprudens/bevy_seedling", branch = "v0.6.0" }
 bevy_framepace = { git = "https://github.com/aevyrie/bevy_framepace" }
 evergreen_relations = { git = "https://github.com/janhohenheim/evergreen_relations", branch = "bevy-0.17" }
