@@ -2,13 +2,19 @@
 
 use std::time::Duration;
 
-use bevy::prelude::*;
+use bevy::{
+    animation::{AnimationEvent, AnimationTarget, AnimationTargetId},
+    prelude::*,
+};
 use bevy_tnua::{TnuaAnimatingState, TnuaAnimatingStateDirective, prelude::*};
 
 use crate::{
     AppSystems,
     animation::AnimationPlayers,
-    demo::npc::{NPC_GLTF, NPC_MAX_SPEED, NPC_WALK_SPEED},
+    demo::{
+        npc::{NPC_GLTF, NPC_MAX_SPEED, NPC_WALK_SPEED},
+        target_after,
+    },
     screens::Screen,
 };
 
@@ -29,6 +35,8 @@ struct NpcAnimations {
     idle: AnimationNodeIndex,
     walk: AnimationNodeIndex,
     run: AnimationNodeIndex,
+    left_foot: AnimationTargetId,
+    right_foot: AnimationTargetId,
 }
 
 pub(crate) fn setup_npc_animations(
@@ -37,10 +45,18 @@ pub(crate) fn setup_npc_animations(
     mut commands: Commands,
     assets: Res<AssetServer>,
     mut graphs: ResMut<Assets<AnimationGraph>>,
+    targets: Query<(NameOrEntity, &AnimationTarget)>,
+    mut clips: ResMut<Assets<AnimationClip>>,
     gltfs: Res<Assets<Gltf>>,
+    children: Query<&Children>,
 ) {
     let gltf = gltfs.get(assets.load(NPC_GLTF).id()).unwrap();
     let anim_players = q_anim_players.get(trigger.entity).unwrap();
+    let get_target_id = |name| {
+        get_target_id(name, trigger.entity, children, targets)
+            .unwrap_or_else(|| panic!("failed to find bone {name}"))
+    };
+
     for anim_player in anim_players.iter() {
         let (graph, indices) = AnimationGraph::from_clips(
             ["Idle_Loop", "Walk_Loop", "Sprint_Loop"]
@@ -49,13 +65,32 @@ pub(crate) fn setup_npc_animations(
         let [idle_index, walk_index, run_index] = indices.as_slice() else {
             panic!("Failed to map animation indices")
         };
-        let graph_handle = graphs.add(graph);
 
+        let (left_foot_entity, left_foot_id) = get_target_id("DEF-foot.L");
+        let (right_foot_entity, right_foot_id) = get_target_id("DEF-foot.R");
         let animations = NpcAnimations {
             idle: *idle_index,
             walk: *walk_index,
             run: *run_index,
+            left_foot: left_foot_id,
+            right_foot: right_foot_id,
         };
+
+        let walk_clip = get_clip(animations.walk, &graph, &mut clips);
+        let frame_time = |frame: u32| (frame - 1) as f32 / 24.0;
+        walk_clip.add_event_to_target(
+            animations.left_foot,
+            frame_time(3),
+            NpcStep(left_foot_entity),
+        );
+        walk_clip.add_event_to_target(
+            animations.right_foot,
+            frame_time(20),
+            NpcStep(right_foot_entity),
+        );
+
+        let graph_handle = graphs.add(graph);
+
         let transitions = AnimationTransitions::new();
         commands.entity(anim_player).insert((
             animations,
@@ -64,6 +99,40 @@ pub(crate) fn setup_npc_animations(
         ));
     }
 }
+
+fn get_clip<'a>(
+    node: AnimationNodeIndex,
+    graph: &AnimationGraph,
+    clips: &'a mut Assets<AnimationClip>,
+) -> &'a mut AnimationClip {
+    let node = graph.get(node).unwrap();
+    let clip = match &node.node_type {
+        AnimationNodeType::Clip(handle) => clips.get_mut(handle),
+        _ => unreachable!(),
+    };
+    clip.unwrap()
+}
+
+fn get_target_id(
+    name: &str,
+    anim_player_entity: Entity,
+    children: Query<&Children>,
+    targets: Query<(NameOrEntity, &AnimationTarget)>,
+) -> Option<(Entity, AnimationTargetId)> {
+    for child in children.iter_descendants_depth_first(anim_player_entity) {
+        let Ok((child_name, target)) = targets.get(child) else {
+            continue;
+        };
+        if child_name.to_string() == name {
+            return Some((child, target.id));
+        }
+    }
+    None
+}
+
+/// The entity is the foot. Call `.trigger()` to *get* the animation player entity.
+#[derive(AnimationEvent, Reflect, Clone, Copy)]
+pub(crate) struct NpcStep(pub(crate) Entity);
 
 /// Managed by [`play_animations`]
 #[derive(Debug, Clone, Copy, PartialEq)]

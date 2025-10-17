@@ -21,12 +21,13 @@ use bevy_tnua_avian3d::TnuaAvian3dSensorShape;
 use bevy_trenchbroom::prelude::*;
 
 mod animation;
+mod audio;
 mod movement;
 
 pub(super) fn plugin(app: &mut App) {
     app.load_asset::<Gltf>(NPC_GLTF);
     app.add_observer(spawn_npc);
-    app.add_plugins((movement::plugin, animation::plugin));
+    app.add_plugins((movement::plugin, animation::plugin, audio::plugin));
 }
 
 const NPC_GLTF: &str = "models/npc.glb";

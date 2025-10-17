@@ -73,6 +73,7 @@ audionimbus-sys =  "4.7.1-rc.1"
 bevy_steam_audio = { git = "https://github.com/janhohenheim/bevy_steam_audio" }
 avian_steam_audio = { git = "https://github.com/janhohenheim/bevy_steam_audio" }
 trenchbroom_steam_audio = { git = "https://github.com/janhohenheim/bevy_steam_audio" }
+bevy_shuffle_bag = "0.3.0"
 
 [features]
 # Default to a native dev build.
