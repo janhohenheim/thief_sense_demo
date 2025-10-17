@@ -41,12 +41,7 @@ fn play_step_sound(
     mut audio: ResMut<NpcAudio>,
 ) {
     // It's fine if the transform of the foot is behind by one frame.
-    let parent = transform
-        .get(step.trigger().animation_player)
-        .unwrap()
-        .compute_transform();
     let transform = transform.get(step.0).unwrap().compute_transform();
-    info!("Step: {}/{}", parent.translation, transform.translation,);
     commands
         .entity(step.0)
         .with_child(SamplePlayer::new(audio.step_sound.pick(&mut rng()).clone()));

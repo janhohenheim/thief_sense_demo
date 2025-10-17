@@ -11,10 +11,7 @@ use bevy_tnua::{TnuaAnimatingState, TnuaAnimatingStateDirective, prelude::*};
 use crate::{
     AppSystems,
     animation::AnimationPlayers,
-    demo::{
-        npc::{NPC_GLTF, NPC_MAX_SPEED, NPC_WALK_SPEED},
-        target_after,
-    },
+    demo::npc::{NPC_GLTF, NPC_MAX_SPEED, NPC_WALK_SPEED},
     screens::Screen,
 };
 
@@ -39,7 +36,7 @@ struct NpcAnimations {
     right_foot: AnimationTargetId,
 }
 
-pub(crate) fn setup_npc_animations(
+fn setup_npc_animations(
     trigger: On<Add, AnimationPlayers>,
     q_anim_players: Query<&AnimationPlayers>,
     mut commands: Commands,
@@ -72,15 +69,19 @@ pub(crate) fn setup_npc_animations(
 
             let (left_foot_entity, left_foot_id) = get_target_id("DEF-foot.L");
             let (right_foot_entity, right_foot_id) = get_target_id("DEF-foot.R");
+            let frame_time = |frame: u32| (frame - 1) as f32 / 24.0;
 
             let walk_clip = get_clip(*walk_index, &graph, &mut clips);
-            let frame_time = |frame: u32| (frame - 1) as f32 / 24.0;
             walk_clip.add_event_to_target(left_foot_id, frame_time(2), NpcStep(left_foot_entity));
             walk_clip.add_event_to_target(
                 right_foot_id,
                 frame_time(19),
                 NpcStep(right_foot_entity),
             );
+
+            let run_clip = get_clip(*run_index, &graph, &mut clips);
+            run_clip.add_event_to_target(left_foot_id, frame_time(1), NpcStep(left_foot_entity));
+            run_clip.add_event_to_target(right_foot_id, frame_time(9), NpcStep(right_foot_entity));
 
             let graph_handle = AnimationGraphHandle(graphs.add(graph));
             let animations = NpcAnimations {
