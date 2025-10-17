@@ -51,7 +51,6 @@ fn spawn_player(
             TnuaAvian3dSensorShape(Collider::cylinder(PLAYER_RADIUS - 0.01, 0.0)),
             ColliderDensity(2_000.0),
             RigidBody::Dynamic,
-            LockedAxes::ROTATION_LOCKED.unlock_rotation_y(),
             TnuaAnimatingState::<PlayerAnimationState>::default(),
             CollisionLayers::new(
                 [CollisionLayer::Default, CollisionLayer::AiVisible],

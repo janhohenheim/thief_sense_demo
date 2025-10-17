@@ -151,36 +151,4 @@ jobs:
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
 
       - name: Run tests
-        run: cargo test --locked --workspace --all-targets --profile ci --no-fail-fast
-
-  # Check that the web build compiles.
-  check-web:
-    name: Check web
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up environment
-        run: echo "RUSTFLAGS=${RUSTFLAGS:+$RUSTFLAGS }--cfg getrandom_backend=\"wasm_js\"" >> "${GITHUB_ENV}"
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.toolchain }}
-          targets: wasm32-unknown-unknown
-
-      - name: Restore Rust cache
-        id: cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: web-ci
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
-      - name: Install build dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
-
-      - name: Check web
-        run: cargo check --config 'profile.web.inherits="dev"' --profile ci --no-default-features --features dev --target wasm32-unknown-unknown
+        run: cargo test --locked --workspace --all-targets --profile ci --no-fail-fast --features bevy_steam_audio/auto-install

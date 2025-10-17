@@ -71,19 +71,8 @@ impl Plugin for AppPlugin {
                     },
                 }),
             MeshPickingPlugin,
-            #[cfg(feature = "native")]
             bevy_seedling::SeedlingPlugin::default(),
-            // right now, `Default` isn't implemented for any non-cpal backend
-            #[cfg(feature = "web")]
-            app.add_plugins(
-                bevy_seedling::SeedlingPlugin::<firewheel_web_audio::WebAudioBackend> {
-                    config: Default::default(),
-                    stream_config: Default::default(),
-                    spawn_default_pool: true,
-                    pool_size: 4..=32,
-                },
-            ),
-            #[cfg(feature = "dev_native")]
+            #[cfg(feature = "dev")]
             (
                 bevy::remote::RemotePlugin::default(),
                 bevy::remote::http::RemoteHttpPlugin::default(),
