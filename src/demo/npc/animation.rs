@@ -19,19 +19,19 @@ use crate::{
 };
 
 pub(super) fn plugin(app: &mut App) {
-    app.register_type::<NpcAnimations>();
     app.add_systems(
         Update,
         play_animations
-            .run_if(in_state(Screen::Gameplay))
+            .run_if(in_state(Screen::Gameplay).and(resource_exists::<NpcAnimations>))
             .in_set(AppSystems::Update),
     );
     app.add_observer(setup_npc_animations);
 }
 
-#[derive(Component, Debug, Reflect)]
-#[reflect(Component)]
+#[derive(Resource, Debug, Reflect)]
+#[reflect(Resource)]
 struct NpcAnimations {
+    graph: AnimationGraphHandle,
     idle: AnimationNodeIndex,
     walk: AnimationNodeIndex,
     run: AnimationNodeIndex,
@@ -49,6 +49,7 @@ pub(crate) fn setup_npc_animations(
     mut clips: ResMut<Assets<AnimationClip>>,
     gltfs: Res<Assets<Gltf>>,
     children: Query<&Children>,
+    animations: Option<Res<NpcAnimations>>,
 ) {
     let gltf = gltfs.get(assets.load(NPC_GLTF).id()).unwrap();
     let anim_players = q_anim_players.get(trigger.entity).unwrap();
@@ -58,45 +59,43 @@ pub(crate) fn setup_npc_animations(
     };
 
     for anim_player in anim_players.iter() {
-        let (graph, indices) = AnimationGraph::from_clips(
-            ["Idle_Loop", "Walk_Loop", "Sprint_Loop"]
-                .map(|name| gltf.named_animations[name].clone()),
-        );
-        let [idle_index, walk_index, run_index] = indices.as_slice() else {
-            panic!("Failed to map animation indices")
+        let graph = if let Some(ref animations) = animations {
+            animations.graph.clone()
+        } else {
+            let (graph, indices) = AnimationGraph::from_clips(
+                ["Idle_Loop", "Walk_Loop", "Sprint_Loop"]
+                    .map(|name| gltf.named_animations[name].clone()),
+            );
+            let [idle_index, walk_index, run_index] = indices.as_slice() else {
+                panic!("Failed to map animation indices")
+            };
+
+            let (left_foot_entity, left_foot_id) = get_target_id("DEF-foot.L");
+            let (right_foot_entity, right_foot_id) = get_target_id("DEF-foot.R");
+
+            let walk_clip = get_clip(*walk_index, &graph, &mut clips);
+            let frame_time = |frame: u32| (frame - 1) as f32 / 24.0;
+            walk_clip.add_event_to_target(left_foot_id, frame_time(2), NpcStep(left_foot_entity));
+            walk_clip.add_event_to_target(
+                right_foot_id,
+                frame_time(19),
+                NpcStep(right_foot_entity),
+            );
+
+            let graph_handle = AnimationGraphHandle(graphs.add(graph));
+            let animations = NpcAnimations {
+                graph: graph_handle.clone(),
+                idle: *idle_index,
+                walk: *walk_index,
+                run: *run_index,
+                left_foot: left_foot_id,
+                right_foot: right_foot_id,
+            };
+            commands.insert_resource(animations);
+            graph_handle
         };
-
-        let (left_foot_entity, left_foot_id) = get_target_id("DEF-foot.L");
-        let (right_foot_entity, right_foot_id) = get_target_id("DEF-foot.R");
-        let animations = NpcAnimations {
-            idle: *idle_index,
-            walk: *walk_index,
-            run: *run_index,
-            left_foot: left_foot_id,
-            right_foot: right_foot_id,
-        };
-
-        let walk_clip = get_clip(animations.walk, &graph, &mut clips);
-        let frame_time = |frame: u32| (frame - 1) as f32 / 24.0;
-        walk_clip.add_event_to_target(
-            animations.left_foot,
-            frame_time(3),
-            NpcStep(left_foot_entity),
-        );
-        walk_clip.add_event_to_target(
-            animations.right_foot,
-            frame_time(20),
-            NpcStep(right_foot_entity),
-        );
-
-        let graph_handle = graphs.add(graph);
-
         let transitions = AnimationTransitions::new();
-        commands.entity(anim_player).insert((
-            animations,
-            AnimationGraphHandle(graph_handle),
-            transitions,
-        ));
+        commands.entity(anim_player).insert((graph, transitions));
     }
 }
 
@@ -148,15 +147,12 @@ fn play_animations(
         &TnuaController,
         &AnimationPlayers,
     )>,
-    mut q_animation: Query<(
-        &NpcAnimations,
-        &mut AnimationPlayer,
-        &mut AnimationTransitions,
-    )>,
+    mut q_animation: Query<(&mut AnimationPlayer, &mut AnimationTransitions)>,
+    animations: Res<NpcAnimations>,
 ) {
     for (mut animating_state, controller, anim_players) in &mut query {
         let mut iter = q_animation.iter_many_mut(anim_players.iter());
-        while let Some((animations, mut anim_player, mut transitions)) = iter.fetch_next() {
+        while let Some((mut anim_player, mut transitions)) = iter.fetch_next() {
             match animating_state.update_by_discriminant({
                 let Some((_, basis_state)) = controller.concrete_basis::<TnuaBuiltinWalk>() else {
                     continue;
