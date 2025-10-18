@@ -5,6 +5,7 @@ use bevy::{
 };
 
 mod assert_preloading;
+pub(crate) mod log_components;
 
 use crate::screens::Screen;
 
@@ -12,7 +13,7 @@ pub(super) fn plugin(app: &mut App) {
     // Log `Screen` state transitions.
     app.add_systems(Update, log_transitions::<Screen>);
 
-    app.add_plugins(assert_preloading::plugin);
+    app.add_plugins((assert_preloading::plugin, log_components::plugin));
 
     // Toggle the debug overlay for UI.
     app.add_systems(
