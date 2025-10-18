@@ -1,6 +1,7 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use bevy_landmass::prelude::*;
+use bevy_steam_audio::SteamAudioListener;
 use bevy_tnua::{TnuaAnimatingState, prelude::*};
 use bevy_tnua_avian3d::TnuaAvian3dSensorShape;
 use bevy_trenchbroom::prelude::*;
@@ -60,6 +61,7 @@ fn spawn_player(
             FloatHeight(PLAYER_FLOAT_HEIGHT),
             AiVisibility::default(),
             LightTransform(Vec3::Y * -(PLAYER_HEIGHT / 2.0)),
+            SteamAudioListener,
         ))
         .with_children(|parent| {
             parent

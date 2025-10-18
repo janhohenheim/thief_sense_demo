@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_seedling::sample::{AudioSample, SamplePlayer};
 use bevy_shuffle_bag::ShuffleBag;
+use bevy_steam_audio::prelude::*;
 use rand::rng;
 
 use crate::{asset_tracking::LoadResource as _, demo::npc::animation::NpcStep};
@@ -34,15 +35,10 @@ impl FromWorld for NpcAudio {
     }
 }
 
-fn play_step_sound(
-    step: On<NpcStep>,
-    transform: Query<&GlobalTransform>,
-    mut commands: Commands,
-    mut audio: ResMut<NpcAudio>,
-) {
-    // It's fine if the transform of the foot is behind by one frame.
-    let transform = transform.get(step.0).unwrap().compute_transform();
-    commands
-        .entity(step.0)
-        .with_child(SamplePlayer::new(audio.step_sound.pick(&mut rng()).clone()));
+fn play_step_sound(step: On<NpcStep>, mut commands: Commands, mut audio: ResMut<NpcAudio>) {
+    // TODO: player steps are being spawned as children of the NPC, so every player step actually sounds from the NPC lol
+    commands.entity(step.0).with_child((
+        SamplePlayer::new(audio.step_sound.pick(&mut rng()).clone()),
+        SteamAudioPool,
+    ));
 }

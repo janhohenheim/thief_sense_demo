@@ -70,9 +70,9 @@ evergreen_relations = "0.2"
 # Audio
 audionimbus = "0.9.0"
 audionimbus-sys =  "4.7.1-rc.1"
-bevy_steam_audio = { git = "https://github.com/janhohenheim/bevy_steam_audio" }
-avian_steam_audio = { git = "https://github.com/janhohenheim/bevy_steam_audio" }
-trenchbroom_steam_audio = { git = "https://github.com/janhohenheim/bevy_steam_audio" }
+bevy_steam_audio = { path = "../bevy_steam_audio/crates/bevy_steam_audio" }
+avian_steam_audio = { path = "../bevy_steam_audio/crates/avian_steam_audio" }
+trenchbroom_steam_audio = { path = "../bevy_steam_audio/crates/trenchbroom_steam_audio" }
 bevy_shuffle_bag = "0.3.0"
 
 [features]
