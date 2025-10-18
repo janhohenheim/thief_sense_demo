@@ -8,6 +8,7 @@ use bevy_tnua_avian3d::TnuaAvian3dSensorShape;
 use bevy_trenchbroom::prelude::*;
 
 mod animation;
+mod listener;
 mod movement;
 
 use crate::{
@@ -26,7 +27,7 @@ use crate::{
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(spawn_player);
-    app.add_plugins((animation::plugin, movement::plugin));
+    app.add_plugins((animation::plugin, movement::plugin, listener::plugin));
     app.load_asset::<Gltf>(PLAYER_GLTF);
 }
 
@@ -66,7 +67,6 @@ fn spawn_player(
             FloatHeight(PLAYER_FLOAT_HEIGHT),
             AiVisibility::default(),
             LightTransform(Vec3::Y * -(PLAYER_HEIGHT / 2.0)),
-            SteamAudioListener,
         ))
         .with_children(|parent| {
             parent
