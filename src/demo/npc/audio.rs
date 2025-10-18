@@ -29,10 +29,10 @@ impl FromWorld for NpcAudio {
         Self {
             step_sound: ShuffleBag::try_from_iter(
                 [
-                    assets.load("audio/sound_effects/step1.ogg"),
-                    assets.load("audio/sound_effects/step2.ogg"),
-                    assets.load("audio/sound_effects/step3.ogg"),
-                    assets.load("audio/sound_effects/step4.ogg"),
+                    assets.load("audio/sound_effects/FootstepsConcrete1.ogg"),
+                    assets.load("audio/sound_effects/FootstepsConcrete2.ogg"),
+                    assets.load("audio/sound_effects/FootstepsConcrete3.ogg"),
+                    assets.load("audio/sound_effects/FootstepsConcrete4.ogg"),
                 ],
                 &mut rng(),
             )

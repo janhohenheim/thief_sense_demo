@@ -3,17 +3,13 @@
 // Unused utilities may trigger this lints undesirably.
 #![allow(dead_code)]
 
-pub(crate) mod interaction;
 pub(crate) mod palette;
-pub(crate) mod widget;
 
 #[allow(unused_imports)]
 pub(crate) mod prelude {
-    pub(crate) use super::{interaction::InteractionPalette, palette as ui_palette, widget};
+    pub(crate) use super::palette as ui_palette;
 }
 
 use bevy::prelude::*;
 
-pub(super) fn plugin(app: &mut App) {
-    app.add_plugins(interaction::plugin);
-}
+pub(super) fn plugin(_app: &mut App) {}
