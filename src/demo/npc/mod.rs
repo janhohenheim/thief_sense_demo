@@ -6,13 +6,14 @@ use crate::{
         ai::{
             awareness::Alertness, view_cone::debug::add_debug_view_cones, visibility::AiVisibility,
         },
-        npc::animation::NpcAnimationState,
+        npc::animation::{NpcAnimationState, setup_npc_animations},
         target::TargetBase,
     },
     link_head::link_head_bone,
     movement::FloatHeight,
     third_party::landmass::AgentOf,
 };
+use avian_steam_audio::NotSteamAudioCollider;
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use bevy_landmass::prelude::*;
@@ -52,6 +53,7 @@ fn spawn_npc(
         .entity(npc)
         .insert((
             Collider::capsule(NPC_RADIUS, NPC_HEIGHT - NPC_RADIUS * 2.0),
+            NotSteamAudioCollider,
             TnuaController::default(),
             TnuaAvian3dSensorShape(Collider::cylinder(NPC_RADIUS - 0.01, 0.0)),
             ColliderDensity(2_000.0),
@@ -74,7 +76,8 @@ fn spawn_npc(
                 ))
                 .observe(link_head_bone::<Npc>("DEF-head"));
         })
-        .observe(add_debug_view_cones);
+        .observe(add_debug_view_cones)
+        .observe(setup_npc_animations);
     commands.spawn((
         Name::new("NPC Agent"),
         Transform::from_translation(Vec3::new(0.0, -NPC_FLOAT_HEIGHT, 0.0)),

@@ -1,3 +1,4 @@
+use avian_steam_audio::NotSteamAudioCollider;
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use bevy_landmass::prelude::*;
@@ -48,6 +49,7 @@ fn spawn_player(
         .entity(player)
         .insert((
             Collider::capsule(PLAYER_RADIUS, PLAYER_HEIGHT - PLAYER_RADIUS * 2.0),
+            NotSteamAudioCollider,
             TnuaController::default(),
             TnuaAvian3dSensorShape(Collider::cylinder(PLAYER_RADIUS - 0.01, 0.0)),
             ColliderDensity(2_000.0),

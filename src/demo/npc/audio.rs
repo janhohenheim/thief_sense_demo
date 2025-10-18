@@ -36,7 +36,6 @@ impl FromWorld for NpcAudio {
 }
 
 fn play_step_sound(step: On<NpcStep>, mut commands: Commands, mut audio: ResMut<NpcAudio>) {
-    // TODO: player steps are being spawned as children of the NPC, so every player step actually sounds from the NPC lol
     commands.entity(step.0).with_child((
         SamplePlayer::new(audio.step_sound.pick(&mut rng()).clone()),
         SteamAudioPool,

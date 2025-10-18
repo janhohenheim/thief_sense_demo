@@ -22,12 +22,11 @@ pub(super) fn plugin(app: &mut App) {
             .run_if(in_state(Screen::Gameplay).and(resource_exists::<NpcAnimations>))
             .in_set(AppSystems::Update),
     );
-    app.add_observer(setup_npc_animations);
 }
 
 #[derive(Resource, Debug, Reflect)]
 #[reflect(Resource)]
-struct NpcAnimations {
+pub(super) struct NpcAnimations {
     graph: AnimationGraphHandle,
     idle: AnimationNodeIndex,
     walk: AnimationNodeIndex,
@@ -36,7 +35,7 @@ struct NpcAnimations {
     right_foot: AnimationTargetId,
 }
 
-fn setup_npc_animations(
+pub(super) fn setup_npc_animations(
     trigger: On<Add, AnimationPlayers>,
     q_anim_players: Query<&AnimationPlayers>,
     mut commands: Commands,
