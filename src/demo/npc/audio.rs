@@ -1,16 +1,10 @@
-use bevy::{
-    animation::{AnimationTarget, AnimationTargetId},
-    prelude::*,
-};
+use bevy::prelude::*;
 use bevy_seedling::sample::{AudioSample, SamplePlayer};
 use bevy_shuffle_bag::ShuffleBag;
 use bevy_steam_audio::prelude::*;
 use rand::rng;
 
-use crate::{
-    animation::AnimationPlayerOf, asset_tracking::LoadResource as _,
-    demo::npc::animation::HumanoidStep,
-};
+use crate::{asset_tracking::LoadResource as _, demo::npc::animation::HumanoidStep};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(play_step_sound);

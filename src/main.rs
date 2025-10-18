@@ -17,7 +17,6 @@ mod screens;
 mod theme;
 mod third_party;
 use bevy::{
-    asset::AssetMetaCheck,
     color::palettes::tailwind,
     gltf::GltfPlugin,
     image::{ImageAddressMode, ImageSamplerDescriptor},
