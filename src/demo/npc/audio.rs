@@ -40,11 +40,10 @@ fn play_step_sound(
     mut commands: Commands,
     mut audio: ResMut<NpcAudio>,
 ) -> Result {
-    commands
-        .entity(step.trigger().animation_player)
-        .with_child((
-            SamplePlayer::new(audio.step_sound.pick(&mut rng()).clone()),
-            SteamAudioPool,
-        ));
+    let foot = step.trigger().animation_player;
+    commands.entity(foot).with_child((
+        SamplePlayer::new(audio.step_sound.pick(&mut rng()).clone()),
+        SteamAudioPool,
+    ));
     Ok(())
 }
