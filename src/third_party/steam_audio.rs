@@ -8,6 +8,5 @@ pub(super) fn plugin(app: &mut App) {
         SteamAudioPlugin::default(),
         AvianSteamAudioScenePlugin,
         TrenchBroomSteamAudioScenePlugin,
-        SteamAudioDebugPlugin,
     ));
 }
