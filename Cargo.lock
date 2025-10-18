@@ -358,9 +358,9 @@ dependencies = [
 
 [[package]]
 name = "audionimbus"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c8b9a1987b742c204eefd1f16aa902de99e7a3895d8de3b1a0c6945022d8285"
+checksum = "fd02b6e65519ea7de7d95cb3aa2d585849dd25140c901759c58c44a9bc1e547e"
 dependencies = [
  "audionimbus-sys",
  "bitflags 2.9.4",
@@ -954,8 +954,8 @@ dependencies = [
 
 [[package]]
 name = "bevy_framepace"
-version = "0.20.0-rc.1"
-source = "git+https://github.com/aevyrie/bevy_framepace#39427768d741b939d8595a000a48da7a91a8a5c0"
+version = "0.20.0"
+source = "git+https://github.com/aevyrie/bevy_framepace#c1f1b3eb8666a17829ede2b31915fe6871d93aab"
 dependencies = [
  "bevy_app",
  "bevy_diagnostic",
@@ -4110,9 +4110,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.11.4"
+version = "2.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b0f83760fb341a774ed326568e19f5a863af4a952def8c39f9ab92fd95b88e5"
+checksum = "6717a8d2a5a929a1a2eb43a12812498ed141a0bcfb7e8f7844fbdbe4303bba9f"
 dependencies = [
  "equivalent",
  "hashbrown 0.16.0",
@@ -4489,14 +4489,14 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "1.0.4"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78bed444cc8a2160f01cbcf811ef18cac863ad68ae8ca62092e8db51d51c761c"
+checksum = "69d83b0086dc8ecf3ce9ae2874b2d1290252e2a30720bea58a5c6639b0092873"
 dependencies = [
  "libc",
  "log",
  "wasi",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5246,9 +5246,9 @@ dependencies = [
 
 [[package]]
 name = "parry3d"
-version = "0.25.0"
+version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6f02d098003d45982f41f9884941438e7e90eadf5e542389e7188e5b404d5ab"
+checksum = "017be73f24c8ca8b10f9727616e5cb9af82b98488cc6d5eea468e727ffa780ca"
 dependencies = [
  "approx",
  "arrayvec",
@@ -5275,9 +5275,9 @@ dependencies = [
 
 [[package]]
 name = "parry3d-f64"
-version = "0.25.0"
+version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "003e47e8173eb6fca6427a14e29f835b5aacfa5ba89bc5632641cf4748985e7c"
+checksum = "37165b1c4e8969f9013d6c21825fb80529aba893d455386d3ce78c9593babf8e"
 dependencies = [
  "approx",
  "arrayvec",
@@ -6421,9 +6421,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.106"
+version = "2.0.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ede7c438028d4436d71104916910f5bb611972c5cfd7f89b8300a8186e6fada6"
+checksum = "2a26dbd934e5451d21ef060c018dae56fc073894c5a7896f882928a76e6d081b"
 dependencies = [
  "proc-macro2",
  "quote",
