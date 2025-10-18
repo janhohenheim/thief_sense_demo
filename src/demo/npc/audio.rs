@@ -1,10 +1,16 @@
-use bevy::prelude::*;
+use bevy::{
+    animation::{AnimationTarget, AnimationTargetId},
+    prelude::*,
+};
 use bevy_seedling::sample::{AudioSample, SamplePlayer};
 use bevy_shuffle_bag::ShuffleBag;
 use bevy_steam_audio::prelude::*;
 use rand::rng;
 
-use crate::{asset_tracking::LoadResource as _, demo::npc::animation::NpcStep};
+use crate::{
+    animation::AnimationPlayerOf, asset_tracking::LoadResource as _,
+    demo::npc::animation::HumanoidStep,
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(play_step_sound);
@@ -35,9 +41,16 @@ impl FromWorld for NpcAudio {
     }
 }
 
-fn play_step_sound(step: On<NpcStep>, mut commands: Commands, mut audio: ResMut<NpcAudio>) {
-    commands.entity(step.0).with_child((
-        SamplePlayer::new(audio.step_sound.pick(&mut rng()).clone()),
-        SteamAudioPool,
-    ));
+fn play_step_sound(
+    step: On<HumanoidStep>,
+    mut commands: Commands,
+    mut audio: ResMut<NpcAudio>,
+) -> Result {
+    commands
+        .entity(step.trigger().animation_player)
+        .with_child((
+            SamplePlayer::new(audio.step_sound.pick(&mut rng()).clone()),
+            SteamAudioPool,
+        ));
+    Ok(())
 }

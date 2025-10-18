@@ -20,7 +20,6 @@ pub(super) fn plugin(app: &mut App) {
             .run_if(in_state(Screen::Gameplay))
             .in_set(AppSystems::Update),
     );
-    app.add_observer(setup_player_animations);
 }
 
 #[derive(Component, Debug, Reflect)]
@@ -31,7 +30,7 @@ struct PlayerAnimations {
     run: AnimationNodeIndex,
 }
 
-pub(crate) fn setup_player_animations(
+pub(super) fn setup_player_animations(
     trigger: On<Add, AnimationPlayers>,
     q_anim_players: Query<&AnimationPlayers>,
     mut commands: Commands,

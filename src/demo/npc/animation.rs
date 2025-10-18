@@ -10,7 +10,7 @@ use bevy_tnua::{TnuaAnimatingState, TnuaAnimatingStateDirective, prelude::*};
 
 use crate::{
     AppSystems,
-    animation::AnimationPlayers,
+    animation::{AnimationPlayers, find_bone_id, get_clip},
     demo::npc::{NPC_GLTF, NPC_MAX_SPEED, NPC_WALK_SPEED},
     screens::Screen,
 };
@@ -36,7 +36,7 @@ pub(super) struct NpcAnimations {
 }
 
 pub(super) fn setup_npc_animations(
-    trigger: On<Add, AnimationPlayers>,
+    add: On<Add, AnimationPlayers>,
     q_anim_players: Query<&AnimationPlayers>,
     mut commands: Commands,
     assets: Res<AssetServer>,
@@ -46,12 +46,12 @@ pub(super) fn setup_npc_animations(
     gltfs: Res<Assets<Gltf>>,
     children: Query<&Children>,
     animations: Option<Res<NpcAnimations>>,
-) {
+) -> Result {
     let gltf = gltfs.get(assets.load(NPC_GLTF).id()).unwrap();
-    let anim_players = q_anim_players.get(trigger.entity).unwrap();
+    let anim_players = q_anim_players.get(add.entity).unwrap();
     let get_target_id = |name| {
-        get_target_id(name, trigger.entity, children, targets)
-            .unwrap_or_else(|| panic!("failed to find bone {name}"))
+        let mut targets = targets.transmute_lens_inner();
+        find_bone_id(name, add.entity, children, &mut targets)
     };
 
     for anim_player in anim_players.iter() {
@@ -66,21 +66,21 @@ pub(super) fn setup_npc_animations(
                 panic!("Failed to map animation indices")
             };
 
-            let (left_foot_entity, left_foot_id) = get_target_id("DEF-foot.L");
-            let (right_foot_entity, right_foot_id) = get_target_id("DEF-foot.R");
+            let left_foot_id = get_target_id("DEF-foot.L")?;
+            let right_foot_id = get_target_id("DEF-foot.R")?;
             let frame_time = |frame: u32| (frame - 1) as f32 / 24.0;
 
-            let walk_clip = get_clip(*walk_index, &graph, &mut clips);
-            walk_clip.add_event_to_target(left_foot_id, frame_time(2), NpcStep(left_foot_entity));
+            let walk_clip = get_clip(*walk_index, &graph, &mut clips)?;
+            walk_clip.add_event_to_target(left_foot_id, frame_time(2), HumanoidStep(left_foot_id));
             walk_clip.add_event_to_target(
                 right_foot_id,
                 frame_time(19),
-                NpcStep(right_foot_entity),
+                HumanoidStep(right_foot_id),
             );
 
-            let run_clip = get_clip(*run_index, &graph, &mut clips);
-            run_clip.add_event_to_target(left_foot_id, frame_time(1), NpcStep(left_foot_entity));
-            run_clip.add_event_to_target(right_foot_id, frame_time(9), NpcStep(right_foot_entity));
+            let run_clip = get_clip(*run_index, &graph, &mut clips)?;
+            run_clip.add_event_to_target(left_foot_id, frame_time(1), HumanoidStep(left_foot_id));
+            run_clip.add_event_to_target(right_foot_id, frame_time(9), HumanoidStep(right_foot_id));
 
             let graph_handle = AnimationGraphHandle(graphs.add(graph));
             let animations = NpcAnimations {
@@ -97,41 +97,12 @@ pub(super) fn setup_npc_animations(
         let transitions = AnimationTransitions::new();
         commands.entity(anim_player).insert((graph, transitions));
     }
-}
-
-fn get_clip<'a>(
-    node: AnimationNodeIndex,
-    graph: &AnimationGraph,
-    clips: &'a mut Assets<AnimationClip>,
-) -> &'a mut AnimationClip {
-    let node = graph.get(node).unwrap();
-    let clip = match &node.node_type {
-        AnimationNodeType::Clip(handle) => clips.get_mut(handle),
-        _ => unreachable!(),
-    };
-    clip.unwrap()
-}
-
-fn get_target_id(
-    name: &str,
-    anim_player_entity: Entity,
-    children: Query<&Children>,
-    targets: Query<(NameOrEntity, &AnimationTarget)>,
-) -> Option<(Entity, AnimationTargetId)> {
-    for child in children.iter_descendants_depth_first(anim_player_entity) {
-        let Ok((child_name, target)) = targets.get(child) else {
-            continue;
-        };
-        if child_name.to_string() == name {
-            return Some((child, target.id));
-        }
-    }
-    None
+    Ok(())
 }
 
 /// The entity is the foot. Call `.trigger()` to *get* the animation player entity.
 #[derive(AnimationEvent, Reflect, Clone, Copy)]
-pub(crate) struct NpcStep(pub(crate) Entity);
+pub(crate) struct HumanoidStep(pub(crate) AnimationTargetId);
 
 /// Managed by [`play_animations`]
 #[derive(Debug, Clone, Copy, PartialEq)]

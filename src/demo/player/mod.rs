@@ -15,7 +15,10 @@ use crate::{
     asset_tracking::LoadResource as _,
     collision_layer::CollisionLayer,
     cpu_lighting::LightTransform,
-    demo::{ai::visibility::AiVisibility, player::animation::PlayerAnimationState},
+    demo::{
+        ai::visibility::AiVisibility,
+        player::animation::{PlayerAnimationState, setup_player_animations},
+    },
     link_head::link_head_bone,
     movement::FloatHeight,
     third_party::landmass::AgentOf,
@@ -72,7 +75,9 @@ fn spawn_player(
                     Transform::from_xyz(0.0, -PLAYER_FLOAT_HEIGHT, 0.0),
                 ))
                 .observe(link_head_bone::<Player>("DEF-head"));
-        });
+        })
+        .observe(setup_player_animations);
+
     commands.spawn((
         Name::new("Player Agent"),
         Transform::from_translation(Vec3::new(0.0, -PLAYER_FLOAT_HEIGHT, 0.0)),
