@@ -31,8 +31,8 @@ pub(crate) struct LightTransform(pub(crate) Vec3);
 #[derive(QueryData)]
 #[query_data(derive(Debug))]
 struct LightOrGlobalTranslation {
-    pub light: Option<&'static LightTransform>,
-    pub global: &'static GlobalTransform,
+    pub(crate) light: Option<&'static LightTransform>,
+    pub(crate) global: &'static GlobalTransform,
 }
 
 impl<'w, 's> LightOrGlobalTranslationItem<'w, 's> {

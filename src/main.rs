@@ -14,7 +14,6 @@ mod dev_tools;
 mod link_head;
 mod movement;
 mod screens;
-mod theme;
 mod third_party;
 use bevy::{
     color::palettes::tailwind,
@@ -102,7 +101,6 @@ impl Plugin for AppPlugin {
             #[cfg(feature = "dev")]
             dev_tools::plugin,
             screens::plugin,
-            theme::plugin,
             rand_timer::plugin,
             movement::plugin,
             cpu_lighting::plugin,
