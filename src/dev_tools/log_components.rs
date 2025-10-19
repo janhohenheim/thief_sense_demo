@@ -6,7 +6,7 @@ pub(super) fn plugin(app: &mut App) {
 
 #[allow(dead_code)]
 pub(crate) trait LogComponentsCommands {
-    /// Logs the components of the entity at the [`info`](log::info) level.
+    /// Logs the components of the entity at the [`info`] level.
     fn log_components_pretty(&mut self) -> &mut Self;
 }
 
