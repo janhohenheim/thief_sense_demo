@@ -14,13 +14,12 @@ mod dev_tools;
 mod link_head;
 mod movement;
 mod screens;
-mod theme;
 mod third_party;
 use bevy::{
-    asset::AssetMetaCheck,
     color::palettes::tailwind,
     gltf::GltfPlugin,
     image::{ImageAddressMode, ImageSamplerDescriptor},
+    log::{LogPlugin, tracing_subscriber::field::MakeExt},
     prelude::*,
 };
 
@@ -41,22 +40,6 @@ impl Plugin for AppPlugin {
         // Add Bevy plugins.
         app.add_plugins((
             DefaultPlugins
-                .set(AssetPlugin {
-                    // Wasm builds will check for meta files (that don't exist) if this isn't set.
-                    // This causes errors and even panics on web build on itch.
-                    // See https://github.com/bevyengine/bevy_github_ci_template/issues/48.
-                    meta_check: AssetMetaCheck::Never,
-                    ..default()
-                })
-                .set(WindowPlugin {
-                    primary_window: Window {
-                        title: "Thief Sense Demo".to_string(),
-                        fit_canvas_to_parent: true,
-                        ..default()
-                    }
-                    .into(),
-                    ..default()
-                })
                 .set(GltfPlugin {
                     use_model_forward_direction: true,
                     ..default()
@@ -69,6 +52,31 @@ impl Plugin for AppPlugin {
                         anisotropy_clamp: 8,
                         ..ImageSamplerDescriptor::linear()
                     },
+                })
+                .set(LogPlugin {
+                    filter: format!(
+                        concat!(
+                            "{default}",
+                            "symphonia_bundle_mp3::demuxer=warn,",
+                            "symphonia_format_caf::demuxer=warn,",
+                            "symphonia_format_isompf4::demuxer=warn,",
+                            "symphonia_format_mkv::demuxer=warn,",
+                            "symphonia_format_ogg::demuxer=warn,",
+                            "symphonia_format_riff::demuxer=warn,",
+                            "symphonia_format_wav::demuxer=warn,",
+                            "calloop::loop_logic=error,",
+                        ),
+                        default = bevy::log::DEFAULT_FILTER
+                    ),
+                    fmt_layer: |_| {
+                        Some(Box::new(
+                            bevy::log::tracing_subscriber::fmt::Layer::default()
+                                .without_time()
+                                .map_fmt_fields(MakeExt::debug_alt)
+                                .with_writer(std::io::stderr),
+                        ))
+                    },
+                    ..default()
                 }),
             MeshPickingPlugin,
             bevy_seedling::SeedlingPlugin::default(),
@@ -93,7 +101,6 @@ impl Plugin for AppPlugin {
             #[cfg(feature = "dev")]
             dev_tools::plugin,
             screens::plugin,
-            theme::plugin,
             rand_timer::plugin,
             movement::plugin,
             cpu_lighting::plugin,
@@ -137,7 +144,7 @@ fn spawn_camera(mut commands: Commands, mut image_assets: ResMut<Assets<Image>>)
         Camera3d::default(),
         Transform::from_xyz(0.0, 10.0, 8.0).looking_to(Vec3::new(0.0, -1.0, -0.7), Vec3::Y),
         EnvironmentMapLight {
-            intensity: 10.0,
+            intensity: 60.0,
             ..EnvironmentMapLight::solid_color(&mut image_assets, tailwind::AMBER_100.into())
         },
         UiAnchorCamera,

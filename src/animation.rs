@@ -2,7 +2,12 @@
 
 use std::iter;
 
-use bevy::{prelude::*, scene::SceneInstanceReady};
+use bevy::{
+    animation::{AnimationTarget, AnimationTargetId},
+    ecs::system::QueryLens,
+    prelude::*,
+    scene::SceneInstanceReady,
+};
 pub(super) fn plugin(app: &mut App) {
     app.register_type::<AnimationPlayerOf>();
     app.register_type::<AnimationPlayers>();
@@ -53,4 +58,37 @@ fn link_animation_player(
     commands
         .entity(animation_player)
         .insert(AnimationPlayerOf(animation_ancestor));
+}
+
+pub(crate) fn get_clip<'a>(
+    node: AnimationNodeIndex,
+    graph: &AnimationGraph,
+    clips: &'a mut Assets<AnimationClip>,
+) -> Result<&'a mut AnimationClip> {
+    let node = graph
+        .get(node)
+        .ok_or_else(|| BevyError::from("Node not found"))?;
+    let clip = match &node.node_type {
+        AnimationNodeType::Clip(handle) => clips.get_mut(handle),
+        _ => return Err("Node is not a clip".into()),
+    };
+    clip.ok_or_else(|| "Clip has an invalid handle".into())
+}
+
+pub(crate) fn find_bone_id(
+    name: &str,
+    anim_player_entity: Entity,
+    children: Query<&Children>,
+    targets: &mut QueryLens<(NameOrEntity, &AnimationTarget)>,
+) -> Result<AnimationTargetId> {
+    let targets = targets.query();
+    for child in children.iter_descendants_depth_first(anim_player_entity) {
+        let Ok((child_name, target)) = targets.get(child) else {
+            continue;
+        };
+        if child_name.to_string() == name {
+            return Ok(target.id);
+        }
+    }
+    Err(BevyError::from(format!("Failed to find bone '{name}'")))
 }

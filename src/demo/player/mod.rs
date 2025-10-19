@@ -1,3 +1,4 @@
+use avian_steam_audio::NotSteamAudioCollider;
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use bevy_landmass::prelude::*;
@@ -6,6 +7,7 @@ use bevy_tnua_avian3d::TnuaAvian3dSensorShape;
 use bevy_trenchbroom::prelude::*;
 
 mod animation;
+mod listener;
 mod movement;
 
 use crate::{
@@ -13,7 +15,10 @@ use crate::{
     asset_tracking::LoadResource as _,
     collision_layer::CollisionLayer,
     cpu_lighting::LightTransform,
-    demo::{ai::visibility::AiVisibility, player::animation::PlayerAnimationState},
+    demo::{
+        ai::visibility::AiVisibility,
+        player::animation::{PlayerAnimationState, setup_player_animations},
+    },
     link_head::link_head_bone,
     movement::FloatHeight,
     third_party::landmass::AgentOf,
@@ -21,7 +26,7 @@ use crate::{
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(spawn_player);
-    app.add_plugins((animation::plugin, movement::plugin));
+    app.add_plugins((animation::plugin, movement::plugin, listener::plugin));
     app.load_asset::<Gltf>(PLAYER_GLTF);
 }
 
@@ -47,6 +52,7 @@ fn spawn_player(
         .entity(player)
         .insert((
             Collider::capsule(PLAYER_RADIUS, PLAYER_HEIGHT - PLAYER_RADIUS * 2.0),
+            NotSteamAudioCollider,
             TnuaController::default(),
             TnuaAvian3dSensorShape(Collider::cylinder(PLAYER_RADIUS - 0.01, 0.0)),
             ColliderDensity(2_000.0),
@@ -68,7 +74,9 @@ fn spawn_player(
                     Transform::from_xyz(0.0, -PLAYER_FLOAT_HEIGHT, 0.0),
                 ))
                 .observe(link_head_bone::<Player>("DEF-head"));
-        });
+        })
+        .observe(setup_player_animations);
+
     commands.spawn((
         Name::new("Player Agent"),
         Transform::from_translation(Vec3::new(0.0, -PLAYER_FLOAT_HEIGHT, 0.0)),
