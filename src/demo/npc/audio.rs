@@ -7,11 +7,7 @@ use rand::rng;
 use crate::{
     animation::AnimationTargetOf,
     asset_tracking::LoadResource as _,
-    demo::{
-        ai::audio_simulation::AiAudible,
-        npc::{Npc, animation::HumanoidStep},
-        player::Player,
-    },
+    demo::{ai::hearing::AiAudible, npc::animation::HumanoidStep, player::Player},
 };
 
 pub(super) fn plugin(app: &mut App) {

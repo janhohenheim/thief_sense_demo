@@ -7,8 +7,10 @@ use crate::{
         ai::{
             awareness::{Alertness, AwarenessLevel},
             sense::SenseTimer,
-            view_cone::{ViewCone, ViewCones, VisibilityAcuities},
-            visibility::{AiVisibility, get_or_update_visibility},
+            vision::{
+                view_cone::{ViewCone, ViewCones, VisibilityAcuities},
+                visibility::{AiVisibility, get_or_update_visibility},
+            },
         },
         npc::Npc,
         player::Player,

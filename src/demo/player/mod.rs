@@ -16,7 +16,7 @@ use crate::{
     collision_layer::CollisionLayer,
     cpu_lighting::LightTransform,
     demo::{
-        ai::visibility::AiVisibility,
+        ai::vision::visibility::AiVisibility,
         player::animation::{PlayerAnimationState, setup_player_animations},
     },
     link_head::link_head_bone,

@@ -10,7 +10,7 @@ use bevy::{
 use crate::{
     demo::ai::{
         awareness::Alertness,
-        view_cone::{ViewCone, ViewCones},
+        vision::view_cone::{ViewCone, ViewCones},
     },
     link_head::Head,
 };

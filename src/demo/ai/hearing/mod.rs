@@ -1,13 +1,14 @@
+use bevy::prelude::*;
+use bevy_steam_audio::STEAM_AUDIO_CONTEXT;
 use std::sync::{Arc, RwLock, atomic::AtomicBool};
 
 mod bookkeeping;
+mod process;
 mod run;
-use bevy::prelude::*;
-use bevy_steam_audio::STEAM_AUDIO_CONTEXT;
 
 pub(super) fn plugin(app: &mut App) {
     app.init_resource::<AiSimulator>();
-    app.add_plugins((bookkeeping::plugin, run::plugin));
+    app.add_plugins((bookkeeping::plugin, run::plugin, process::plugin));
 }
 
 /// Nyquist frequency is 4k, that's two octaves above 1k, which the human ear is most sensitive to.
@@ -65,7 +66,7 @@ impl FromWorld for AiSimulator {
 #[reflect(Component)]
 pub(crate) struct AiAudible;
 
-#[derive(Component, Deref, DerefMut)]
+#[derive(Component, Deref, Clone, DerefMut)]
 #[require(Transform, GlobalTransform)]
 struct AiSource(pub(crate) audionimbus::Source);
 

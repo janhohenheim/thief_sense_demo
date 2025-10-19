@@ -6,7 +6,7 @@ use std::sync::{
 use bevy::{ecs::entity_disabling::Disabled, prelude::*, tasks::AsyncComputeTaskPool};
 use bevy_steam_audio::{scene::SteamAudioRootScene, sources::AudionimbusSource};
 
-use crate::demo::ai::audio_simulation::{
+use crate::demo::ai::hearing::{
     AiAsyncSimulationSynchronization, AiAudible, AiSimulator, AiSource, param,
 };
 

@@ -436,7 +436,7 @@ dependencies = [
 [[package]]
 name = "avian_steam_audio"
 version = "0.1.0"
-source = "git+https://github.com/janhohenheim/bevy_steam_audio#103701a06bdbf701dcda223cd540b3b432a2bc44"
+source = "git+https://github.com/janhohenheim/bevy_steam_audio#0d997101e2168f473bf3e368e1959d703d40fc37"
 dependencies = [
  "audionimbus",
  "avian3d",
@@ -956,7 +956,8 @@ dependencies = [
 [[package]]
 name = "bevy_framepace"
 version = "0.20.0"
-source = "git+https://github.com/aevyrie/bevy_framepace#c1f1b3eb8666a17829ede2b31915fe6871d93aab"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98664324f1ee21f2f19ada3a2c108662d1b4fbf7806eb84780f5d4d5814eb051"
 dependencies = [
  "bevy_app",
  "bevy_diagnostic",
@@ -1791,7 +1792,7 @@ dependencies = [
 [[package]]
 name = "bevy_steam_audio"
 version = "0.1.0"
-source = "git+https://github.com/janhohenheim/bevy_steam_audio#103701a06bdbf701dcda223cd540b3b432a2bc44"
+source = "git+https://github.com/janhohenheim/bevy_steam_audio#0d997101e2168f473bf3e368e1959d703d40fc37"
 dependencies = [
  "audionimbus",
  "audionimbus-sys",
@@ -3065,7 +3066,7 @@ dependencies = [
 [[package]]
 name = "evergreen_relations"
 version = "0.2.0"
-source = "git+https://github.com/janhohenheim/evergreen_relations?branch=bevy-0.17#55f07044bd13f6dc35e258c043ae872cf62d381e"
+source = "git+https://github.com/EvergreenNest/evergreen_relations#ec97de61e385526b827a0aef543d2867240a750c"
 dependencies = [
  "bevy_ecs",
  "evergreen_relations_macros",
@@ -3075,7 +3076,7 @@ dependencies = [
 [[package]]
 name = "evergreen_relations_macros"
 version = "0.1.0"
-source = "git+https://github.com/janhohenheim/evergreen_relations?branch=bevy-0.17#55f07044bd13f6dc35e258c043ae872cf62d381e"
+source = "git+https://github.com/EvergreenNest/evergreen_relations#ec97de61e385526b827a0aef543d2867240a750c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6811,7 +6812,7 @@ dependencies = [
 [[package]]
 name = "trenchbroom_steam_audio"
 version = "0.1.0"
-source = "git+https://github.com/janhohenheim/bevy_steam_audio#103701a06bdbf701dcda223cd540b3b432a2bc44"
+source = "git+https://github.com/janhohenheim/bevy_steam_audio#0d997101e2168f473bf3e368e1959d703d40fc37"
 dependencies = [
  "avian3d",
  "avian_steam_audio",

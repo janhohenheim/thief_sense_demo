@@ -5,7 +5,7 @@ use bevy_steam_audio::wrapper::AudionimbusCoordinateSystem;
 
 use crate::{
     AppSystems,
-    demo::ai::audio_simulation::{AiAsyncSimulationSynchronization, AiSimulator, AiSource, param},
+    demo::ai::hearing::{AiAsyncSimulationSynchronization, AiSimulator, AiSource, param},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -46,42 +46,8 @@ fn update_simulation(
     };
     simulator.set_shared_inputs(audionimbus::SimulationFlags::DIRECT, &shared_inputs);
 
-    let gen_inputs = |orientation: AudionimbusCoordinateSystem| audionimbus::SimulationInputs {
-        direct_simulation: audionimbus::DirectSimulationParameters {
-            distance_attenuation: audionimbus::DistanceAttenuationModel::Default.into(),
-            air_absorption: audionimbus::AirAbsorptionModel::Default.into(),
-            // TODO: actually ask the source for this, once bevy_steam_audio supports it
-            directivity: audionimbus::Directivity::WeightedDipole {
-                weight: 0.0,
-                power: 0.0,
-            }
-            .into(),
-            occlusion: audionimbus::Occlusion {
-                transmission: audionimbus::TransmissionParameters {
-                    num_transmission_rays: 4,
-                }
-                .into(),
-                algorithm: audionimbus::OcclusionAlgorithm::Raycast,
-            }
-            .into(),
-        }
-        .into(),
-        reflections_simulation: audionimbus::ReflectionsSimulationParameters::Convolution {
-            baked_data_identifier: None,
-        }
-        .into(),
-        pathing_simulation: None,
-        source: orientation.to_audionimbus(),
-    };
-
     for (mut source, transform) in &mut sources {
-        let transform = transform.compute_transform();
-        let orientation = AudionimbusCoordinateSystem::from_bevy_transform(transform);
-
-        source.set_inputs(
-            audionimbus::SimulationFlags::DIRECT,
-            gen_inputs(orientation),
-        );
+        source.set_inputs(audionimbus::SimulationFlags::DIRECT, gen_inputs(*transform));
     }
 
     simulator.run_direct();
@@ -108,10 +74,7 @@ fn update_simulation(
 
     simulator.set_shared_inputs(param::EXPENSIVE_FLAGS, &shared_inputs);
     for (mut source, transform) in &mut sources {
-        let transform = transform.compute_transform();
-        let orientation = AudionimbusCoordinateSystem::from_bevy_transform(transform);
-
-        source.set_inputs(param::EXPENSIVE_FLAGS, gen_inputs(orientation));
+        source.set_inputs(param::EXPENSIVE_FLAGS, gen_inputs(*transform));
     }
 
     synchro.complete.store(false, Ordering::SeqCst);
@@ -121,5 +84,37 @@ fn update_simulation(
         Ok(())
     } else {
         Err(errors.join("\n").into())
+    }
+}
+
+fn gen_inputs(
+    orientation: impl Into<AudionimbusCoordinateSystem>,
+) -> audionimbus::SimulationInputs<'static> {
+    audionimbus::SimulationInputs {
+        direct_simulation: audionimbus::DirectSimulationParameters {
+            distance_attenuation: audionimbus::DistanceAttenuationModel::Default.into(),
+            air_absorption: audionimbus::AirAbsorptionModel::Default.into(),
+            // TODO: actually ask the source for this, once bevy_steam_audio supports it
+            directivity: audionimbus::Directivity::WeightedDipole {
+                weight: 0.0,
+                power: 0.0,
+            }
+            .into(),
+            occlusion: audionimbus::Occlusion {
+                transmission: audionimbus::TransmissionParameters {
+                    num_transmission_rays: 4,
+                }
+                .into(),
+                algorithm: audionimbus::OcclusionAlgorithm::Raycast,
+            }
+            .into(),
+        }
+        .into(),
+        reflections_simulation: audionimbus::ReflectionsSimulationParameters::Convolution {
+            baked_data_identifier: None,
+        }
+        .into(),
+        pathing_simulation: None,
+        source: orientation.into().into(),
     }
 }

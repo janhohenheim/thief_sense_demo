@@ -176,5 +176,4 @@ opt-level = 0
 bevy_trenchbroom = { git = "https://github.com/Noxmore/bevy_trenchbroom"}
 firewheel = { git = "https://github.com/BillyDM/firewheel" }
 bevy_seedling = { git = "https://github.com/corvusprudens/bevy_seedling", branch = "v0.6.0" }
-bevy_framepace = { git = "https://github.com/aevyrie/bevy_framepace" }
-evergreen_relations = { git = "https://github.com/janhohenheim/evergreen_relations", branch = "bevy-0.17" }
+evergreen_relations = { git = "https://github.com/EvergreenNest/evergreen_relations" }

@@ -51,7 +51,6 @@ fn link_animation_player(
     anim_players: Query<(), With<AnimationPlayer>>,
     targets: Query<(), With<AnimationTarget>>,
     ancestor: Query<(), With<AnimationPlayerAncestor>>,
-    names: Query<NameOrEntity>,
 ) {
     let scene_root = trigger.entity;
     let animation_ancestor = iter::once(scene_root)
