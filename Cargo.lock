@@ -6508,6 +6508,7 @@ dependencies = [
  "bevy_trenchbroom",
  "bevy_ui_anchor",
  "bitflags 2.9.4",
+ "crossbeam-channel",
  "evergreen_relations",
  "landmass_rerecast",
  "rand",

@@ -75,6 +75,7 @@ bevy_steam_audio = { path = "../bevy_steam_audio/crates/bevy_steam_audio" }
 avian_steam_audio = { path = "../bevy_steam_audio/crates/avian_steam_audio" }
 trenchbroom_steam_audio = { path = "../bevy_steam_audio/crates/trenchbroom_steam_audio" }
 bevy_shuffle_bag = "0.3.0"
+crossbeam-channel = "0.5.15"
 
 [features]
 # Default to a native dev build.
