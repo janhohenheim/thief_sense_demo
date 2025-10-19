@@ -146,7 +146,7 @@ fn spawn_camera(mut commands: Commands, mut image_assets: ResMut<Assets<Image>>)
         Camera3d::default(),
         Transform::from_xyz(0.0, 10.0, 8.0).looking_to(Vec3::new(0.0, -1.0, -0.7), Vec3::Y),
         EnvironmentMapLight {
-            intensity: 10.0,
+            intensity: 60.0,
             ..EnvironmentMapLight::solid_color(&mut image_assets, tailwind::AMBER_100.into())
         },
         UiAnchorCamera,
