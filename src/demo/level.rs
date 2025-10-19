@@ -3,6 +3,8 @@
 use bevy::prelude::*;
 use bevy_landmass::prelude::*;
 use bevy_rerecast::Navmesh;
+use bevy_steam_audio::probes::GenerateProbes;
+use bevy_trenchbroom::physics::SceneCollidersReady;
 use landmass_rerecast::{Island3dBundle, NavMeshHandle3d};
 
 use crate::{
@@ -13,6 +15,7 @@ use crate::{
 
 pub(super) fn plugin(app: &mut App) {
     app.load_asset::<Scene>(MAP).load_asset::<Navmesh>(NAVMESH);
+    app.add_observer(bake_probes);
 }
 
 const MAP: &str = "maps/main_level.map#Scene";
@@ -45,4 +48,8 @@ pub(crate) fn spawn_level(mut commands: Commands, assets: Res<AssetServer>) {
             nav_mesh: NavMeshHandle3d(assets.load(NAVMESH)),
         },
     ));
+}
+
+fn bake_probes(_ready: On<SceneCollidersReady>, mut generate: MessageWriter<GenerateProbes>) {
+    generate.write(GenerateProbes::default());
 }

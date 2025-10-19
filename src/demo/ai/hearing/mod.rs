@@ -64,4 +64,4 @@ pub(crate) struct AiAudible;
 
 #[derive(Component, Deref, Clone, DerefMut)]
 #[require(Transform, GlobalTransform)]
-struct AiSources(pub(crate) [audionimbus::Source; BUCKET_SIZE]);
+struct AiSource(pub(crate) audionimbus::Source);

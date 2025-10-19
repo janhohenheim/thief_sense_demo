@@ -8,7 +8,7 @@ use bevy_steam_audio::{
 
 use crate::{
     AppSystems,
-    demo::ai::hearing::{AiSimulators, AiSources, param},
+    demo::ai::hearing::{AiSimulators, AiSource, param},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -20,13 +20,13 @@ pub(super) fn plugin(app: &mut App) {
 
 fn update_simulation(
     mut simulators: ResMut<AiSimulators>,
-    mut sources: Query<(&mut AiSources, &GlobalTransform)>,
+    mut sources: Query<(&mut AiSource, &GlobalTransform)>,
     mut errors: Local<Vec<String>>,
     batch: If<Res<SteamAudioProbeBatch>>,
     path_baking_settings: Res<SteamAudioPathBakingSettings>,
 ) -> Result {
     errors.clear();
-    for (i, simulator) in simulators.iter_mut().enumerate() {
+    for simulator in simulators.iter_mut() {
         simulator.commit();
 
         simulator.set_shared_inputs(
@@ -43,8 +43,8 @@ fn update_simulation(
             },
         );
 
-        for (mut sources, transform) in &mut sources {
-            sources[i].set_inputs(
+        for (mut source, transform) in &mut sources {
+            source.set_inputs(
                 param::FLAGS,
                 audionimbus::SimulationInputs {
                     direct_simulation: audionimbus::DirectSimulationParameters {
@@ -86,6 +86,7 @@ fn update_simulation(
         simulator.run_direct();
         simulator.run_pathing();
     }
+
     if errors.is_empty() {
         Ok(())
     } else {

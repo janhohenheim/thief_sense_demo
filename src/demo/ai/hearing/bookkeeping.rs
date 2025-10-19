@@ -9,7 +9,7 @@ use std::{
 use bevy::{ecs::entity_disabling::Disabled, prelude::*, tasks::AsyncComputeTaskPool};
 use bevy_steam_audio::{scene::SteamAudioRootScene, sources::AudionimbusSource};
 
-use crate::demo::ai::hearing::{AiAudible, AiSimulators, AiSources, param};
+use crate::demo::ai::hearing::{AiAudible, AiSimulators, AiSource, param};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, init_simulation);
@@ -34,34 +34,34 @@ fn add_source(
     if !ai_audible.contains(add.entity) {
         return Ok(());
     }
-    let mut simulators = simulators.iter();
-    let sources = array::from_fn(|_| {
-        let simulator = simulators.next().unwrap();
-        let source = audionimbus::Source::try_new(
-            &simulator,
-            &audionimbus::SourceSettings {
-                flags: param::FLAGS,
-            },
-        )
-        .unwrap();
+    // All sims have the same settings
+    let arbitrary_simulator = simulators.iter().next().unwrap();
+    let source = audionimbus::Source::try_new(
+        &arbitrary_simulator,
+        &audionimbus::SourceSettings {
+            flags: param::FLAGS,
+        },
+    )
+    .unwrap();
+    for simulator in simulators.iter() {
         simulator.add_source(&source);
-        source
-    });
-    commands.entity(add.entity).try_insert(AiSources(sources));
+    }
+
+    commands.entity(add.entity).try_insert(AiSource(source));
     Ok(())
 }
 
 fn sync_source_removal(remove: On<Remove, AudionimbusSource>, mut commands: Commands) {
-    commands.entity(remove.entity).try_remove::<AiSources>();
+    commands.entity(remove.entity).try_remove::<AiSource>();
 }
 
 fn remove_source(
-    remove: On<Remove, AiSources>,
-    source: Query<&AiSources, Allow<Disabled>>,
+    remove: On<Remove, AiSource>,
+    source: Query<&AiSource, Allow<Disabled>>,
     simulators: ResMut<AiSimulators>,
 ) -> Result {
-    let sources = source.get(remove.entity)?;
-    for (simulator, source) in simulators.iter().zip(sources.iter()) {
+    let source = source.get(remove.entity)?;
+    for simulator in simulators.iter() {
         simulator.remove_source(source);
     }
     Ok(())
