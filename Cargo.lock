@@ -436,7 +436,7 @@ dependencies = [
 [[package]]
 name = "avian_steam_audio"
 version = "0.1.0"
-source = "git+https://github.com/janhohenheim/bevy_steam_audio#0d997101e2168f473bf3e368e1959d703d40fc37"
+source = "git+https://github.com/janhohenheim/bevy_steam_audio#72dd402e2d5a677f17013645201a67389b7f4f1f"
 dependencies = [
  "audionimbus",
  "avian3d",
@@ -1645,7 +1645,7 @@ dependencies = [
 [[package]]
 name = "bevy_seedling"
 version = "0.6.0"
-source = "git+https://github.com/corvusprudens/bevy_seedling?branch=v0.6.0#75dd9a1f629a64479be68f024bfc3a68ff5a6e96"
+source = "git+https://github.com/corvusprudens/bevy_seedling?branch=v0.6.0#49e2028a499b07476a2c34068d62d1b52b7157f1"
 dependencies = [
  "bevy_app",
  "bevy_asset",
@@ -1670,7 +1670,7 @@ dependencies = [
 [[package]]
 name = "bevy_seedling_macros"
 version = "0.6.0-rc.1"
-source = "git+https://github.com/corvusprudens/bevy_seedling?branch=v0.6.0#75dd9a1f629a64479be68f024bfc3a68ff5a6e96"
+source = "git+https://github.com/corvusprudens/bevy_seedling?branch=v0.6.0#49e2028a499b07476a2c34068d62d1b52b7157f1"
 dependencies = [
  "bevy_macro_utils",
  "proc-macro2",
@@ -1792,7 +1792,7 @@ dependencies = [
 [[package]]
 name = "bevy_steam_audio"
 version = "0.1.0"
-source = "git+https://github.com/janhohenheim/bevy_steam_audio#0d997101e2168f473bf3e368e1959d703d40fc37"
+source = "git+https://github.com/janhohenheim/bevy_steam_audio#72dd402e2d5a677f17013645201a67389b7f4f1f"
 dependencies = [
  "audionimbus",
  "audionimbus-sys",
@@ -1911,7 +1911,7 @@ dependencies = [
 [[package]]
 name = "bevy_trenchbroom"
 version = "0.10.0"
-source = "git+https://github.com/Noxmore/bevy_trenchbroom#eddf3dba140baf77f262f49440bafb3783983fec"
+source = "git+https://github.com/Noxmore/bevy_trenchbroom#a88e4bac6e5d8193c1661de46845e963a7613400"
 dependencies = [
  "anyhow",
  "atomicow",
@@ -1942,7 +1942,7 @@ dependencies = [
 [[package]]
 name = "bevy_trenchbroom_macros"
 version = "0.10.0"
-source = "git+https://github.com/Noxmore/bevy_trenchbroom#eddf3dba140baf77f262f49440bafb3783983fec"
+source = "git+https://github.com/Noxmore/bevy_trenchbroom#a88e4bac6e5d8193c1661de46845e963a7613400"
 dependencies = [
  "deluxe",
  "heck 0.5.0",
@@ -4809,9 +4809,9 @@ dependencies = [
 
 [[package]]
 name = "num_enum"
-version = "0.7.4"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a973b4e44ce6cad84ce69d797acf9a044532e4184c4f267913d1b546a0727b7a"
+checksum = "b1207a7e20ad57b847bbddc6776b968420d38292bbfe2089accff5e19e82454c"
 dependencies = [
  "num_enum_derive",
  "rustversion",
@@ -4819,9 +4819,9 @@ dependencies = [
 
 [[package]]
 name = "num_enum_derive"
-version = "0.7.4"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77e878c846a8abae00dd069496dbe8751b16ac1c3d6bd2a7283a938e8228f90d"
+checksum = "ff32365de1b6743cb203b710788263c44a03de03802daf96092f2da4fe6ba4d7"
 dependencies = [
  "proc-macro-crate 3.4.0",
  "proc-macro2",
@@ -6812,7 +6812,7 @@ dependencies = [
 [[package]]
 name = "trenchbroom_steam_audio"
 version = "0.1.0"
-source = "git+https://github.com/janhohenheim/bevy_steam_audio#0d997101e2168f473bf3e368e1959d703d40fc37"
+source = "git+https://github.com/janhohenheim/bevy_steam_audio#72dd402e2d5a677f17013645201a67389b7f4f1f"
 dependencies = [
  "avian3d",
  "avian_steam_audio",
