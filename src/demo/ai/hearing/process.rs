@@ -1,7 +1,5 @@
 use bevy::prelude::*;
 
-use crate::demo::ai::hearing::AiSource;
-
 pub(super) fn plugin(app: &mut App) {
     let _ = app;
 }

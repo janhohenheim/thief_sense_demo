@@ -1,13 +1,16 @@
 use bevy::prelude::*;
 use bevy_steam_audio::STEAM_AUDIO_CONTEXT;
-use std::sync::{Arc, RwLock, atomic::AtomicBool};
+use std::{
+    array,
+    sync::{Arc, RwLock, atomic::AtomicBool},
+};
 
 mod bookkeeping;
 mod process;
 mod run;
 
 pub(super) fn plugin(app: &mut App) {
-    app.init_resource::<AiSimulator>();
+    app.init_resource::<AiSimulators>();
     app.add_plugins((bookkeeping::plugin, run::plugin, process::plugin));
 }
 
@@ -18,47 +21,40 @@ const HEARING_INTERVAL: f32 = 0.2;
 const FRAME_SIZE: u32 = ((SAMPLING_RATE as f32) * HEARING_INTERVAL) as u32;
 
 mod param {
-    pub(super) const REFLECT_RAYS: u32 = 1024;
-    pub(super) const REFLECT_BOUNCES: u32 = 4;
-    pub(super) const REFLECT_DURATION: f32 = 1.0;
     pub(super) const ORDER: u32 = 1;
     pub(super) const FLAGS: audionimbus::SimulationFlags =
         audionimbus::SimulationFlags::from_bits_truncate(
-            audionimbus::SimulationFlags::DIRECT.bits() | EXPENSIVE_FLAGS.bits(),
-        );
-    pub(super) const EXPENSIVE_FLAGS: audionimbus::SimulationFlags =
-        audionimbus::SimulationFlags::from_bits_truncate(
-            audionimbus::SimulationFlags::REFLECTIONS.bits(),
+            audionimbus::SimulationFlags::DIRECT.bits()
+                | audionimbus::SimulationFlags::PATHING.bits(),
         );
 }
 
-#[derive(Debug, Resource, Deref, DerefMut)]
-struct AiSimulator(
-    Arc<RwLock<audionimbus::Simulator<audionimbus::Direct, audionimbus::Reflections>>>,
+const BUCKET_SIZE: usize = 10;
+
+#[derive(Debug, Clone, Resource, Deref, DerefMut)]
+struct AiSimulators(
+    [audionimbus::Simulator<audionimbus::Direct, (), audionimbus::Pathing>; BUCKET_SIZE],
 );
 
-impl FromWorld for AiSimulator {
+impl FromWorld for AiSimulators {
     fn from_world(_world: &mut World) -> Self {
-        let simulator = audionimbus::Simulator::builder(
-            audionimbus::SceneParams::Default,
-            SAMPLING_RATE,
-            FRAME_SIZE,
-        )
-        .with_direct(audionimbus::DirectSimulationSettings {
-            // We use raycasts, not volumetric
-            max_num_occlusion_samples: 0,
-        })
-        .with_reflections(audionimbus::ReflectionsSimulationSettings::Convolution {
-            max_num_rays: param::REFLECT_RAYS,
-            num_diffuse_samples: 1024,
-            max_duration: param::REFLECT_DURATION,
-            max_order: param::ORDER,
-            max_num_sources: 200,
-            num_threads: 1,
-        })
-        .try_build(&STEAM_AUDIO_CONTEXT)
-        .unwrap();
-        Self(Arc::new(RwLock::new(simulator)))
+        let simulator = |_| {
+            audionimbus::Simulator::builder(
+                audionimbus::SceneParams::Default,
+                SAMPLING_RATE,
+                FRAME_SIZE,
+            )
+            .with_direct(audionimbus::DirectSimulationSettings {
+                // We use raycasts, not volumetric
+                max_num_occlusion_samples: 0,
+            })
+            .with_pathing(audionimbus::PathingSimulationSettings {
+                num_visibility_samples: 8,
+            })
+            .try_build(&STEAM_AUDIO_CONTEXT)
+            .unwrap()
+        };
+        Self(array::from_fn(simulator))
     }
 }
 
@@ -68,10 +64,4 @@ pub(crate) struct AiAudible;
 
 #[derive(Component, Deref, Clone, DerefMut)]
 #[require(Transform, GlobalTransform)]
-struct AiSource(pub(crate) audionimbus::Source);
-
-#[derive(Resource)]
-struct AiAsyncSimulationSynchronization {
-    sender: crossbeam_channel::Sender<()>,
-    complete: Arc<AtomicBool>,
-}
+struct AiSources(pub(crate) [audionimbus::Source; BUCKET_SIZE]);

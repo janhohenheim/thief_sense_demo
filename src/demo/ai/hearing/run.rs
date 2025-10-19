@@ -1,11 +1,14 @@
-use std::sync::atomic::Ordering;
+use std::{sync::atomic::Ordering, time::Instant};
 
 use bevy::prelude::*;
-use bevy_steam_audio::wrapper::AudionimbusCoordinateSystem;
+use bevy_steam_audio::{
+    probes::SteamAudioProbeBatch, settings::SteamAudioPathBakingSettings,
+    wrapper::AudionimbusCoordinateSystem,
+};
 
 use crate::{
     AppSystems,
-    demo::ai::hearing::{AiAsyncSimulationSynchronization, AiSimulator, AiSource, param},
+    demo::ai::hearing::{AiSimulators, AiSources, param},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -16,105 +19,75 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 fn update_simulation(
-    simulator: ResMut<AiSimulator>,
-    synchro: ResMut<AiAsyncSimulationSynchronization>,
-    mut sources: Query<(&mut AiSource, &GlobalTransform)>,
-    mut expensive_timer: Local<Option<Timer>>,
-    time: Res<Time>,
+    mut simulators: ResMut<AiSimulators>,
+    mut sources: Query<(&mut AiSources, &GlobalTransform)>,
     mut errors: Local<Vec<String>>,
+    batch: If<Res<SteamAudioProbeBatch>>,
+    path_baking_settings: Res<SteamAudioPathBakingSettings>,
 ) -> Result {
     errors.clear();
-    if synchro.complete.load(Ordering::SeqCst) {
-        // This should never fail unless there's a bug, as this branch should only be called when the reflection thread is idle.
-        simulator
-            .try_write()
-            .map_err(|e| format!("Failed to commit simulator even though it should be idle: {e}"))?
-            .commit();
+    for (i, simulator) in simulators.iter_mut().enumerate() {
+        simulator.commit();
+
+        simulator.set_shared_inputs(
+            param::FLAGS,
+            &audionimbus::SimulationSharedInputs {
+                listener: default(),
+                num_rays: 0,
+                num_bounces: 0,
+                duration: 0.0,
+                order: param::ORDER,
+                irradiance_min_distance: 1.0,
+                pathing_visualization_callback: None,
+            },
+        );
+
+        for (mut sources, transform) in &mut sources {
+            sources[i].set_inputs(
+                param::FLAGS,
+                audionimbus::SimulationInputs {
+                    direct_simulation: audionimbus::DirectSimulationParameters {
+                        distance_attenuation: audionimbus::DistanceAttenuationModel::Default.into(),
+                        air_absorption: audionimbus::AirAbsorptionModel::Default.into(),
+                        // TODO: actually ask the source for this, once bevy_steam_audio supports it
+                        directivity: audionimbus::Directivity::WeightedDipole {
+                            weight: 0.0,
+                            power: 0.0,
+                        }
+                        .into(),
+                        occlusion: audionimbus::Occlusion {
+                            transmission: audionimbus::TransmissionParameters {
+                                num_transmission_rays: 4,
+                            }
+                            .into(),
+                            algorithm: audionimbus::OcclusionAlgorithm::Raycast,
+                        }
+                        .into(),
+                    }
+                    .into(),
+                    reflections_simulation: None,
+                    pathing_simulation: audionimbus::PathingSimulationParameters {
+                        pathing_probes: &batch.0,
+                        visibility_radius: path_baking_settings.visibility_radius,
+                        visibility_threshold: path_baking_settings.visibility_threshold,
+                        visibility_range: path_baking_settings.visibility_range,
+                        pathing_order: param::ORDER,
+                        enable_validation: true,
+                        find_alternate_paths: true,
+                        deviation: audionimbus::DeviationModel::Default,
+                    }
+                    .into(),
+                    source: AudionimbusCoordinateSystem::from(*transform).into(),
+                },
+            );
+        }
+
+        simulator.run_direct();
+        simulator.run_pathing();
     }
-    let simulator = simulator
-        .try_read()
-        .map_err(|e| format!("Failed to run simulator even though it should be idle: {e}"))?;
-
-    let shared_inputs = audionimbus::SimulationSharedInputs {
-        listener: default(),
-        num_rays: param::REFLECT_RAYS,
-        num_bounces: param::REFLECT_BOUNCES,
-        duration: param::REFLECT_DURATION,
-        order: param::ORDER,
-        irradiance_min_distance: 1.0,
-        pathing_visualization_callback: None,
-    };
-    simulator.set_shared_inputs(audionimbus::SimulationFlags::DIRECT, &shared_inputs);
-
-    for (mut source, transform) in &mut sources {
-        source.set_inputs(audionimbus::SimulationFlags::DIRECT, gen_inputs(*transform));
-    }
-
-    simulator.run_direct();
-
-    let expensive_timer =
-        expensive_timer.get_or_insert_with(|| Timer::from_seconds(0.2, TimerMode::Once));
-    expensive_timer.tick(time.delta());
-    if !expensive_timer.is_finished() {
-        // Not yet time to kick off expensive simulation
-        return if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors.join("\n").into())
-        };
-    }
-    if !synchro.complete.load(Ordering::SeqCst) {
-        // It's time, but the previous simulation is still running!
-        return if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors.join("\n").into())
-        };
-    }
-
-    simulator.set_shared_inputs(param::EXPENSIVE_FLAGS, &shared_inputs);
-    for (mut source, transform) in &mut sources {
-        source.set_inputs(param::EXPENSIVE_FLAGS, gen_inputs(*transform));
-    }
-
-    synchro.complete.store(false, Ordering::SeqCst);
-    expensive_timer.reset();
-    synchro.sender.send(())?;
     if errors.is_empty() {
         Ok(())
     } else {
         Err(errors.join("\n").into())
-    }
-}
-
-fn gen_inputs(
-    orientation: impl Into<AudionimbusCoordinateSystem>,
-) -> audionimbus::SimulationInputs<'static> {
-    audionimbus::SimulationInputs {
-        direct_simulation: audionimbus::DirectSimulationParameters {
-            distance_attenuation: audionimbus::DistanceAttenuationModel::Default.into(),
-            air_absorption: audionimbus::AirAbsorptionModel::Default.into(),
-            // TODO: actually ask the source for this, once bevy_steam_audio supports it
-            directivity: audionimbus::Directivity::WeightedDipole {
-                weight: 0.0,
-                power: 0.0,
-            }
-            .into(),
-            occlusion: audionimbus::Occlusion {
-                transmission: audionimbus::TransmissionParameters {
-                    num_transmission_rays: 4,
-                }
-                .into(),
-                algorithm: audionimbus::OcclusionAlgorithm::Raycast,
-            }
-            .into(),
-        }
-        .into(),
-        reflections_simulation: audionimbus::ReflectionsSimulationParameters::Convolution {
-            baked_data_identifier: None,
-        }
-        .into(),
-        pathing_simulation: None,
-        source: orientation.into().into(),
     }
 }
