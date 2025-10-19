@@ -112,12 +112,7 @@ impl Plugin for AppPlugin {
         // Order new `AppSystems` variants by adding them here:
         app.configure_sets(
             Update,
-            (
-                AppSystems::TickTimers,
-                AppSystems::RecordInput,
-                AppSystems::Update,
-            )
-                .chain(),
+            (AppSystems::Animation, AppSystems::AudioSimulation).chain(),
         );
 
         // Spawn the main camera.
@@ -130,12 +125,8 @@ impl Plugin for AppPlugin {
 /// call above.
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
 enum AppSystems {
-    /// Tick timers.
-    TickTimers,
-    /// Record player input.
-    RecordInput,
-    /// Do everything else (consider splitting this into further variants).
-    Update,
+    AudioSimulation,
+    Animation,
 }
 
 fn spawn_camera(mut commands: Commands, mut image_assets: ResMut<Assets<Image>>) {

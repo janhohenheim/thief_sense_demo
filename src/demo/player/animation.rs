@@ -18,7 +18,7 @@ pub(super) fn plugin(app: &mut App) {
         Update,
         play_animations
             .run_if(in_state(Screen::Gameplay))
-            .in_set(AppSystems::Update),
+            .in_set(AppSystems::Animation),
     );
 }
 

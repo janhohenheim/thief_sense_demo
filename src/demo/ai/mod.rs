@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+pub(crate) mod audio_simulation;
 pub(crate) mod awareness;
 mod look;
 pub(crate) mod sense;
@@ -13,5 +14,6 @@ pub(super) fn plugin(app: &mut App) {
         view_cone::plugin,
         visibility::plugin,
         awareness::plugin,
+        audio_simulation::plugin,
     ));
 }

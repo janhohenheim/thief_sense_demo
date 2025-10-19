@@ -436,7 +436,7 @@ dependencies = [
 [[package]]
 name = "avian_steam_audio"
 version = "0.1.0"
-source = "git+https://github.com/janhohenheim/bevy_steam_audio#ecf452c97c6d63485f90c500484384a2eb79dc7c"
+source = "git+https://github.com/janhohenheim/bevy_steam_audio#103701a06bdbf701dcda223cd540b3b432a2bc44"
 dependencies = [
  "audionimbus",
  "avian3d",
@@ -1791,7 +1791,7 @@ dependencies = [
 [[package]]
 name = "bevy_steam_audio"
 version = "0.1.0"
-source = "git+https://github.com/janhohenheim/bevy_steam_audio#ecf452c97c6d63485f90c500484384a2eb79dc7c"
+source = "git+https://github.com/janhohenheim/bevy_steam_audio#103701a06bdbf701dcda223cd540b3b432a2bc44"
 dependencies = [
  "audionimbus",
  "audionimbus-sys",
@@ -6811,7 +6811,7 @@ dependencies = [
 [[package]]
 name = "trenchbroom_steam_audio"
 version = "0.1.0"
-source = "git+https://github.com/janhohenheim/bevy_steam_audio#ecf452c97c6d63485f90c500484384a2eb79dc7c"
+source = "git+https://github.com/janhohenheim/bevy_steam_audio#103701a06bdbf701dcda223cd540b3b432a2bc44"
 dependencies = [
  "avian3d",
  "avian_steam_audio",

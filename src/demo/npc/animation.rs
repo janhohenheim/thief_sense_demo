@@ -20,7 +20,7 @@ pub(super) fn plugin(app: &mut App) {
         Update,
         play_animations
             .run_if(in_state(Screen::Gameplay).and(resource_exists::<NpcAnimations>))
-            .in_set(AppSystems::Update),
+            .in_set(AppSystems::Animation),
     );
 }
 
