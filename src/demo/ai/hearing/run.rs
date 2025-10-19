@@ -32,6 +32,7 @@ fn update_simulation(
         simulator.set_shared_inputs(
             param::FLAGS,
             &audionimbus::SimulationSharedInputs {
+                // Todo: use the current NPC we allow to simulate in this round-robin.
                 listener: default(),
                 num_rays: 0,
                 num_bounces: 0,
