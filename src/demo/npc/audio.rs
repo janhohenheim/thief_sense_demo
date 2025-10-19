@@ -4,7 +4,15 @@ use bevy_shuffle_bag::ShuffleBag;
 use bevy_steam_audio::prelude::*;
 use rand::rng;
 
-use crate::{asset_tracking::LoadResource as _, demo::npc::animation::HumanoidStep};
+use crate::{
+    animation::AnimationTargetOf,
+    asset_tracking::LoadResource as _,
+    demo::{
+        ai::audio_simulation::AiAudible,
+        npc::{Npc, animation::HumanoidStep},
+        player::Player,
+    },
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(play_step_sound);
@@ -39,11 +47,22 @@ fn play_step_sound(
     step: On<HumanoidStep>,
     mut commands: Commands,
     mut audio: ResMut<NpcAudio>,
+    target_of: Query<&AnimationTargetOf>,
+    player: Query<(), With<Player>>,
 ) -> Result {
     let foot = step.trigger().animation_player;
-    commands.entity(foot).with_child((
-        SamplePlayer::new(audio.step_sound.pick(&mut rng()).clone()),
-        SteamAudioPool,
-    ));
+    let root = target_of
+        .related(foot)
+        .ok_or_else(|| BevyError::from("Animation target not linked"))?;
+    let is_player = player.contains(root);
+    commands.entity(foot).with_children(|parent| {
+        let mut child = parent.spawn((
+            SamplePlayer::new(audio.step_sound.pick(&mut rng()).clone()),
+            SteamAudioPool,
+        ));
+        if is_player {
+            child.insert(AiAudible);
+        }
+    });
     Ok(())
 }

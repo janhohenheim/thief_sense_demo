@@ -54,49 +54,46 @@ pub(super) fn setup_npc_animations(
         find_bone_id(name, add.entity, children, &mut targets)
     };
 
-    for anim_player in anim_players.iter() {
-        let graph = if let Some(ref animations) = animations {
-            animations.graph.clone()
-        } else {
-            let (graph, indices) = AnimationGraph::from_clips(
-                ["Idle_Loop", "Walk_Loop", "Sprint_Loop"]
-                    .map(|name| gltf.named_animations[name].clone()),
-            );
-            let [idle_index, walk_index, run_index] = indices.as_slice() else {
-                panic!("Failed to map animation indices")
-            };
+    assert_eq!(anim_players.len(), 1);
+    let anim_player = *anim_players.first().unwrap();
 
-            let left_foot_id = get_target_id("DEF-foot.L")?;
-            let right_foot_id = get_target_id("DEF-foot.R")?;
-            let frame_time = |frame: u32| (frame - 1) as f32 / 24.0;
-
-            let walk_clip = get_clip(*walk_index, &graph, &mut clips)?;
-            walk_clip.add_event_to_target(left_foot_id, frame_time(2), HumanoidStep(left_foot_id));
-            walk_clip.add_event_to_target(
-                right_foot_id,
-                frame_time(19),
-                HumanoidStep(right_foot_id),
-            );
-
-            let run_clip = get_clip(*run_index, &graph, &mut clips)?;
-            run_clip.add_event_to_target(left_foot_id, frame_time(1), HumanoidStep(left_foot_id));
-            run_clip.add_event_to_target(right_foot_id, frame_time(9), HumanoidStep(right_foot_id));
-
-            let graph_handle = AnimationGraphHandle(graphs.add(graph));
-            let animations = NpcAnimations {
-                graph: graph_handle.clone(),
-                idle: *idle_index,
-                walk: *walk_index,
-                run: *run_index,
-                left_foot: left_foot_id,
-                right_foot: right_foot_id,
-            };
-            commands.insert_resource(animations);
-            graph_handle
+    let graph = if let Some(ref animations) = animations {
+        animations.graph.clone()
+    } else {
+        let (graph, indices) = AnimationGraph::from_clips(
+            ["Idle_Loop", "Walk_Loop", "Sprint_Loop"]
+                .map(|name| gltf.named_animations[name].clone()),
+        );
+        let [idle_index, walk_index, run_index] = indices.as_slice() else {
+            panic!("Failed to map animation indices")
         };
-        let transitions = AnimationTransitions::new();
-        commands.entity(anim_player).insert((graph, transitions));
-    }
+
+        let left_foot_id = get_target_id("DEF-foot.L")?;
+        let right_foot_id = get_target_id("DEF-foot.R")?;
+        let frame_time = |frame: u32| (frame - 1) as f32 / 24.0;
+
+        let walk_clip = get_clip(*walk_index, &graph, &mut clips)?;
+        walk_clip.add_event_to_target(left_foot_id, frame_time(2), HumanoidStep(left_foot_id));
+        walk_clip.add_event_to_target(right_foot_id, frame_time(19), HumanoidStep(right_foot_id));
+
+        let run_clip = get_clip(*run_index, &graph, &mut clips)?;
+        run_clip.add_event_to_target(left_foot_id, frame_time(1), HumanoidStep(left_foot_id));
+        run_clip.add_event_to_target(right_foot_id, frame_time(9), HumanoidStep(right_foot_id));
+
+        let graph_handle = AnimationGraphHandle(graphs.add(graph));
+        let animations = NpcAnimations {
+            graph: graph_handle.clone(),
+            idle: *idle_index,
+            walk: *walk_index,
+            run: *run_index,
+            left_foot: left_foot_id,
+            right_foot: right_foot_id,
+        };
+        commands.insert_resource(animations);
+        graph_handle
+    };
+    let transitions = AnimationTransitions::new();
+    commands.entity(anim_player).insert((graph, transitions));
     Ok(())
 }
 
