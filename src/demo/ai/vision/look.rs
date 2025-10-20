@@ -48,13 +48,11 @@ fn update_all_senses(world: &mut World) -> Result {
 }
 
 fn update_senses(In(npc): In<Entity>, world: &mut World) -> Result {
-    // TODO: handle the whole sense updating at once for the NPC, and not first all vision, then all sounds, etc.
-    // For example, this approach here completely removes all information about which entities we are even sensing!
-    let _vision_pulses: Vec<AwarenessLevel> = look(In(npc), world)?;
+    let _vision_pulses: Vec<(Entity, AwarenessLevel)> = look(In(npc), world)?;
     Ok(())
 }
 
-fn look(In(npc): In<Entity>, world: &mut World) -> Result<Vec<AwarenessLevel>> {
+fn look(In(npc): In<Entity>, world: &mut World) -> Result<Vec<(Entity, AwarenessLevel)>> {
     // TODO: check / update awareness flags (kAIAF_CanRaycast, kAIAF_HaveLOS, etc)
     let entities_in_view: Vec<(Entity, ViewCone)> =
         world.run_system_cached_with(check_view_cones, npc)?;
@@ -89,7 +87,7 @@ fn look(In(npc): In<Entity>, world: &mut World) -> Result<Vec<AwarenessLevel>> {
             "Entity {:?} ({visibility} -> {pulse:?}): {ai_visibility:?} ",
             entity
         );
-        pulses.push(pulse);
+        pulses.push((entity, pulse));
     }
     // Todo: don't fail the entire fn when a single pulse fails
     match errors {

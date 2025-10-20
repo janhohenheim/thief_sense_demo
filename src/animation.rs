@@ -78,14 +78,12 @@ pub(crate) fn get_clip<'a>(
     graph: &AnimationGraph,
     clips: &'a mut Assets<AnimationClip>,
 ) -> Result<&'a mut AnimationClip> {
-    let node = graph
-        .get(node)
-        .ok_or_else(|| BevyError::from("Node not found"))?;
+    let node = graph.get(node).ok_or("Node not found")?;
     let clip = match &node.node_type {
         AnimationNodeType::Clip(handle) => clips.get_mut(handle),
         _ => return Err("Node is not a clip".into()),
     };
-    clip.ok_or_else(|| "Clip has an invalid handle".into())
+    clip.ok_or("Clip has an invalid handle".into())
 }
 
 pub(crate) fn find_bone_id(

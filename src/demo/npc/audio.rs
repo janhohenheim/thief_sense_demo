@@ -49,7 +49,7 @@ fn play_step_sound(
     let foot = step.trigger().animation_player;
     let root = target_of
         .related(foot)
-        .ok_or_else(|| BevyError::from("Animation target not linked"))?;
+        .ok_or("Animation target not linked")?;
     let is_player = player.contains(root);
     commands.entity(foot).with_children(|parent| {
         let mut child = parent.spawn((
