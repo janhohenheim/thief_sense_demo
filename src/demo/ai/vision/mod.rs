@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-mod look;
+pub(crate) mod look;
 pub(crate) mod view_cone;
 pub(crate) mod visibility;
 

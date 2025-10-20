@@ -1,15 +1,10 @@
-use std::{sync::atomic::Ordering, time::Instant};
-
 use bevy::prelude::*;
 use bevy_steam_audio::{
     probes::SteamAudioProbeBatch, settings::SteamAudioPathBakingSettings,
     wrapper::AudionimbusCoordinateSystem,
 };
 
-use crate::{
-    AppSystems,
-    demo::ai::hearing::{AiSimulators, AiSource, param},
-};
+use crate::demo::ai::hearing::{AiSimulators, AiSource, param};
 
 pub(super) fn plugin(_app: &mut App) {}
 

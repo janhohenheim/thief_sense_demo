@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_steam_audio::STEAM_AUDIO_CONTEXT;
 
 mod bookkeeping;
-mod listen;
+pub(crate) mod listen;
 mod loudness;
 mod simulate;
 

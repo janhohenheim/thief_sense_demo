@@ -12,47 +12,16 @@ use crate::{
                 visibility::{AiVisibility, get_or_update_visibility},
             },
         },
-        npc::Npc,
         player::Player,
     },
 };
 
-pub(super) fn plugin(app: &mut App) {
-    app.add_systems(
-        RunFixedMainLoop,
-        update_all_senses.in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
-    );
-}
+pub(super) fn plugin(_app: &mut App) {}
 
-fn update_all_senses(world: &mut World) -> Result {
-    let npcs = world
-        .query_filtered::<Entity, With<Npc>>()
-        .iter(world)
-        .collect::<Vec<_>>();
-    let mut errors = Vec::new();
-    for npc in npcs {
-        if let Err(err) = update_senses(In(npc), world) {
-            errors.push(err);
-        }
-    }
-
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(BevyError::from(
-            errors
-                .iter()
-                .fold(String::new(), |acc, err| acc + &err.to_string()),
-        ))
-    }
-}
-
-fn update_senses(In(npc): In<Entity>, world: &mut World) -> Result {
-    let _vision_pulses: Vec<(Entity, AwarenessLevel)> = look(In(npc), world)?;
-    Ok(())
-}
-
-fn look(In(npc): In<Entity>, world: &mut World) -> Result<Vec<(Entity, AwarenessLevel)>> {
+pub(crate) fn look(
+    In(npc): In<Entity>,
+    world: &mut World,
+) -> Result<Vec<(Entity, AwarenessLevel)>> {
     // TODO: check / update awareness flags (kAIAF_CanRaycast, kAIAF_HaveLOS, etc)
     let entities_in_view: Vec<(Entity, ViewCone)> =
         world.run_system_cached_with(check_view_cones, npc)?;

@@ -1,12 +1,4 @@
-use std::{
-    array,
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    },
-};
-
-use bevy::{ecs::entity_disabling::Disabled, prelude::*, tasks::AsyncComputeTaskPool};
+use bevy::{ecs::entity_disabling::Disabled, prelude::*};
 use bevy_steam_audio::{scene::SteamAudioRootScene, sources::AudionimbusSource};
 
 use crate::demo::ai::hearing::{AiAudible, AiSimulators, AiSource, param};

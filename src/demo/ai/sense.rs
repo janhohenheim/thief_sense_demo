@@ -10,10 +10,49 @@
 
 use bevy::prelude::*;
 
-use crate::rand_timer::{RandTimer, RandTimerApp};
+use crate::{
+    demo::{
+        ai::{awareness::AwarenessLevel, hearing::listen::listen, vision::look::look},
+        npc::Npc,
+    },
+    rand_timer::{RandTimer, RandTimerApp},
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_rand_timer::<SenseTimer>();
+    app.add_systems(
+        RunFixedMainLoop,
+        update_all_senses.in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
+    );
+}
+
+fn update_all_senses(world: &mut World) -> Result {
+    let npcs = world
+        .query_filtered::<Entity, With<Npc>>()
+        .iter(world)
+        .collect::<Vec<_>>();
+    let mut errors = Vec::new();
+    for npc in npcs {
+        if let Err(err) = update_senses(In(npc), world) {
+            errors.push(err);
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(BevyError::from(
+            errors
+                .iter()
+                .fold(String::new(), |acc, err| acc + &err.to_string()),
+        ))
+    }
+}
+
+fn update_senses(In(npc): In<Entity>, world: &mut World) -> Result {
+    let _vision_pulses: Vec<(Entity, AwarenessLevel)> = look(In(npc), world)?;
+    let _hearing_pulses: Vec<(Entity, AwarenessLevel)> = listen(In(npc), world)?;
+    Ok(())
 }
 
 #[derive(Component, Debug, Deref, DerefMut)]

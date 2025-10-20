@@ -1,10 +1,4 @@
-use bevy::{ecs::system::RunSystemOnce, prelude::*};
-use bevy_steam_audio::wrapper::AudionimbusCoordinateSystem;
-
-use crate::demo::ai::hearing::{
-    AiSource,
-    simulate::{AiSimulationInputs, update_simulation_for_listener},
-};
+use bevy::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
     let _ = app;
