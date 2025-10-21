@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, sync::Mutex};
+use std::{collections::VecDeque, fs::File, io::BufWriter, sync::Mutex};
 
 use bevy::{ecs::relationship::Relationship, prelude::*};
 use bevy_seedling::{
@@ -13,6 +13,7 @@ use firewheel::{
         AudioNode, AudioNodeProcessor, EmptyConfig, ProcBuffers, ProcExtra, ProcInfo, ProcessStatus,
     },
 };
+use hound::{SampleFormat, WavSpec, WavWriter};
 use ringbuf::{
     HeapRb,
     traits::{Consumer, Producer, Split},
@@ -28,8 +29,43 @@ pub(super) fn plugin(app: &mut App) {
         .add_systems(PreUpdate, update_input_buffer)
         .add_systems(Last, establish_channel.in_set(SeedlingSystems::Queue));
     app.register_required_components::<AiPool, AiAudible>();
+    app.add_systems(Update, write);
     app.register_node::<InputBufferNode>();
+    app.add_observer(init_writer).add_observer(finish_writer);
 }
+
+fn init_writer(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
+    let spec = WavSpec {
+        channels: 1,
+        sample_rate: SAMPLING_RATE,
+        bits_per_sample: 32,
+        sample_format: SampleFormat::Float,
+    };
+
+    let writer = WavWriter::create("output.wav", spec)?;
+    commands.entity(add.entity).insert(Writer(Some(writer)));
+    info!("Initialized writer");
+    Ok(())
+}
+
+fn write(writer: Single<(&InputBuffer, &mut Writer)>) -> Result {
+    let (buff, mut writer) = writer.into_inner();
+    for sample in &buff.inputs {
+        writer.0.as_mut().unwrap().write_sample(*sample)?;
+    }
+    info!("Wrote samples");
+    Ok(())
+}
+
+fn finish_writer(remove: On<Remove, Writer>, mut writer: Query<&mut Writer>) -> Result {
+    let mut writer = writer.get_mut(remove.entity)?;
+    writer.0.take().unwrap().finalize()?;
+    info!("Finished writer");
+    Ok(())
+}
+
+#[derive(Component)]
+struct Writer(Option<WavWriter<BufWriter<File>>>);
 
 #[derive(Component)]
 pub(crate) struct InputBuffer {
@@ -73,7 +109,7 @@ fn update_input_buffer(mut buffers: Query<&mut InputBuffer>) {
 
 fn establish_channel(
     mut nodes: Query<(Entity, &SampleEffects), Added<SamplePlayer>>,
-    mut input_buffers: Query<&mut AudioEvents, With<InputBuffer>>,
+    mut input_buffers: Query<&mut AudioEvents, With<InputBufferNode>>,
     mut commands: Commands,
 ) {
     for (entity, effects) in nodes.iter_mut() {
