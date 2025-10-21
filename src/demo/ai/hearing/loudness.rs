@@ -13,5 +13,5 @@ pub(crate) fn loudness_to_listener(
     In(LoudnessInput { listener, source }): In<LoudnessInput>,
     world: &mut World,
 ) -> Result<f32> {
-    todo!()
+    Ok(0.0)
 }

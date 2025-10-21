@@ -6,7 +6,7 @@ use crate::demo::ai::sense::{SENSE_INTERVAL_FAR, SENSE_INTERVAL_NEAR};
 mod bookkeeping;
 pub(crate) mod listen;
 mod loudness;
-mod node;
+pub(crate) mod node;
 mod simulate;
 
 pub(super) fn plugin(app: &mut App) {
@@ -73,7 +73,7 @@ impl FromWorld for AiSimulators {
     }
 }
 
-#[derive(Component, Reflect)]
+#[derive(Component, Default, Reflect)]
 #[reflect(Component)]
 pub(crate) struct AiAudible;
 

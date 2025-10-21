@@ -9,7 +9,7 @@ pub(crate) mod ai;
 pub(crate) mod level;
 pub(crate) mod npc;
 mod path_corner;
-mod player;
+pub(crate) mod player;
 mod target;
 mod target_after;
 

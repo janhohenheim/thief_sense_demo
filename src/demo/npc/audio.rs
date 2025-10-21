@@ -7,7 +7,11 @@ use rand::rng;
 use crate::{
     animation::AnimationTargetOf,
     asset_tracking::LoadResource as _,
-    demo::{ai::hearing::AiAudible, npc::animation::HumanoidStep, player::Player},
+    demo::{
+        ai::hearing::{AiAudible, node::AiPool},
+        npc::animation::HumanoidStep,
+        player::Player,
+    },
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -52,12 +56,11 @@ fn play_step_sound(
         .ok_or("Animation target not linked")?;
     let is_player = player.contains(root);
     commands.entity(foot).with_children(|parent| {
-        let mut child = parent.spawn((
-            SamplePlayer::new(audio.step_sound.pick(&mut rng()).clone()),
-            SteamAudioPool,
-        ));
+        let mut child = parent.spawn(SamplePlayer::new(audio.step_sound.pick(&mut rng()).clone()));
         if is_player {
-            child.insert(AiAudible);
+            child.insert(AiPool);
+        } else {
+            child.insert(SteamAudioPool);
         }
     });
     Ok(())

@@ -7,7 +7,7 @@ use bevy_seedling::{
 use bevy_steam_audio::nodes::{FixedProcessBlock, SteamAudioNode};
 use firewheel::{
     channel_config::ChannelConfig,
-    diff::{Diff, EventQueue as _, Patch},
+    diff::{Diff, EventQueue as _, Patch, RealtimeClone},
     event::{NodeEventType, ProcEvents},
     node::{
         AudioNode, AudioNodeProcessor, EmptyConfig, ProcBuffers, ProcExtra, ProcInfo, ProcessStatus,
@@ -19,7 +19,7 @@ use ringbuf::{
 };
 use rubato::{FastFixedOut, PolynomialDegree, Resampler};
 
-use crate::demo::ai::hearing::{FRAME_SIZE_FAR, SAMPLING_RATE};
+use crate::demo::ai::hearing::{AiAudible, FRAME_SIZE_FAR, SAMPLING_RATE};
 type Prod = <HeapRb<f32> as Split>::Prod;
 type Cons = <HeapRb<f32> as Split>::Cons;
 
@@ -27,6 +27,8 @@ pub(super) fn plugin(app: &mut App) {
     app.add_systems(PreStartup, init_pool)
         .add_systems(PreUpdate, update_input_buffer)
         .add_systems(Last, establish_channel.in_set(SeedlingSystems::Queue));
+    app.register_required_components::<AiPool, AiAudible>();
+    app.register_node::<InputBufferNode>();
 }
 
 #[derive(Component)]
@@ -47,12 +49,13 @@ impl InputBuffer {
 #[reflect(Component)]
 pub(crate) struct AiPool;
 
-#[derive(Debug, Default, Clone, Component, Diff, Patch, Reflect)]
+#[derive(Diff, Patch, Debug, PartialEq, Clone, RealtimeClone, Component, Reflect)]
+#[reflect(Component)]
 struct InputBufferNode;
 
 fn init_pool(mut commands: Commands) {
     commands.spawn((
-        Name::new("Music audio sampler pool"),
+        Name::new("AI sound pool"),
         SamplerPool(AiPool),
         sample_effects![InputBufferNode, SteamAudioNode::default(),],
     ));
@@ -98,7 +101,7 @@ impl AudioNode for InputBufferNode {
             .debug_name("input buffer")
             .channel_config(ChannelConfig {
                 num_inputs: ChannelCount::STEREO,
-                num_outputs: ChannelCount::ZERO,
+                num_outputs: ChannelCount::STEREO,
             })
     }
 

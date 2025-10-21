@@ -24,7 +24,8 @@ use bevy::{
 };
 
 use crate::{
-    solid_color::SolidColorEnvironmentMapLight as _, third_party::ui_anchor::UiAnchorCamera,
+    demo::player::Player, solid_color::SolidColorEnvironmentMapLight as _,
+    third_party::ui_anchor::UiAnchorCamera,
 };
 mod rand_timer;
 mod solid_color;
@@ -119,6 +120,7 @@ impl Plugin for AppPlugin {
             RunFixedMainLoop,
             (AiSystems::Prepare, AiSystems::Update)
                 .chain()
+                .run_if(any_with_component::<Player>)
                 .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
         );
 
