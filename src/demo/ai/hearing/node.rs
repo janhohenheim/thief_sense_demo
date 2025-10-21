@@ -167,6 +167,7 @@ impl AudioNode for InputBufferNode {
                 nbr_channels,
             )
             .unwrap(),
+            // TODO: use a tiny fixed block and write just a bit to the buffer each time.
             fixed_block: FixedProcessBlock::new(44104 as usize, 0, 2, 0),
             resample_in: [vec![0.0; 44104 as usize]; 1],
             resample_out: [vec![0.0; FRAME_SIZE_FAR as usize]; 1],

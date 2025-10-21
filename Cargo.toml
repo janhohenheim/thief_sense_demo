@@ -79,6 +79,8 @@ bevy_shuffle_bag = "0.3.0"
 crossbeam-channel = "0.5.15"
 ringbuf = "0.4.8"
 rubato = "0.16.2"
+
+# TODO: remove this after debugging
 hound = "3.5.1"
 
 [features]
