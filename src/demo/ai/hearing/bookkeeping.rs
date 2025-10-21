@@ -1,10 +1,18 @@
 use bevy::{ecs::entity_disabling::Disabled, prelude::*};
-use bevy_steam_audio::{scene::SteamAudioRootScene, sources::AudionimbusSource};
+use bevy_steam_audio::{
+    probes::SteamAudioProbeBatch, scene::SteamAudioRootScene, sources::AudionimbusSource,
+};
 
-use crate::demo::ai::hearing::{AiAudible, AiSimulators, AiSources, Simulator, param};
+use crate::{
+    AiSystems,
+    demo::ai::hearing::{AiAudible, AiSimulators, AiSources, Simulator, param},
+};
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(Startup, init_simulation);
+    app.add_systems(Startup, init_simulation).add_systems(
+        RunFixedMainLoop,
+        update_probe_batch.in_set(AiSystems::Bookkeep),
+    );
     app.add_observer(add_source)
         .add_observer(remove_source)
         .add_observer(sync_source_removal);
@@ -13,6 +21,16 @@ pub(super) fn plugin(app: &mut App) {
 fn init_simulation(mut simulators: ResMut<AiSimulators>, scene: Res<SteamAudioRootScene>) {
     for simulator in simulators.iter_mut() {
         simulator.set_scene(&scene.0);
+        simulator.commit();
+    }
+}
+
+fn update_probe_batch(probes: Res<SteamAudioProbeBatch>, mut simulators: ResMut<AiSimulators>) {
+    if !probes.is_changed() {
+        return;
+    }
+    for simulator in simulators.iter_mut() {
+        simulator.add_probe_batch(&probes);
         simulator.commit();
     }
 }

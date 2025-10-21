@@ -118,7 +118,7 @@ impl Plugin for AppPlugin {
 
         app.configure_sets(
             RunFixedMainLoop,
-            (AiSystems::Prepare, AiSystems::Update)
+            (AiSystems::Bookkeep, AiSystems::Commit, AiSystems::Update)
                 .chain()
                 .run_if(any_with_component::<Player>)
                 .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
@@ -140,8 +140,9 @@ enum AppSystems {
 
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
 enum AiSystems {
+    Bookkeep,
     /// Prepare simulators
-    Prepare,
+    Commit,
     /// Update senses
     Update,
 }

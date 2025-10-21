@@ -12,7 +12,7 @@ use crate::{
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         RunFixedMainLoop,
-        commit_simulators.in_set(AiSystems::Prepare),
+        commit_simulators.in_set(AiSystems::Commit),
     );
 }
 
