@@ -28,7 +28,7 @@ fn add_source(
     }
     let source = |simulator: &Simulator| {
         audionimbus::Source::try_new(
-            &simulator,
+            simulator,
             &audionimbus::SourceSettings {
                 flags: param::FLAGS,
             },

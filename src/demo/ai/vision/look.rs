@@ -3,16 +3,12 @@ use bevy::prelude::*;
 
 use crate::{
     collision_layer::CollisionLayer,
-    demo::{
-        ai::{
-            awareness::{Alertness, AwarenessLevel},
-            sense::SenseTimer,
-            vision::{
-                view_cone::{ViewCone, ViewCones, VisibilityAcuities},
-                visibility::{AiVisibility, get_or_update_visibility},
-            },
+    demo::ai::{
+        awareness::{Alertness, AwarenessLevel},
+        vision::{
+            view_cone::{ViewCone, ViewCones, VisibilityAcuities},
+            visibility::{AiVisibility, get_or_update_visibility},
         },
-        player::Player,
     },
 };
 

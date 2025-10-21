@@ -19,7 +19,7 @@ pub(crate) fn listen(
 ) -> Result<Vec<(Entity, AwarenessLevel)>> {
     let sources: Vec<_> = world.run_system_cached_with(sources_for_listener, npc)?;
 
-    let _: () = world.run_system_cached_with(
+    () = world.run_system_cached_with(
         update_simulation_for_listener,
         AiSimulationInputs {
             listener: npc,
