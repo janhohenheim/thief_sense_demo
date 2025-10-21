@@ -6516,6 +6516,8 @@ dependencies = [
  "firewheel",
  "landmass_rerecast",
  "rand",
+ "ringbuf",
+ "rubato 0.16.2",
  "tracing",
  "trenchbroom_steam_audio",
 ]

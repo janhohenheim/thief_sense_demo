@@ -43,10 +43,6 @@ struct AiSimulators {
 }
 
 impl AiSimulators {
-    fn iter(&self) -> impl IntoIterator<Item = &Simulator> {
-        [&self.near, &self.far]
-    }
-
     fn iter_mut(&mut self) -> impl IntoIterator<Item = &mut Simulator> {
         [&mut self.near, &mut self.far]
     }
