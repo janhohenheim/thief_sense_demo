@@ -4,7 +4,7 @@ use bevy::{ecs::relationship::Relationship, prelude::*};
 use bevy_seedling::{
     SeedlingSystems, pool::SamplerPool, prelude::*, sample::SamplePlayer, sample_effects,
 };
-use bevy_steam_audio::nodes::SteamAudioNode;
+use bevy_steam_audio::nodes::{FixedProcessBlock, SteamAudioNode};
 use firewheel::{
     channel_config::ChannelConfig,
     diff::{Diff, EventQueue as _, Patch},
@@ -17,9 +17,9 @@ use ringbuf::{
     HeapRb,
     traits::{Consumer, Producer, Split},
 };
-use rubato::{FastFixedOut, PolynomialDegree, VecResampler};
+use rubato::{FastFixedOut, PolynomialDegree, Resampler};
 
-use crate::demo::ai::hearing::FRAME_SIZE_FAR;
+use crate::demo::ai::hearing::{FRAME_SIZE_FAR, SAMPLING_RATE};
 type Prod = <HeapRb<f32> as Split>::Prod;
 type Cons = <HeapRb<f32> as Split>::Cons;
 
@@ -110,7 +110,7 @@ impl AudioNode for InputBufferNode {
         let resample_ratio = FRAME_SIZE_FAR as f64 / cx.stream_info.sample_rate.get() as f64;
         let max_resample_ratio_relative = 1.0;
         let interpolation_type = PolynomialDegree::Linear;
-        let chunk_size = cx.stream_info.max_block_frames.get() as usize;
+        let chunk_size = FRAME_SIZE_FAR as usize;
         let nbr_channels = 1;
         InputBufferProcessor {
             prod: None,
@@ -122,6 +122,9 @@ impl AudioNode for InputBufferNode {
                 nbr_channels,
             )
             .unwrap(),
+            fixed_block: FixedProcessBlock::new(FRAME_SIZE_FAR as usize, 0, 2, 0),
+            resample_in: [vec![0.0; FRAME_SIZE_FAR as usize]; 1],
+            resample_out: [vec![0.0; FRAME_SIZE_FAR as usize]; 1],
         }
     }
 }
@@ -129,15 +132,18 @@ impl AudioNode for InputBufferNode {
 struct InputBufferProcessor {
     prod: Option<Prod>,
     resampler: FastFixedOut<f32>,
+    fixed_block: FixedProcessBlock,
+    resample_in: [Vec<f32>; 1],
+    resample_out: [Vec<f32>; 1],
 }
 
 impl AudioNodeProcessor for InputBufferProcessor {
     fn process(
         &mut self,
         proc_info: &ProcInfo,
-        ProcBuffers { inputs, .. }: ProcBuffers,
+        proc_buffers: ProcBuffers,
         events: &mut ProcEvents,
-        extra: &mut ProcExtra,
+        _extra: &mut ProcExtra,
     ) -> firewheel::node::ProcessStatus {
         for mut event in events.drain() {
             if let Some(out_stream_event) = event.downcast_mut::<InputBufferInitEvent>() {
@@ -153,15 +159,23 @@ impl AudioNodeProcessor for InputBufferProcessor {
         let Some(prod) = self.prod.as_mut() else {
             return ProcessStatus::Bypass;
         };
-        let scratch = extra
-            .scratch_buffers
-            .first_with_frames_mut(proc_info.frames);
-        for (i, sample) in scratch.iter_mut().enumerate() {
-            *sample = (inputs[0][i] + inputs[1][i]) / 2.0;
-        }
-        self.resampler
-            .process_into_buffer(todo!(), todo!(), todo!());
-        prod.push_slice(&scratch[..inputs[0].len()]);
+        let fixed_block = &mut self.fixed_block;
+        let temp_proc = ProcBuffers {
+            inputs: proc_buffers.inputs,
+            outputs: proc_buffers.outputs,
+        };
+        fixed_block.process(temp_proc, proc_info, |inputs, _outputs| {
+            for (i, sample) in self.resample_in[0].iter_mut().enumerate() {
+                *sample = (inputs[0][i] + inputs[1][i]) / 2.0;
+            }
+            let delay = self.resampler.output_delay();
+            let new_length =
+                (FRAME_SIZE_FAR * SAMPLING_RATE / proc_info.sample_rate.get()) as usize;
+            self.resampler
+                .process_into_buffer(&mut self.resample_in, &mut self.resample_out, None)
+                .unwrap();
+            prod.push_slice(&self.resample_out[0][delay..(delay + new_length)]);
+        });
         ProcessStatus::Bypass
     }
 
