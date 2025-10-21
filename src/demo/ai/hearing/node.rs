@@ -48,10 +48,11 @@ fn init_writer(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
     Ok(())
 }
 
-fn write(writer: Single<(&InputBuffer, &mut Writer)>) -> Result {
-    let (buff, mut writer) = writer.into_inner();
-    for sample in &buff.inputs {
-        writer.0.as_mut().unwrap().write_sample(*sample)?;
+fn write(mut writer: Query<(&InputBuffer, &mut Writer), Changed<InputBuffer>>) -> Result {
+    for (buff, mut writer) in writer.iter_mut() {
+        for sample in &buff.inputs {
+            writer.0.as_mut().unwrap().write_sample(*sample)?;
+        }
     }
     info!("Wrote samples");
     Ok(())
@@ -61,6 +62,7 @@ fn finish_writer(remove: On<Remove, Writer>, mut writer: Query<&mut Writer>) -> 
     let mut writer = writer.get_mut(remove.entity)?;
     writer.0.take().unwrap().finalize()?;
     info!("Finished writer");
+    panic!();
     Ok(())
 }
 
@@ -101,6 +103,10 @@ fn update_input_buffer(mut buffers: Query<&mut InputBuffer>) {
     for mut buffer in buffers.iter_mut() {
         let mut scratch = [0.0; FRAME_SIZE_FAR as usize];
         let incoming = buffer.cons.lock().unwrap().pop_slice(&mut scratch);
+        if incoming == 0 {
+            // be kind to change detection
+            continue;
+        }
         buffer.inputs.drain(..incoming);
         buffer.inputs.extend(scratch);
         buffer.update_loudness();
@@ -161,8 +167,8 @@ impl AudioNode for InputBufferNode {
                 nbr_channels,
             )
             .unwrap(),
-            fixed_block: FixedProcessBlock::new(FRAME_SIZE_FAR as usize, 0, 2, 0),
-            resample_in: [vec![0.0; FRAME_SIZE_FAR as usize]; 1],
+            fixed_block: FixedProcessBlock::new(44104 as usize, 0, 2, 0),
+            resample_in: [vec![0.0; 44104 as usize]; 1],
             resample_out: [vec![0.0; FRAME_SIZE_FAR as usize]; 1],
         }
     }
