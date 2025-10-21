@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::demo::ai::{
     awareness::AwarenessLevel,
     hearing::{
-        AiSource,
+        AiSources,
         loudness::{LoudnessInput, loudness_to_listener},
         simulate::{AiSimulationInputs, update_simulation_for_listener},
     },
@@ -14,7 +14,7 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 pub(crate) fn listen(
-    In(npc): In<Entity>,
+    In((npc, near)): In<(Entity, bool)>,
     world: &mut World,
 ) -> Result<Vec<(Entity, AwarenessLevel)>> {
     let sources: Vec<_> = world.run_system_cached_with(sources_for_listener, npc)?;
@@ -24,6 +24,7 @@ pub(crate) fn listen(
         AiSimulationInputs {
             listener: npc,
             sources: sources.clone(),
+            near,
         },
     )?;
     let mut pulses = Vec::new();
@@ -52,11 +53,9 @@ pub(crate) fn listen(
 fn sources_for_listener(
     In(npc): In<Entity>,
     transform: Query<&GlobalTransform>,
-    sources: Query<(Entity, &GlobalTransform), With<AiSource>>,
+    sources: Query<(Entity, &GlobalTransform), With<AiSources>>,
 ) -> Result<Vec<Entity>> {
     let npc_translation = transform.get(npc)?.translation();
-    // TODO: check_view_cones is the analogue for this function.
-    // That one does the sense timer stuff. That probably should be "one step higher" to also cover this method here, right?
     let sources = sources
         .iter()
         .filter_map(|(entity, transform)| {

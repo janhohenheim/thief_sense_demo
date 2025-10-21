@@ -74,6 +74,7 @@ audionimbus-sys =  "4.7.1-rc.1"
 bevy_steam_audio = { git = "https://github.com/janhohenheim/bevy_steam_audio" }
 avian_steam_audio = { git = "https://github.com/janhohenheim/bevy_steam_audio" }
 trenchbroom_steam_audio = { git = "https://github.com/janhohenheim/bevy_steam_audio" }
+firewheel = { version = "0.8.0-rc.1", features = ["std"] }
 bevy_shuffle_bag = "0.3.0"
 crossbeam-channel = "0.5.15"
 

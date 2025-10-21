@@ -6513,6 +6513,7 @@ dependencies = [
  "bitflags 2.9.4",
  "crossbeam-channel",
  "evergreen_relations",
+ "firewheel",
  "landmass_rerecast",
  "rand",
  "tracing",

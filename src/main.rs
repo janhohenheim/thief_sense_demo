@@ -115,6 +115,13 @@ impl Plugin for AppPlugin {
             (AppSystems::Animation, AppSystems::AudioSimulation).chain(),
         );
 
+        app.configure_sets(
+            RunFixedMainLoop,
+            (AiSystems::Prepare, AiSystems::Update)
+                .chain()
+                .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
+        );
+
         // Spawn the main camera.
         app.add_systems(Startup, spawn_camera);
     }
@@ -127,6 +134,14 @@ impl Plugin for AppPlugin {
 enum AppSystems {
     AudioSimulation,
     Animation,
+}
+
+#[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
+enum AiSystems {
+    /// Prepare simulators
+    Prepare,
+    /// Update senses
+    Update,
 }
 
 fn spawn_camera(mut commands: Commands, mut image_assets: ResMut<Assets<Image>>) {

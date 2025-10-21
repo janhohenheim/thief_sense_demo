@@ -1,7 +1,7 @@
 use bevy::{ecs::entity_disabling::Disabled, prelude::*};
 use bevy_steam_audio::{scene::SteamAudioRootScene, sources::AudionimbusSource};
 
-use crate::demo::ai::hearing::{AiAudible, AiSimulators, AiSource, param};
+use crate::demo::ai::hearing::{AiAudible, AiSimulators, AiSources, Simulator, param};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, init_simulation);
@@ -10,44 +10,54 @@ pub(super) fn plugin(app: &mut App) {
         .add_observer(sync_source_removal);
 }
 
-fn init_simulation(mut simulator: ResMut<AiSimulators>, scene: Res<SteamAudioRootScene>) {
-    simulator.set_scene(&scene.0);
-    simulator.commit();
+fn init_simulation(mut simulators: ResMut<AiSimulators>, scene: Res<SteamAudioRootScene>) {
+    for simulator in simulators.iter_mut() {
+        simulator.set_scene(&scene.0);
+        simulator.commit();
+    }
 }
 
 fn add_source(
     add: On<Add, AudionimbusSource>,
     ai_audible: Query<(), (With<AiAudible>, Allow<Disabled>)>,
     mut commands: Commands,
-    simulator: ResMut<AiSimulators>,
+    simulators: ResMut<AiSimulators>,
 ) -> Result {
     if !ai_audible.contains(add.entity) {
         return Ok(());
     }
-    let source = audionimbus::Source::try_new(
-        &simulator,
-        &audionimbus::SourceSettings {
-            flags: param::FLAGS,
-        },
-    )
-    .unwrap();
-    simulator.add_source(&source);
+    let source = |simulator: &Simulator| {
+        audionimbus::Source::try_new(
+            &simulator,
+            &audionimbus::SourceSettings {
+                flags: param::FLAGS,
+            },
+        )
+        .unwrap()
+    };
+    let sources = AiSources {
+        near: source(&simulators.near),
+        far: source(&simulators.far),
+    };
+    simulators.near.add_source(&sources.near);
+    simulators.far.add_source(&sources.far);
 
-    commands.entity(add.entity).try_insert(AiSource(source));
+    commands.entity(add.entity).try_insert(sources);
     Ok(())
 }
 
 fn sync_source_removal(remove: On<Remove, AudionimbusSource>, mut commands: Commands) {
-    commands.entity(remove.entity).try_remove::<AiSource>();
+    commands.entity(remove.entity).try_remove::<AiSources>();
 }
 
 fn remove_source(
-    remove: On<Remove, AiSource>,
-    source: Query<&AiSource, Allow<Disabled>>,
+    remove: On<Remove, AiSources>,
+    sources: Query<&AiSources, Allow<Disabled>>,
     simulator: ResMut<AiSimulators>,
 ) -> Result {
-    let source = source.get(remove.entity)?;
-    simulator.remove_source(source);
+    let sources = sources.get(remove.entity)?;
+    simulator.near.remove_source(&sources.near);
+    simulator.far.remove_source(&sources.far);
 
     Ok(())
 }

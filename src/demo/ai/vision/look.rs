@@ -85,28 +85,12 @@ fn visibility_to_viewer(
 /// Cloning view cones around like this is surprisingly cheap because they use Arcs internally.
 fn check_view_cones(
     In(entity): In<Entity>,
-    mut npcs: Query<(&Transform, &mut SenseTimer, &Alertness)>,
-    player: Single<&Transform, With<Player>>,
+    mut npcs: Query<(&Transform, &Alertness)>,
     spatial: SpatialQuery,
     view_cones: Res<ViewCones>,
     transforms: Query<&GlobalTransform>,
 ) -> Result<Vec<(Entity, ViewCone)>> {
-    let player_transform = player.into_inner();
-    let (npc_transform, mut sense_timer, alertness) = npcs.get_mut(entity)?;
-    if !sense_timer.is_finished() {
-        return Ok(Vec::new());
-    }
-    const DIST_CUTOFF: f32 = 12.0;
-    let ms = if player_transform
-        .translation
-        .distance_squared(npc_transform.translation)
-        > DIST_CUTOFF * DIST_CUTOFF
-    {
-        500
-    } else {
-        200
-    };
-    sense_timer.set_base_time_millis(ms);
+    let (npc_transform, alertness) = npcs.get_mut(entity)?;
 
     let mut filter = SpatialQueryFilter::default()
         .with_mask(CollisionLayer::AiVisible)

@@ -4,31 +4,51 @@ use bevy_steam_audio::{
     wrapper::AudionimbusCoordinateSystem,
 };
 
-use crate::demo::ai::hearing::{AiSimulators, AiSource, param};
+use crate::{
+    AiSystems,
+    demo::ai::hearing::{AiSimulators, AiSources, param},
+};
 
-pub(super) fn plugin(_app: &mut App) {}
+pub(super) fn plugin(app: &mut App) {
+    app.add_systems(
+        RunFixedMainLoop,
+        commit_simulators.in_set(AiSystems::Prepare),
+    );
+}
 
 pub(crate) struct AiSimulationInputs {
     pub(crate) listener: Entity,
     pub(crate) sources: Vec<Entity>,
+    pub(crate) near: bool,
+}
+
+fn commit_simulators(mut simulators: ResMut<AiSimulators>) {
+    for simulator in simulators.iter_mut() {
+        simulator.commit();
+    }
 }
 
 pub(crate) fn update_simulation_for_listener(
     In(AiSimulationInputs {
         listener,
         sources: source_entities,
+        near,
     }): In<AiSimulationInputs>,
-    mut simulator: ResMut<AiSimulators>,
-    mut sources: Query<(&mut AiSource, &GlobalTransform)>,
+    simulators: ResMut<AiSimulators>,
+    mut sources: Query<(&mut AiSources, &GlobalTransform)>,
     mut errors: Local<Vec<String>>,
     transform: Query<&GlobalTransform>,
     batch: Res<SteamAudioProbeBatch>,
     path_baking_settings: Res<SteamAudioPathBakingSettings>,
 ) -> Result {
     errors.clear();
-    simulator.commit();
     let listener = transform.get(listener)?;
     let listener = AudionimbusCoordinateSystem::from(*listener);
+    let simulator = if near {
+        &simulators.near
+    } else {
+        &simulators.far
+    };
 
     simulator.set_shared_inputs(
         param::FLAGS,
@@ -44,7 +64,12 @@ pub(crate) fn update_simulation_for_listener(
     );
 
     let mut sources = sources.iter_many_mut(source_entities);
-    while let Some((mut source, transform)) = sources.fetch_next() {
+    while let Some((mut sources, transform)) = sources.fetch_next() {
+        let source = if near {
+            &mut sources.near
+        } else {
+            &mut sources.far
+        };
         source.set_inputs(
             param::FLAGS,
             audionimbus::SimulationInputs {

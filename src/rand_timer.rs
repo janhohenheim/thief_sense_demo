@@ -18,6 +18,10 @@ impl RandTimer {
         Self::new(Duration::from_millis(duration))
     }
 
+    pub(crate) fn from_secs_f32(duration: f32) -> Self {
+        Self::new(Duration::from_secs_f32(duration))
+    }
+
     pub(crate) fn new(duration: Duration) -> Self {
         Self {
             timer: Timer::new(Self::offset(duration), TimerMode::Once),
@@ -45,6 +49,11 @@ impl RandTimer {
     /// Does *not* reset the timer
     pub(crate) fn set_base_time_millis(&mut self, duration: u64) {
         self.set_base_time(Duration::from_millis(duration));
+    }
+
+    /// Does *not* reset the timer
+    pub(crate) fn set_base_time_secs_f32(&mut self, duration: f32) {
+        self.set_base_time(Duration::from_secs_f32(duration));
     }
 
     pub(crate) fn reset(&mut self) {

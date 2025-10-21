@@ -11,27 +11,30 @@
 use bevy::prelude::*;
 
 use crate::{
+    AiSystems,
     demo::{
         ai::{awareness::AwarenessLevel, hearing::listen::listen, vision::look::look},
         npc::Npc,
+        player::Player,
     },
     rand_timer::{RandTimer, RandTimerApp},
 };
+
+/// in seconds
+pub(crate) const SENSE_INTERVAL_NEAR: f32 = 0.2;
+pub(crate) const SENSE_INTERVAL_FAR: f32 = 0.5;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_rand_timer::<SenseTimer>();
     app.add_systems(
         RunFixedMainLoop,
-        update_all_senses.in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
+        update_all_senses.in_set(AiSystems::Update),
     );
 }
 
 fn update_all_senses(world: &mut World) -> Result {
-    let npcs = world
-        .query_filtered::<Entity, With<Npc>>()
-        .iter(world)
-        .collect::<Vec<_>>();
     let mut errors = Vec::new();
+    let npcs = world.run_system_cached(get_npcs_to_update)?;
     for npc in npcs {
         if let Err(err) = update_senses(In(npc), world) {
             errors.push(err);
@@ -49,9 +52,39 @@ fn update_all_senses(world: &mut World) -> Result {
     }
 }
 
-fn update_senses(In(npc): In<Entity>, world: &mut World) -> Result {
-    let _vision_pulses: Vec<(Entity, AwarenessLevel)> = look(In(npc), world)?;
-    let _hearing_pulses: Vec<(Entity, AwarenessLevel)> = listen(In(npc), world)?;
+struct ToUpdate {
+    entity: Entity,
+    near: bool,
+}
+
+fn get_npcs_to_update(
+    player_transform: Single<&Transform, With<Player>>,
+    mut npcs: Query<(Entity, &Transform, &mut SenseTimer), With<Npc>>,
+) -> Vec<ToUpdate> {
+    npcs.iter_mut()
+        .filter_map(|(entity, npc_transform, mut timer)| {
+            if !timer.is_finished() {
+                return None;
+            }
+            const DIST_CUTOFF: f32 = 12.0;
+            let (near, secs) = if player_transform
+                .translation
+                .distance_squared(npc_transform.translation)
+                > DIST_CUTOFF * DIST_CUTOFF
+            {
+                (false, SENSE_INTERVAL_FAR)
+            } else {
+                (true, SENSE_INTERVAL_NEAR)
+            };
+            timer.set_base_time_secs_f32(secs);
+            Some(ToUpdate { entity, near })
+        })
+        .collect::<Vec<_>>()
+}
+
+fn update_senses(In(npc): In<ToUpdate>, world: &mut World) -> Result {
+    let _vision_pulses: Vec<(Entity, AwarenessLevel)> = look(In(npc.entity), world)?;
+    let _hearing_pulses: Vec<(Entity, AwarenessLevel)> = listen(In((npc.entity, npc.near)), world)?;
     Ok(())
 }
 
@@ -60,6 +93,6 @@ pub(crate) struct SenseTimer(pub(crate) RandTimer);
 
 impl Default for SenseTimer {
     fn default() -> Self {
-        Self(RandTimer::from_millis(500))
+        Self(RandTimer::from_secs_f32(SENSE_INTERVAL_FAR))
     }
 }
