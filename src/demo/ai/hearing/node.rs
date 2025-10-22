@@ -5,7 +5,6 @@ use bevy_seedling::{
     SeedlingSystems,
     pool::{Sampler, SamplerPool},
     prelude::*,
-    sample::SamplePlayer,
     sample_effects,
 };
 use bevy_steam_audio::nodes::{FixedProcessBlock, SteamAudioNode};
@@ -19,7 +18,7 @@ use firewheel::{
 };
 use ringbuf::{
     HeapRb,
-    traits::{Consumer, Observer, Producer, Split},
+    traits::{Consumer, Producer, Split},
 };
 use rubato::{FastFixedOut, PolynomialDegree, Resampler};
 
