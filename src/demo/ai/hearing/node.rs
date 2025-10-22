@@ -29,7 +29,6 @@ pub(super) fn plugin(app: &mut App) {
         .add_systems(PreUpdate, update_input_buffer)
         .add_systems(Last, establish_channel.in_set(SeedlingSystems::Queue));
     app.register_required_components::<AiPool, AiAudible>();
-    app.add_systems(Update, write);
     app.register_node::<InputBufferNode>();
     app.add_observer(init_writer).add_observer(finish_writer);
 }
@@ -48,20 +47,16 @@ fn init_writer(add: On<Add, InputBuffer>, mut commands: Commands, time: Res<Time
     Ok(())
 }
 
-fn write(mut writer: Query<(&InputBuffer, &mut Writer), Changed<InputBuffer>>) -> Result {
-    for (buff, mut writer) in writer.iter_mut() {
-        for sample in &buff.inputs {
-            writer.0.as_mut().unwrap().write_sample(*sample)?;
-        }
+fn finish_writer(
+    remove: On<Remove, Writer>,
+    mut writer: Query<(&InputBuffer, &mut Writer)>,
+) -> Result {
+    let (buff, mut writer) = writer.get_mut(remove.entity)?;
+    for sample in &buff.inputs {
+        writer.0.as_mut().unwrap().write_sample(*sample)?;
     }
-    Ok(())
-}
-
-fn finish_writer(remove: On<Remove, Writer>, mut writer: Query<&mut Writer>) -> Result {
-    let mut writer = writer.get_mut(remove.entity)?;
     writer.0.take().unwrap().finalize()?;
     info!("Finished writer");
-    panic!();
     Ok(())
 }
 
@@ -156,7 +151,7 @@ impl AudioNode for InputBufferNode {
         let resample_ratio = SAMPLING_RATE as f64 / cx.stream_info.sample_rate.get() as f64;
         let max_resample_ratio_relative = 1.0;
         let interpolation_type = PolynomialDegree::Linear;
-        let chunk_size = (resample_ratio * FIXED_BLOCK_SIZE as f64).ceil() as usize;
+        let chunk_size = (resample_ratio * FIXED_BLOCK_SIZE as f64).floor() as usize;
         let nbr_channels = 1;
         let resampler = FastFixedOut::new(
             resample_ratio,
@@ -166,14 +161,12 @@ impl AudioNode for InputBufferNode {
             nbr_channels,
         )
         .unwrap();
-        let resample_in = resampler.input_buffer_allocate(true);
-        let resample_out = resampler.output_buffer_allocate(true);
         InputBufferProcessor {
             prod: None,
             resampler,
             fixed_block: FixedProcessBlock::new(FIXED_BLOCK_SIZE, 0, 2, 0),
-            resample_in,
-            resample_out,
+            resample_in: [vec![0.0; FIXED_BLOCK_SIZE]; 1],
+            resample_out: [vec![0.0; chunk_size]; 1],
         }
     }
 }
@@ -182,8 +175,8 @@ struct InputBufferProcessor {
     prod: Option<Prod>,
     resampler: FastFixedOut<f32>,
     fixed_block: FixedProcessBlock,
-    resample_in: Vec<Vec<f32>>,
-    resample_out: Vec<Vec<f32>>,
+    resample_in: [Vec<f32>; 1],
+    resample_out: [Vec<f32>; 1],
 }
 
 impl AudioNodeProcessor for InputBufferProcessor {
@@ -214,28 +207,13 @@ impl AudioNodeProcessor for InputBufferProcessor {
             outputs: proc_buffers.outputs,
         };
         fixed_block.process(temp_proc, proc_info, |inputs, _outputs| {
-            self.resample_in[0].fill(0.0);
-            for (i, sample) in self.resample_in[0]
-                .iter_mut()
-                .enumerate()
-                .take(FIXED_BLOCK_SIZE)
-            {
+            for (i, sample) in self.resample_in[0].iter_mut().enumerate() {
                 *sample = (inputs[0][i] + inputs[1][i]) / 2.0;
             }
-            let delay = self.resampler.output_delay();
-            let sampling_ratio = SAMPLING_RATE as f64 / proc_info.sample_rate.get() as f64;
-            let out_length = (FIXED_BLOCK_SIZE as f64 * sampling_ratio).ceil() as usize;
             self.resampler
                 .process_into_buffer(&mut self.resample_in, &mut self.resample_out, None)
                 .unwrap();
-            prod.push_slice(&self.resample_out[0][delay..(delay + out_length)]);
-            info!(
-                "resample_in_len={} resample_out_len={} delay={} out_expected={}",
-                self.resample_in[0].len(),
-                self.resample_out[0].len(),
-                self.resampler.output_delay(),
-                out_length
-            );
+            prod.push_slice(&self.resample_out[0]);
         });
         ProcessStatus::Bypass
     }
@@ -261,7 +239,6 @@ impl AudioNodeProcessor for InputBufferProcessor {
             nbr_channels,
         )
         .unwrap();
-        self.resample_in = self.resampler.input_buffer_allocate(true);
-        self.resample_out = self.resampler.output_buffer_allocate(true);
+        self.resample_out[0] = vec![0.0; chunk_size];
     }
 }
