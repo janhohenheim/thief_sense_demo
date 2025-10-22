@@ -25,7 +25,7 @@ fn init_simulation(mut simulators: ResMut<AiSimulators>, scene: Res<SteamAudioRo
     }
 }
 
-fn update_probe_batch(probes: Res<SteamAudioProbeBatch>, mut simulators: ResMut<AiSimulators>) {
+fn update_probe_batch(probes: If<Res<SteamAudioProbeBatch>>, mut simulators: ResMut<AiSimulators>) {
     if !probes.is_changed() {
         return;
     }

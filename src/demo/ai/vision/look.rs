@@ -5,6 +5,7 @@ use crate::{
     collision_layer::CollisionLayer,
     demo::ai::{
         awareness::{Alertness, AwarenessLevel},
+        debug::DebugVision,
         vision::{
             view_cone::{ViewCone, ViewCones, VisibilityAcuities},
             visibility::{AiVisibility, get_or_update_visibility},
@@ -48,10 +49,10 @@ pub(crate) fn look(
             v if v < 75 => AwarenessLevel::Moderate,
             _ => AwarenessLevel::High,
         };
-        info!(
-            "Entity {:?} ({visibility} -> {pulse:?}): {ai_visibility:?} ",
-            entity
-        );
+        world.entity_mut(npc).insert(DebugVision {
+            entity,
+            visibility: ai_visibility,
+        });
         pulses.push((entity, pulse));
     }
     // Todo: don't fail the entire fn when a single pulse fails

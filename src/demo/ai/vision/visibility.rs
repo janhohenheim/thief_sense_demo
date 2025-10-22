@@ -62,8 +62,9 @@ impl Default for AiVisibilityControl {
     }
 }
 
-#[derive(Component, Debug, Copy, Clone, Default)]
+#[derive(Component, Debug, Copy, Clone, Default, Reflect)]
 #[require(VisibilityTimer, AiVisibilityControl)]
+#[reflect(Component)]
 pub(crate) struct AiVisibility {
     pub(crate) lighting: u8,
     pub(crate) movement: u8,

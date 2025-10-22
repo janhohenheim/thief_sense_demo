@@ -13,7 +13,12 @@ use bevy::prelude::*;
 use crate::{
     AiSystems,
     demo::{
-        ai::{awareness::AwarenessLevel, hearing::listen::listen, vision::look::look},
+        ai::{
+            awareness::AwarenessLevel,
+            debug::{DebugHearing, DebugVision},
+            hearing::listen::listen,
+            vision::look::look,
+        },
         npc::Npc,
         player::Player,
     },
@@ -36,6 +41,10 @@ fn update_all_senses(world: &mut World) -> Result {
     let mut errors = Vec::new();
     let npcs = world.run_system_cached(get_npcs_to_update)?;
     for npc in npcs {
+        world
+            .entity_mut(npc.entity)
+            .remove::<DebugVision>()
+            .remove::<DebugHearing>();
         if let Err(err) = update_senses(In(npc), world) {
             errors.push(err);
         }
