@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, sync::Mutex};
 
-use bevy::{ecs::relationship::Relationship, prelude::*};
+use bevy::prelude::*;
 use bevy_seedling::{
     SeedlingSystems, pool::SamplerPool, prelude::*, sample::SamplePlayer, sample_effects,
 };
@@ -33,8 +33,8 @@ pub(super) fn plugin(app: &mut App) {
 
 #[derive(Component)]
 pub(crate) struct InputBuffer {
-    inputs: VecDeque<f32>,
-    loudness: f32,
+    pub(crate) inputs: VecDeque<f32>,
+    pub(crate) loudness: f32,
     cons: Mutex<Cons>,
 }
 
@@ -62,8 +62,8 @@ fn init_pool(mut commands: Commands) {
 }
 
 fn update_input_buffer(mut buffers: Query<&mut InputBuffer>) {
+    let mut scratch = [0.0; FRAME_SIZE_FAR as usize];
     for mut buffer in buffers.iter_mut() {
-        let mut scratch = [0.0; FIXED_BLOCK_SIZE];
         let incoming = buffer.cons.lock().unwrap().pop_slice(&mut scratch);
         if incoming == 0 {
             // be kind to change detection
