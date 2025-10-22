@@ -1,8 +1,12 @@
-use std::{collections::VecDeque, sync::Mutex};
+use std::{collections::VecDeque, iter, sync::Mutex};
 
 use bevy::{ecs::entity_disabling::Disabled, prelude::*};
 use bevy_seedling::{
-    SeedlingSystems, pool::SamplerPool, prelude::*, sample::SamplePlayer, sample_effects,
+    SeedlingSystems,
+    pool::{Sampler, SamplerPool},
+    prelude::*,
+    sample::SamplePlayer,
+    sample_effects,
 };
 use bevy_steam_audio::nodes::{FixedProcessBlock, SteamAudioNode};
 use firewheel::{
@@ -15,7 +19,7 @@ use firewheel::{
 };
 use ringbuf::{
     HeapRb,
-    traits::{Consumer, Producer, Split},
+    traits::{Consumer, Observer, Producer, Split},
 };
 use rubato::{FastFixedOut, PolynomialDegree, Resampler};
 
@@ -92,26 +96,29 @@ fn despawn_pool_late(remove: On<Remove, AiPool>, mut commands: Commands) {
 fn update_input_buffer(mut buffers: Query<(&mut InputBuffer, Has<Despawn>)>, time: Res<Time>) {
     let mut scratch = [0.0; FRAME_SIZE_FAR as usize];
     for (mut buffer, despawn) in buffers.iter_mut() {
-        let incoming = if despawn {
+        if despawn {
             let silence = ((time.delta_secs() * SAMPLING_RATE as f32).ceil() as usize)
                 .min(FRAME_SIZE_FAR as usize);
-            scratch[..silence].fill(0.0);
-            silence
+
+            buffer.inputs.drain(..silence);
+            buffer.inputs.extend(iter::repeat_n(0.0, silence));
+            buffer.update_loudness();
         } else {
-            buffer.cons.lock().unwrap().pop_slice(&mut scratch)
-        };
-        if incoming == 0 {
-            // be kind to change detection
-            continue;
+            loop {
+                let incoming = buffer.cons.lock().unwrap().pop_slice(&mut scratch);
+                if incoming == 0 {
+                    break;
+                }
+                buffer.inputs.drain(..incoming);
+                buffer.inputs.extend(&scratch[..incoming]);
+                buffer.update_loudness();
+            }
         }
-        buffer.inputs.drain(..incoming);
-        buffer.inputs.extend(&scratch[..incoming]);
-        buffer.update_loudness();
     }
 }
 
 fn establish_channel(
-    mut nodes: Query<(Entity, &SampleEffects), Added<SamplePlayer>>,
+    mut nodes: Query<(Entity, &SampleEffects), Added<Sampler>>,
     mut input_buffers: Query<&mut AudioEvents, With<InputBufferNode>>,
     mut commands: Commands,
 ) {
