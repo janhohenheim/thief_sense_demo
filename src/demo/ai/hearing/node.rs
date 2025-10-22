@@ -30,38 +30,7 @@ pub(super) fn plugin(app: &mut App) {
         .add_systems(Last, establish_channel.in_set(SeedlingSystems::Queue));
     app.register_required_components::<AiPool, AiAudible>();
     app.register_node::<InputBufferNode>();
-    app.add_observer(init_writer).add_observer(finish_writer);
 }
-
-fn init_writer(add: On<Add, InputBuffer>, mut commands: Commands, time: Res<Time>) -> Result {
-    let spec = WavSpec {
-        channels: 1,
-        sample_rate: SAMPLING_RATE,
-        bits_per_sample: 32,
-        sample_format: SampleFormat::Float,
-    };
-
-    let writer = WavWriter::create(format!("output_{}.wav", time.elapsed().as_millis()), spec)?;
-    commands.entity(add.entity).insert(Writer(Some(writer)));
-    info!("Initialized writer");
-    Ok(())
-}
-
-fn finish_writer(
-    remove: On<Remove, Writer>,
-    mut writer: Query<(&InputBuffer, &mut Writer)>,
-) -> Result {
-    let (buff, mut writer) = writer.get_mut(remove.entity)?;
-    for sample in &buff.inputs {
-        writer.0.as_mut().unwrap().write_sample(*sample)?;
-    }
-    writer.0.take().unwrap().finalize()?;
-    info!("Finished writer");
-    Ok(())
-}
-
-#[derive(Component)]
-struct Writer(Option<WavWriter<BufWriter<File>>>);
 
 #[derive(Component)]
 pub(crate) struct InputBuffer {

@@ -80,9 +80,6 @@ crossbeam-channel = "0.5.15"
 ringbuf = "0.4.8"
 rubato = "0.16.2"
 
-# TODO: remove this after debugging
-hound = "3.5.1"
-
 [features]
 # Default to a native dev build.
 default = ["dev"]
