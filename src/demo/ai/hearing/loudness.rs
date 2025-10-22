@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_seedling::prelude::{EffectsQuery, SampleEffects};
 
 use crate::demo::ai::{debug::DebugHearing, hearing::node::InputBuffer};
 

@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, iter, sync::Mutex};
+use std::{collections::VecDeque, sync::Mutex};
 
 use bevy::{ecs::entity_disabling::Disabled, prelude::*};
 use bevy_seedling::{
@@ -22,7 +22,7 @@ use rubato::{FastFixedOut, PolynomialDegree, Resampler};
 use crate::{
     demo::ai::{
         hearing::{AiAudible, FRAME_SIZE_FAR, SAMPLING_RATE},
-        sense::{SENSE_INTERVAL_FAR, SENSE_INTERVAL_NEAR},
+        sense::SENSE_INTERVAL_FAR,
     },
     despawn::Despawn,
 };
