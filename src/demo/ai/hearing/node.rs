@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, fs::File, io::BufWriter, sync::Mutex};
+use std::{collections::VecDeque, sync::Mutex};
 
 use bevy::{ecs::relationship::Relationship, prelude::*};
 use bevy_seedling::{
@@ -13,7 +13,6 @@ use firewheel::{
         AudioNode, AudioNodeProcessor, EmptyConfig, ProcBuffers, ProcExtra, ProcInfo, ProcessStatus,
     },
 };
-use hound::{SampleFormat, WavSpec, WavWriter};
 use ringbuf::{
     HeapRb,
     traits::{Consumer, Producer, Split},
@@ -64,7 +63,7 @@ fn init_pool(mut commands: Commands) {
 
 fn update_input_buffer(mut buffers: Query<&mut InputBuffer>) {
     for mut buffer in buffers.iter_mut() {
-        let mut scratch = [0.0; FIXED_BLOCK_SIZE as usize];
+        let mut scratch = [0.0; FIXED_BLOCK_SIZE];
         let incoming = buffer.cons.lock().unwrap().pop_slice(&mut scratch);
         if incoming == 0 {
             // be kind to change detection
@@ -180,7 +179,7 @@ impl AudioNodeProcessor for InputBufferProcessor {
                 *sample = (inputs[0][i] + inputs[1][i]) / 2.0;
             }
             self.resampler
-                .process_into_buffer(&mut self.resample_in, &mut self.resample_out, None)
+                .process_into_buffer(&self.resample_in, &mut self.resample_out, None)
                 .unwrap();
             prod.push_slice(&self.resample_out[0]);
         });
