@@ -1,6 +1,6 @@
-use std::{collections::VecDeque, sync::Mutex};
+use std::{collections::VecDeque, iter, sync::Mutex};
 
-use bevy::prelude::*;
+use bevy::{ecs::entity_disabling::Disabled, prelude::*};
 use bevy_seedling::{
     SeedlingSystems, pool::SamplerPool, prelude::*, sample::SamplePlayer, sample_effects,
 };
@@ -19,14 +19,22 @@ use ringbuf::{
 };
 use rubato::{FastFixedOut, PolynomialDegree, Resampler};
 
-use crate::demo::ai::hearing::{AiAudible, FRAME_SIZE_FAR, SAMPLING_RATE};
+use crate::{
+    demo::ai::{
+        hearing::{AiAudible, FRAME_SIZE_FAR, SAMPLING_RATE},
+        sense::{SENSE_INTERVAL_FAR, SENSE_INTERVAL_NEAR},
+    },
+    despawn::Despawn,
+};
 type Prod = <HeapRb<f32> as Split>::Prod;
 type Cons = <HeapRb<f32> as Split>::Cons;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(PreStartup, init_pool)
-        .add_systems(PreUpdate, update_input_buffer)
+        .add_systems(FixedPreUpdate, update_input_buffer)
         .add_systems(Last, establish_channel.in_set(SeedlingSystems::Queue));
+    app.add_observer(setup_sample_player)
+        .add_observer(despawn_pool_late);
     app.register_required_components::<AiPool, AiAudible>();
     app.register_node::<InputBufferNode>();
 }
@@ -61,10 +69,37 @@ fn init_pool(mut commands: Commands) {
     ));
 }
 
-fn update_input_buffer(mut buffers: Query<&mut InputBuffer>) {
+fn setup_sample_player(
+    add: On<Add, AiPool>,
+    mut commands: Commands,
+    playback_settings: Query<&PlaybackSettings, Allow<Disabled>>,
+) {
+    let mut settings = if let Ok(settings) = playback_settings.get(add.entity) {
+        settings.clone()
+    } else {
+        PlaybackSettings::default()
+    };
+    settings.on_complete = OnComplete::Remove;
+    commands.entity(add.entity).insert(settings);
+}
+
+fn despawn_pool_late(remove: On<Remove, AiPool>, mut commands: Commands) {
+    commands
+        .entity(remove.entity)
+        .insert(Despawn::after(SENSE_INTERVAL_FAR));
+}
+
+fn update_input_buffer(mut buffers: Query<(&mut InputBuffer, Has<Despawn>)>, time: Res<Time>) {
     let mut scratch = [0.0; FRAME_SIZE_FAR as usize];
-    for mut buffer in buffers.iter_mut() {
-        let incoming = buffer.cons.lock().unwrap().pop_slice(&mut scratch);
+    for (mut buffer, despawn) in buffers.iter_mut() {
+        let incoming = if despawn {
+            let silence = ((time.delta_secs() * SAMPLING_RATE as f32).ceil() as usize)
+                .min(FRAME_SIZE_FAR as usize);
+            scratch[..silence].fill(0.0);
+            silence
+        } else {
+            buffer.cons.lock().unwrap().pop_slice(&mut scratch)
+        };
         if incoming == 0 {
             // be kind to change detection
             continue;
@@ -163,9 +198,8 @@ impl AudioNodeProcessor for InputBufferProcessor {
             }
         }
 
-        if proc_info.in_silence_mask.all_channels_silent(2) {
-            return ProcessStatus::Bypass;
-        }
+        // Don't early return on empty input: that is a valid thing to buffer.
+
         let Some(prod) = self.prod.as_mut() else {
             return ProcessStatus::Bypass;
         };

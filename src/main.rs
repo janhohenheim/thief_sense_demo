@@ -9,6 +9,7 @@ mod audio;
 mod collision_layer;
 mod cpu_lighting;
 mod demo;
+mod despawn;
 #[cfg(feature = "dev")]
 mod dev_tools;
 mod link_head;
@@ -108,13 +109,11 @@ impl Plugin for AppPlugin {
             solid_color::plugin,
             collision_layer::plugin,
             link_head::plugin,
+            despawn::plugin,
         ));
 
         // Order new `AppSystems` variants by adding them here:
-        app.configure_sets(
-            Update,
-            (AppSystems::Animation, AppSystems::AudioSimulation).chain(),
-        );
+        app.configure_sets(Update, (AppSystems::Animation, AppSystems::Despawn).chain());
 
         app.configure_sets(
             RunFixedMainLoop,
@@ -134,8 +133,8 @@ impl Plugin for AppPlugin {
 /// call above.
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
 enum AppSystems {
-    AudioSimulation,
     Animation,
+    Despawn,
 }
 
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
