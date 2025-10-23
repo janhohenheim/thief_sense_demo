@@ -1,17 +1,16 @@
 use bevy::prelude::*;
 use bevy_steam_audio::{
     STEAM_AUDIO_CONTEXT,
-    settings::SteamAudioHrtf,
     wrapper::{AudionimbusCoordinateSystem, ToSteamAudioVec3},
 };
 
 use crate::demo::ai::{
     debug::DebugHearing,
     hearing::{
-        AiHrtfs, AiSources, FRAME_SIZE_FAR, FRAME_SIZE_NEAR, SAMPLING_RATE,
+        AiSources, FRAME_SIZE_FAR, FRAME_SIZE_NEAR, SAMPLING_RATE,
         debug::AudioDebugWriter,
         node::InputBuffer,
-        param::{FLAGS, ORDER},
+        param::{self, FLAGS, ORDER},
     },
 };
 
@@ -34,21 +33,19 @@ pub(crate) fn loudness_to_listener(
     mut commands: Commands,
     transform: Query<&GlobalTransform>,
     mut sample_player: Query<(
-        &InputBuffer,
+        &mut InputBuffer,
         &mut SteamAudioEffects,
         &mut AiSources,
         &GlobalTransform,
     )>,
     mut writer: Query<&mut AudioDebugWriter>,
-    hrtfs: Res<AiHrtfs>,
 ) -> Result<f32> {
     let listener_transform = AudionimbusCoordinateSystem::from(*transform.get(listener)?);
-    let (buffer, mut all_effects, mut sources, source_transform) = sample_player.get_mut(source)?;
+    let (mut buffer, mut all_effects, mut sources, source_transform) =
+        sample_player.get_mut(source)?;
     let SteamAudioEffects {
         near: near_effects,
         far: far_effects,
-        direct_buffer,
-        path_buffer,
     } = all_effects.as_mut();
     let effects = if near { near_effects } else { far_effects };
     let source = if near {
@@ -56,30 +53,39 @@ pub(crate) fn loudness_to_listener(
     } else {
         &mut sources.far
     };
-    let hrtf = if near { &hrtfs.near } else { &hrtfs.far };
     let source_transform = AudionimbusCoordinateSystem::from(*source_transform);
     let size = if near {
         FRAME_SIZE_NEAR
     } else {
         FRAME_SIZE_FAR
     } as usize;
-    let mono_settings = audionimbus::AudioBufferSettings {
-        num_channels: Some(1),
-        num_samples: Some(size as u32),
-        ..default()
-    };
-    let in_buffer = audionimbus::AudioBuffer::try_with_data_and_settings(
-        &buffer.inputs[..size],
-        mono_settings,
-    )?;
-    let direct_out = audionimbus::AudioBuffer::try_with_data_and_settings(
-        &mut direct_buffer[..size],
-        mono_settings,
-    )?;
-    let path_out = audionimbus::AudioBuffer::try_with_data_and_settings(
-        &mut path_buffer[..size],
-        mono_settings,
-    )?;
+    // Safety: all borrowed data is valid until this buffer is dropped again.
+    let channel_ptrs = [buffer.inputs.as_mut_ptr()];
+    let in_buffer =
+        unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
+
+    let mut direct_buffer = [0.0; FRAME_SIZE_NEAR as usize];
+    let channel_ptrs = [direct_buffer.as_mut_ptr()];
+    // Safety: all borrowed data is valid until this buffer is dropped again.
+    let direct_out =
+        unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
+
+    let mut path_buffer = [[0.0; FRAME_SIZE_NEAR as usize]; param::CHANNELS as usize];
+    let channel_ptrs = [
+        path_buffer[0].as_mut_ptr(),
+        path_buffer[1].as_mut_ptr(),
+        path_buffer[2].as_mut_ptr(),
+        path_buffer[3].as_mut_ptr(),
+    ];
+    // Safety: all borrowed data is valid until this buffer is dropped again.
+    let path_out =
+        unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
+
+    let mut ambisonic_buffer = [0.0; FRAME_SIZE_NEAR as usize];
+    let channel_ptrs = [ambisonic_buffer.as_mut_ptr()];
+    // Safety: all borrowed data is valid until this buffer is dropped again.
+    let ambisonic_out =
+        unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
     let outputs = source.get_outputs(FLAGS);
 
@@ -108,18 +114,28 @@ pub(crate) fn loudness_to_listener(
     effects.path.apply(
         &audionimbus::PathEffectParams {
             order: ORDER,
-            binaural: true,
-            hrtf: hrtf.clone(),
+            binaural: false,
             listener: listener_transform.into(),
             ..outputs.pathing().into_inner()
         },
         &in_buffer,
         &path_out,
     );
+
+    effects.decode.apply(
+        &audionimbus::AmbisonicsDecodeEffectParams {
+            order: ORDER,
+            hrtf: &audionimbus::Hrtf::from(std::ptr::null_mut()),
+            orientation: listener_transform.into(),
+            binaural: false,
+        },
+        &path_out,
+        &ambisonic_out,
+    );
     if let Ok(mut writer) = writer.get_mut(listener) {
         let output = direct_buffer
             .iter()
-            .zip(path_buffer.iter())
+            .zip(ambisonic_buffer)
             .map(|(direct, path)| *direct + path);
         for sample in output {
             writer.write_sample(sample).unwrap();
@@ -127,10 +143,10 @@ pub(crate) fn loudness_to_listener(
     }
     let loudness_mean_squared = direct_buffer
         .iter()
-        .zip(path_buffer)
+        .zip(ambisonic_buffer)
         .take(size)
         .fold(0.0, |acc, (direct, path)| {
-            acc + (*direct + *path) * (*direct + *path)
+            acc + (*direct + path) * (*direct + path)
         })
         / size as f32;
     let loudness = loudness_mean_squared.sqrt();
@@ -139,11 +155,7 @@ pub(crate) fn loudness_to_listener(
     Ok(loudness)
 }
 
-fn create_effects(
-    add: On<Add, InputBuffer>,
-    mut commands: Commands,
-    hrtfs: Res<AiHrtfs>,
-) -> Result {
+fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
     let near_settings = audionimbus::AudioSettings {
         sampling_rate: SAMPLING_RATE,
         frame_size: FRAME_SIZE_NEAR,
@@ -165,10 +177,16 @@ fn create_effects(
                 &near_settings,
                 &audionimbus::PathEffectSettings {
                     max_order: ORDER,
-                    spatialization: Some(audionimbus::Spatialization {
-                        speaker_layout: audionimbus::SpeakerLayout::Mono,
-                        hrtf: &hrtfs.near,
-                    }),
+                    spatialization: None,
+                },
+            )?,
+            decode: audionimbus::AmbisonicsDecodeEffect::try_new(
+                &STEAM_AUDIO_CONTEXT,
+                &near_settings,
+                &audionimbus::AmbisonicsDecodeEffectSettings {
+                    max_order: ORDER,
+                    speaker_layout: audionimbus::SpeakerLayout::Mono,
+                    hrtf: &audionimbus::Hrtf::from(std::ptr::null_mut()),
                 },
             )?,
         },
@@ -183,15 +201,19 @@ fn create_effects(
                 &far_settings,
                 &audionimbus::PathEffectSettings {
                     max_order: ORDER,
-                    spatialization: Some(audionimbus::Spatialization {
-                        speaker_layout: audionimbus::SpeakerLayout::Mono,
-                        hrtf: &hrtfs.far,
-                    }),
+                    spatialization: None,
+                },
+            )?,
+            decode: audionimbus::AmbisonicsDecodeEffect::try_new(
+                &STEAM_AUDIO_CONTEXT,
+                &far_settings,
+                &audionimbus::AmbisonicsDecodeEffectSettings {
+                    max_order: ORDER,
+                    speaker_layout: audionimbus::SpeakerLayout::Mono,
+                    hrtf: &audionimbus::Hrtf::from(std::ptr::null_mut()),
                 },
             )?,
         },
-        direct_buffer: vec![0.0; FRAME_SIZE_FAR as usize],
-        path_buffer: vec![0.0; FRAME_SIZE_FAR as usize],
     });
     Ok(())
 }
@@ -200,12 +222,11 @@ fn create_effects(
 pub(crate) struct SteamAudioEffects {
     near: Effects,
     far: Effects,
-    direct_buffer: Vec<f32>,
-    path_buffer: Vec<f32>,
 }
 
 #[derive(Clone, Debug)]
 struct Effects {
     direct: audionimbus::DirectEffect,
     path: audionimbus::PathEffect,
+    decode: audionimbus::AmbisonicsDecodeEffect,
 }

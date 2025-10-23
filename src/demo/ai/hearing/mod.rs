@@ -11,8 +11,7 @@ pub(crate) mod node;
 mod simulate;
 
 pub(super) fn plugin(app: &mut App) {
-    app.init_resource::<AiSimulators>()
-        .init_resource::<AiHrtfs>();
+    app.init_resource::<AiSimulators>();
     app.add_plugins((
         bookkeeping::plugin,
         simulate::plugin,
@@ -30,6 +29,7 @@ const FRAME_SIZE_FAR: u32 = ((SAMPLING_RATE as f32) * SENSE_INTERVAL_FAR) as u32
 
 mod param {
     pub(super) const ORDER: u32 = 1;
+    pub(super) const CHANNELS: u32 = (ORDER + 1) * (ORDER + 1);
     pub(super) const FLAGS: audionimbus::SimulationFlags =
         audionimbus::SimulationFlags::from_bits_truncate(
             audionimbus::SimulationFlags::DIRECT.bits()
@@ -72,37 +72,6 @@ impl FromWorld for AiSimulators {
         Self {
             near: simulator(FRAME_SIZE_NEAR),
             far: simulator(FRAME_SIZE_FAR),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Resource)]
-struct AiHrtfs {
-    near: audionimbus::Hrtf,
-    far: audionimbus::Hrtf,
-}
-
-impl FromWorld for AiHrtfs {
-    fn from_world(_world: &mut World) -> Self {
-        Self {
-            near: audionimbus::Hrtf::try_new(
-                &STEAM_AUDIO_CONTEXT,
-                &audionimbus::AudioSettings {
-                    sampling_rate: 48001,
-                    frame_size: FRAME_SIZE_NEAR,
-                },
-                &audionimbus::HrtfSettings::default(),
-            )
-            .unwrap(),
-            far: audionimbus::Hrtf::try_new(
-                &STEAM_AUDIO_CONTEXT,
-                &audionimbus::AudioSettings {
-                    sampling_rate: SAMPLING_RATE,
-                    frame_size: FRAME_SIZE_FAR,
-                },
-                &audionimbus::HrtfSettings::default(),
-            )
-            .unwrap(),
         }
     }
 }
