@@ -34,6 +34,7 @@ pub(crate) fn listen(
             LoudnessInput {
                 listener: npc,
                 source,
+                near,
             },
         )?;
         let loudness = raw_loudness as u32;

@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, iter, sync::Mutex};
+use std::{iter, sync::Mutex};
 
 use bevy::{ecs::entity_disabling::Disabled, prelude::*};
 use bevy_seedling::{
@@ -44,7 +44,7 @@ pub(super) fn plugin(app: &mut App) {
 
 #[derive(Component)]
 pub(crate) struct InputBuffer {
-    pub(crate) inputs: VecDeque<f32>,
+    pub(crate) inputs: Vec<f32>,
     pub(crate) loudness: f32,
     cons: Mutex<Cons>,
 }
@@ -129,7 +129,7 @@ fn establish_channel(
         let event = InputBufferInitEvent(Some(prod));
         events.push(NodeEventType::custom(event));
         commands.entity(entity).insert(InputBuffer {
-            inputs: VecDeque::from_iter([0.0; FRAME_SIZE_FAR as usize]),
+            inputs: vec![0.0; FRAME_SIZE_FAR as usize],
             loudness: 0.0,
             cons: Mutex::new(cons),
         });

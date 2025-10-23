@@ -6,7 +6,11 @@ use bevy_steam_audio::{
 
 use crate::{
     AiSystems,
-    demo::ai::hearing::{AiSimulators, AiSources, param},
+    demo::ai::hearing::{
+        AiSimulators, AiSources,
+        debug::{PathVisualization, PathVisualizations, VisualizationsPtr},
+        param,
+    },
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -40,6 +44,7 @@ pub(crate) fn update_simulation_for_listener(
     transform: Query<&GlobalTransform>,
     batch: Res<SteamAudioProbeBatch>,
     path_baking_settings: Res<SteamAudioPathBakingSettings>,
+    visualizations: Res<PathVisualizations>,
 ) -> Result {
     errors.clear();
     let listener = transform.get(listener)?;
@@ -59,7 +64,10 @@ pub(crate) fn update_simulation_for_listener(
             duration: 0.0,
             order: param::ORDER,
             irradiance_min_distance: 1.0,
-            pathing_visualization_callback: None,
+            pathing_visualization_callback: Some(audionimbus::CallbackInformation {
+                callback: visualize_pathing,
+                user_data: Box::into_raw(visualizations.0.clone()) as *mut std::ffi::c_void,
+            }),
         },
     );
 
@@ -117,4 +125,17 @@ pub(crate) fn update_simulation_for_listener(
     } else {
         Err(errors.join("\n").into())
     }
+}
+
+unsafe extern "C" fn visualize_pathing(
+    from: audionimbus_sys::IPLVector3,
+    to: audionimbus_sys::IPLVector3,
+    occluded: audionimbus_sys::IPLbool,
+    user_data: *mut std::ffi::c_void,
+) {
+    let visualizations = user_data as VisualizationsPtr;
+    // Safety: This is owned by the ECS and never deallocated
+    let visualizations = &mut unsafe { (*visualizations).clone() };
+    let visualization = PathVisualization::new(from, to, occluded);
+    visualizations.lock().unwrap().push(visualization);
 }

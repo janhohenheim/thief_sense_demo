@@ -4,6 +4,7 @@ use bevy_steam_audio::STEAM_AUDIO_CONTEXT;
 use crate::demo::ai::sense::{SENSE_INTERVAL_FAR, SENSE_INTERVAL_NEAR};
 
 mod bookkeeping;
+mod debug;
 pub(crate) mod listen;
 mod loudness;
 pub(crate) mod node;
@@ -17,6 +18,7 @@ pub(super) fn plugin(app: &mut App) {
         loudness::plugin,
         listen::plugin,
         node::plugin,
+        debug::plugin,
     ));
 }
 
