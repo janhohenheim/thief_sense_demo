@@ -1,11 +1,18 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    fs::File,
+    sync::{Arc, Mutex},
+};
 
 use bevy::{color::palettes::tailwind, prelude::*};
+use hound::{SampleFormat, WavSpec, WavWriter};
+
+use crate::demo::{ai::hearing::SAMPLING_RATE, npc::Npc};
 
 pub(super) fn plugin(app: &mut App) {
     app.init_resource::<PathVisualizations>()
         .init_resource::<EnableAudioPathVisualization>();
     app.add_systems(PostUpdate, tick_visualizations);
+    app.add_observer(add_writer);
 }
 
 fn tick_visualizations(
@@ -63,4 +70,24 @@ impl PathVisualization {
             timer: Timer::from_seconds(0.5, TimerMode::Once),
         }
     }
+}
+
+#[derive(Component, Deref, DerefMut)]
+pub(crate) struct AudioDebugWriter(WavWriter<File>);
+
+fn add_writer(add: On<Add, Npc>, name: Query<NameOrEntity>, mut commands: Commands) {
+    let name = name.get(add.entity).unwrap();
+    let writer = AudioDebugWriter(
+        WavWriter::new(
+            File::create(format!("{name}.wav")).unwrap(),
+            WavSpec {
+                channels: 1,
+                sample_rate: SAMPLING_RATE,
+                bits_per_sample: 32,
+                sample_format: SampleFormat::Float,
+            },
+        )
+        .unwrap(),
+    );
+    commands.entity(add.entity).insert(writer);
 }

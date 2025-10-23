@@ -8,7 +8,8 @@ use bevy_steam_audio::{
 use crate::demo::ai::{
     debug::DebugHearing,
     hearing::{
-        AiSources, FRAME_SIZE_FAR, FRAME_SIZE_NEAR, SAMPLING_RATE,
+        AiHrtfs, AiSources, FRAME_SIZE_FAR, FRAME_SIZE_NEAR, SAMPLING_RATE,
+        debug::AudioDebugWriter,
         node::InputBuffer,
         param::{FLAGS, ORDER},
     },
@@ -38,6 +39,8 @@ pub(crate) fn loudness_to_listener(
         &mut AiSources,
         &GlobalTransform,
     )>,
+    mut writer: Query<&mut AudioDebugWriter>,
+    hrtfs: Res<AiHrtfs>,
 ) -> Result<f32> {
     let listener_transform = AudionimbusCoordinateSystem::from(*transform.get(listener)?);
     let (buffer, mut all_effects, mut sources, source_transform) = sample_player.get_mut(source)?;
@@ -53,6 +56,7 @@ pub(crate) fn loudness_to_listener(
     } else {
         &mut sources.far
     };
+    let hrtf = if near { &hrtfs.near } else { &hrtfs.far };
     let source_transform = AudionimbusCoordinateSystem::from(*source_transform);
     let size = if near {
         FRAME_SIZE_NEAR
@@ -104,23 +108,31 @@ pub(crate) fn loudness_to_listener(
     effects.path.apply(
         &audionimbus::PathEffectParams {
             order: ORDER,
-            binaural: false,
+            binaural: true,
+            hrtf: hrtf.clone(),
             listener: listener_transform.into(),
             ..outputs.pathing().into_inner()
         },
         &in_buffer,
         &path_out,
     );
-    let loudness_mean_squared =
-        direct_buffer
+    if let Ok(mut writer) = writer.get_mut(listener) {
+        let output = direct_buffer
             .iter()
-            .zip(path_buffer)
-            .take(size)
-            .fold(0.0, |acc, (direct, path)| {
-                info!("d: {:.5}, p: {:.5}", direct, path);
-                acc + (*direct + *path) * (*direct + *path)
-            })
-            / size as f32;
+            .zip(path_buffer.iter())
+            .map(|(direct, path)| *direct + path);
+        for sample in output {
+            writer.write_sample(sample).unwrap();
+        }
+    }
+    let loudness_mean_squared = direct_buffer
+        .iter()
+        .zip(path_buffer)
+        .take(size)
+        .fold(0.0, |acc, (direct, path)| {
+            acc + (*direct + *path) * (*direct + *path)
+        })
+        / size as f32;
     let loudness = loudness_mean_squared.sqrt();
 
     commands.entity(listener).insert(DebugHearing(loudness));
@@ -130,7 +142,7 @@ pub(crate) fn loudness_to_listener(
 fn create_effects(
     add: On<Add, InputBuffer>,
     mut commands: Commands,
-    hrtf: Res<SteamAudioHrtf>,
+    hrtfs: Res<AiHrtfs>,
 ) -> Result {
     let near_settings = audionimbus::AudioSettings {
         sampling_rate: SAMPLING_RATE,
@@ -141,13 +153,6 @@ fn create_effects(
         frame_size: FRAME_SIZE_FAR,
     };
     let direct_settings = audionimbus::DirectEffectSettings { num_channels: 1 };
-    let path_settings = audionimbus::PathEffectSettings {
-        max_order: ORDER,
-        spatialization: Some(audionimbus::Spatialization {
-            speaker_layout: audionimbus::SpeakerLayout::Mono,
-            hrtf: &hrtf.0,
-        }),
-    };
     commands.entity(add.entity).try_insert(SteamAudioEffects {
         near: Effects {
             direct: audionimbus::DirectEffect::try_new(
@@ -158,7 +163,13 @@ fn create_effects(
             path: audionimbus::PathEffect::try_new(
                 &STEAM_AUDIO_CONTEXT,
                 &near_settings,
-                &path_settings,
+                &audionimbus::PathEffectSettings {
+                    max_order: ORDER,
+                    spatialization: Some(audionimbus::Spatialization {
+                        speaker_layout: audionimbus::SpeakerLayout::Mono,
+                        hrtf: &hrtfs.near,
+                    }),
+                },
             )?,
         },
         far: Effects {
@@ -170,7 +181,13 @@ fn create_effects(
             path: audionimbus::PathEffect::try_new(
                 &STEAM_AUDIO_CONTEXT,
                 &far_settings,
-                &path_settings,
+                &audionimbus::PathEffectSettings {
+                    max_order: ORDER,
+                    spatialization: Some(audionimbus::Spatialization {
+                        speaker_layout: audionimbus::SpeakerLayout::Mono,
+                        hrtf: &hrtfs.far,
+                    }),
+                },
             )?,
         },
         direct_buffer: vec![0.0; FRAME_SIZE_FAR as usize],

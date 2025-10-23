@@ -79,6 +79,7 @@ bevy_shuffle_bag = "0.3.0"
 crossbeam-channel = "0.5.15"
 ringbuf = "0.4.8"
 rubato = "0.16.2"
+hound = "3.5.1"
 
 [features]
 # Default to a native dev build.
