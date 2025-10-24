@@ -19,7 +19,7 @@ pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         Update,
         play_animations
-            .run_if(in_state(Screen::Gameplay).and(resource_exists::<NpcAnimations>))
+            .run_if(in_state(Screen::Gameplay))
             .in_set(GameUpdateSystems::Animation),
     );
 }
@@ -116,7 +116,7 @@ fn play_animations(
         &AnimationPlayers,
     )>,
     mut q_animation: Query<(&mut AnimationPlayer, &mut AnimationTransitions)>,
-    animations: Res<NpcAnimations>,
+    animations: If<Res<NpcAnimations>>,
 ) {
     for (mut animating_state, controller, anim_players) in &mut query {
         let mut iter = q_animation.iter_many_mut(anim_players.iter());

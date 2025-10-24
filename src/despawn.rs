@@ -2,10 +2,10 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
-use crate::GameUpdateSystems;
+use crate::{GameFixedSystems, GameUpdateSystems};
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(Update, despawn.in_set(GameUpdateSystems::Despawn));
+    app.add_systems(FixedUpdate, despawn.in_set(GameFixedSystems::Despawn));
 }
 
 #[derive(Component, Reflect, Debug, Deref, DerefMut)]

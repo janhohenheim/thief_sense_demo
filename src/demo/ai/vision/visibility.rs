@@ -10,8 +10,7 @@ use crate::{
 };
 
 pub(super) fn plugin(app: &mut App) {
-    // NOT calling `add_rand_timer` because we want to manually reset it
-    app.add_systems(PreUpdate, tick_visibility_timer);
+    app.add_systems(FixedPreUpdate, tick_visibility_timer);
 }
 
 /// Timer for how often an object should maximally update its visibility when observed by any AI.

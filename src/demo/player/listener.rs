@@ -5,7 +5,10 @@ use crate::{demo::player::Player, link_head::Head};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, spawn_listener);
-    app.add_systems(Update, sync_listener_transform);
+    app.add_systems(
+        PostUpdate,
+        sync_listener_transform.after(TransformSystems::Propagate),
+    );
 }
 
 fn spawn_listener(mut commands: Commands) {
@@ -13,12 +16,15 @@ fn spawn_listener(mut commands: Commands) {
 }
 
 fn sync_listener_transform(
-    mut listener: Single<&mut Transform, With<SteamAudioListener>>,
+    listener: Single<(&mut Transform, &mut GlobalTransform), With<SteamAudioListener>>,
     player_head: Single<&Head, With<Player>>,
-    transform: Query<&GlobalTransform>,
+    transform: Query<&GlobalTransform, Without<SteamAudioListener>>,
 ) -> Result {
     let head = player_head.into_inner().iter().next().unwrap();
     let head_transform = transform.get(head)?;
-    listener.translation = head_transform.translation();
+    let (mut listener_transform, mut listener_global_transform) = listener.into_inner();
+    listener_transform.translation = head_transform.translation();
+    *listener_global_transform = GlobalTransform::from(*listener_transform);
+
     Ok(())
 }

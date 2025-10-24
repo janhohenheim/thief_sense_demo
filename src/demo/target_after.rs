@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::demo::target::Target;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(PreUpdate, tick_timers);
+    app.add_systems(FixedPreUpdate, tick_timers);
     app.add_observer(remove_previous_target);
 }
 

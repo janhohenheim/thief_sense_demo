@@ -116,9 +116,11 @@ impl Plugin for AppPlugin {
 
         app.configure_sets(
             FixedUpdate,
-            (GameFixedSystems::Senses,)
-                .chain()
-                .run_if(any_with_component::<Player>),
+            (
+                GameFixedSystems::Senses.run_if(any_with_component::<Player>),
+                GameFixedSystems::Despawn,
+            )
+                .chain(),
         )
         .configure_sets(
             RunFixedMainLoop,
@@ -126,10 +128,7 @@ impl Plugin for AppPlugin {
                 .chain()
                 .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
         )
-        .configure_sets(
-            Update,
-            (GameUpdateSystems::Animation, GameUpdateSystems::Despawn).chain(),
-        );
+        .configure_sets(Update, (GameUpdateSystems::Animation).chain());
 
         // Spawn the main camera.
         app.add_systems(Startup, spawn_camera);
@@ -142,7 +141,6 @@ impl Plugin for AppPlugin {
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
 enum GameUpdateSystems {
     Animation,
-    Despawn,
 }
 
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
@@ -155,6 +153,7 @@ enum GamePreFixedSystems {
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
 enum GameFixedSystems {
     Senses,
+    Despawn,
 }
 
 fn spawn_camera(mut commands: Commands, mut image_assets: ResMut<Assets<Image>>) {
