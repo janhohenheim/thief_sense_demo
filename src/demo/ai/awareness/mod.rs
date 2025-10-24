@@ -1,4 +1,4 @@
-use bevy::{app::FixedMain, platform::collections::HashMap, prelude::*, time::Stopwatch};
+use bevy::{platform::collections::HashMap, prelude::*, time::Stopwatch};
 use evergreen_relations::prelude::*;
 
 use crate::demo::ai::sense::SenseTimer;

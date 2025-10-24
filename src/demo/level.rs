@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy_landmass::prelude::*;
 use bevy_rerecast::Navmesh;
 use bevy_steam_audio::probes::GenerateProbes;
-use bevy_trenchbroom::{geometry::Brushes, physics::SceneCollidersReady};
+use bevy_trenchbroom::physics::SceneCollidersReady;
 use landmass_rerecast::{Island3dBundle, NavMeshHandle3d};
 
 use crate::{
