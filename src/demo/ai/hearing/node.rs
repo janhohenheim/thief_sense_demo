@@ -54,7 +54,7 @@ pub(crate) struct InputBuffer {
 
 impl InputBuffer {
     pub fn update_loudness(&mut self) {
-        self.loudness = rms(self.inputs.iter().copied());
+        self.loudness = rms(&self.inputs);
     }
 }
 
@@ -223,11 +223,11 @@ impl AudioNodeProcessor for InputBufferProcessor {
                 *sample = (inputs[0][i] + inputs[1][i]) / 2.0;
             }
 
-            let rms_before = rms(self.resample_in[0].iter().copied());
+            let rms_before = rms(&self.resample_in[0]);
             self.resampler
                 .process_into_buffer(&self.resample_in, &mut self.resample_out, None)
                 .unwrap();
-            let rms_after = rms(self.resample_out[0].iter().copied());
+            let rms_after = rms(&self.resample_out[0]);
             let ratio = rms_before / rms_after;
             for sample in self.resample_out[0].iter_mut() {
                 *sample *= ratio;

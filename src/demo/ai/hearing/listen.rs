@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use bevy::prelude::*;
 
 use crate::demo::ai::{
@@ -18,6 +20,7 @@ pub(crate) fn listen(
     In((npc, near)): In<(Entity, bool)>,
     world: &mut World,
 ) -> Result<Vec<(Entity, AwarenessLevel)>> {
+    let now = Instant::now();
     let sources: Vec<_> = world.run_system_cached_with(sources_for_listener, npc)?;
 
     () = world.run_system_cached_with(
@@ -40,7 +43,6 @@ pub(crate) fn listen(
             },
         )?;
         total_loudness += raw_loudness;
-        info!("{raw_loudness:0.8}");
         let loudness = raw_loudness as u32;
 
         // TODO: This is just placeholder code. It's fine, but the loudness is still raw and not factoring in any attenuation factors or object "mod" factors.
@@ -52,8 +54,8 @@ pub(crate) fn listen(
         };
         pulses.push((source, pulse));
     }
-    info!("");
     world.entity_mut(npc).insert(DebugHearing(total_loudness));
+    info!("Elapsed time: {:?}", now.elapsed());
     Ok(pulses)
 }
 

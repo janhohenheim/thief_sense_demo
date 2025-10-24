@@ -1,4 +1,4 @@
-use std::array;
+use std::{array, time::Instant};
 
 use bevy::prelude::*;
 use bevy_steam_audio::{
@@ -58,19 +58,19 @@ pub(crate) fn loudness_to_listener(
     let in_buffer =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
-    let mut direct_buffer = [0.0; param::MAX_FRAME_SIZE as usize];
-    let channel_ptrs = [direct_buffer.as_mut_ptr()];
-    // Safety: all borrowed data is valid until this buffer is dropped again.
-    // Also, we pinky promise not to leak the second mutable reference hihi
-    let direct_out =
-        unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
-
     let mut path_buffer = [[0.0; param::MAX_FRAME_SIZE as usize]; param::CHANNELS as usize];
     let channel_ptrs: [*mut f32; param::CHANNELS as usize] =
         array::from_fn(|i| path_buffer[i].as_mut_ptr());
     // Safety: all borrowed data is valid until this buffer is dropped again.
     // Also, we pinky promise not to leak the second mutable reference hihi
     let path_out =
+        unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
+
+    let mut out_buffer = [0.0; param::MAX_FRAME_SIZE as usize];
+    let channel_ptrs = [out_buffer.as_mut_ptr()];
+    // Safety: all borrowed data is valid until this buffer is dropped again.
+    // Also, we pinky promise not to leak the second mutable reference hihi
+    let mut out_sa_buffer =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
     let outputs = source.get_outputs(param::FLAGS);
@@ -94,17 +94,8 @@ pub(crate) fn loudness_to_listener(
             ..outputs.direct().into_inner()
         },
         &in_buffer,
-        &direct_out,
+        &out_sa_buffer,
     );
-
-    for i in 0..direct_buffer.len() {
-        let mut sample = direct_buffer[i];
-        // Todo: idk why this can be NaN
-        if !sample.is_finite() {
-            sample = if i == 0 { 0.0 } else { direct_buffer[i - 1] };
-        }
-        direct_buffer[i] = sample;
-    }
 
     let mut params = audionimbus::PathEffectParams {
         order: param::ORDER,
@@ -121,35 +112,19 @@ pub(crate) fn loudness_to_listener(
     // In 1st order ambisonics, we can just yoink the W channel to get the omnidirectional component
     // Since we only care about the incoming pressure, we don't care about any directionality
     // Source: it was revealed to me in a cryptic dream
-    let mut omnidir_path_component = path_buffer[0];
-    for i in 0..omnidir_path_component.len() {
-        let mut sample = omnidir_path_component[i];
-
-        // TODO: no clue why this is necessary. Sometimes the pathing generates crazy high values (>1e5).
-        // But it sounds alright when just discarding them, so uuuuh let's do that for now
-        if sample.abs() > 1.0e5 || !sample.is_finite() {
-            sample = if i == 0 {
-                0.0
-            } else {
-                omnidir_path_component[i - 1]
-            };
-        }
-        omnidir_path_component[i] = sample;
-    }
-
-    let mix = direct_buffer
-        .iter()
-        .copied()
-        .zip(omnidir_path_component)
-        .take(size)
-        .map(|(direct, path)| direct + path);
+    let channel_ptrs = [path_buffer[0].as_mut_ptr()];
+    // Safety: all borrowed data is valid until this buffer is dropped again.
+    // Also, we pinky promise not to leak the second mutable reference hihi
+    let omnidir_path_out =
+        unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
+    out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &omnidir_path_out);
 
     if let Ok(mut writer) = writer.get_mut(listener) {
-        for sample in mix.clone() {
-            writer.write_sample(sample).unwrap();
+        for sample in &out_buffer[..size] {
+            writer.write_sample(*sample).unwrap();
         }
     }
-    let loudness = rms(mix);
+    let loudness = rms(&out_buffer[..size]);
 
     Ok(loudness)
 }

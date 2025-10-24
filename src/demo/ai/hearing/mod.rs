@@ -88,10 +88,11 @@ struct AiSources {
     far: audionimbus::Source,
 }
 
-fn rms(samples: impl IntoIterator<Item = f32>) -> f32 {
+fn rms(samples: &[f32]) -> f32 {
     let mut count = 0;
     let sum = samples
-        .into_iter()
+        .iter()
+        .copied()
         .map(|x| {
             count += 1;
             x * x

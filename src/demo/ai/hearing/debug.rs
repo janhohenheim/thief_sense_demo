@@ -11,7 +11,8 @@ use crate::demo::{ai::hearing::param, npc::Npc};
 
 pub(super) fn plugin(app: &mut App) {
     app.init_resource::<PathVisualizations>()
-        .init_resource::<EnableAudioPathVisualization>();
+        .init_resource::<EnableAudioPathVisualization>()
+        .init_resource::<EnableAudioWriter>();
     app.add_systems(PostUpdate, tick_visualizations);
     app.add_observer(add_writer);
 }
@@ -40,6 +41,10 @@ fn tick_visualizations(
         !vis.timer.is_finished()
     });
 }
+
+#[derive(Resource, Default, Clone, Deref, DerefMut, Reflect)]
+#[reflect(Resource)]
+pub(crate) struct EnableAudioWriter(pub(crate) bool);
 
 #[derive(Resource, Default, Clone, Deref, DerefMut, Reflect)]
 #[reflect(Resource)]
@@ -76,7 +81,15 @@ impl PathVisualization {
 #[derive(Component, Deref, DerefMut)]
 pub(crate) struct AudioDebugWriter(WavWriter<File>);
 
-fn add_writer(add: On<Add, Npc>, name: Query<NameOrEntity>, mut commands: Commands) -> Result {
+fn add_writer(
+    add: On<Add, Npc>,
+    name: Query<NameOrEntity>,
+    mut commands: Commands,
+    enabled: Res<EnableAudioWriter>,
+) -> Result {
+    if !enabled.0 {
+        return Ok(());
+    }
     let name = name.get(add.entity).unwrap();
     let debug_dir = PathBuf::from("debug");
     fs::create_dir_all(&debug_dir).unwrap();
