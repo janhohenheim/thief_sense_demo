@@ -4,72 +4,63 @@ use bevy_steam_audio::{
 };
 
 use crate::{
-    AiSystems,
-    demo::ai::hearing::{AiAudible, AiSimulators, AiSources, Simulator, param},
+    GamePreFixedSystems,
+    demo::ai::hearing::{AiAudible, AiSimulator, AiSource, param},
 };
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, init_simulation).add_systems(
         RunFixedMainLoop,
-        update_probe_batch.in_set(AiSystems::Bookkeep),
+        update_probe_batch.in_set(GamePreFixedSystems::Bookkeep),
     );
     app.add_observer(add_source).add_observer(remove_source);
 }
 
-fn init_simulation(mut simulators: ResMut<AiSimulators>, scene: Res<SteamAudioRootScene>) {
-    for simulator in simulators.iter_mut() {
-        simulator.set_scene(&scene.0);
-        simulator.commit();
-    }
+fn init_simulation(mut simulator: ResMut<AiSimulator>, scene: Res<SteamAudioRootScene>) {
+    simulator.set_scene(&scene.0);
+    simulator.commit();
 }
 
-fn update_probe_batch(probes: If<Res<SteamAudioProbeBatch>>, mut simulators: ResMut<AiSimulators>) {
+fn update_probe_batch(probes: If<Res<SteamAudioProbeBatch>>, mut simulator: ResMut<AiSimulator>) {
     if !probes.is_changed() {
         return;
     }
-    for simulator in simulators.iter_mut() {
-        simulator.add_probe_batch(&probes);
-        simulator.commit();
-    }
+    simulator.add_probe_batch(&probes);
+    simulator.commit();
 }
 
 fn add_source(
     add: On<Add, AudionimbusSource>,
     ai_audible: Query<(), (With<AiAudible>, Allow<Disabled>)>,
     mut commands: Commands,
-    simulators: ResMut<AiSimulators>,
+    simulator: ResMut<AiSimulator>,
 ) -> Result {
     if !ai_audible.contains(add.entity) {
         return Ok(());
     }
-    let source = |simulator: &Simulator| {
+
+    let source = AiSource(
         audionimbus::Source::try_new(
-            simulator,
+            &simulator,
             &audionimbus::SourceSettings {
                 flags: param::FLAGS,
             },
         )
-        .unwrap()
-    };
-    let sources = AiSources {
-        near: source(&simulators.near),
-        far: source(&simulators.far),
-    };
-    simulators.near.add_source(&sources.near);
-    simulators.far.add_source(&sources.far);
+        .unwrap(),
+    );
+    simulator.add_source(&source);
 
-    commands.entity(add.entity).try_insert(sources);
+    commands.entity(add.entity).try_insert(source);
     Ok(())
 }
 
 fn remove_source(
-    remove: On<Remove, AiSources>,
-    sources: Query<&AiSources, Allow<Disabled>>,
-    simulator: ResMut<AiSimulators>,
+    remove: On<Remove, AiSource>,
+    sources: Query<&AiSource, Allow<Disabled>>,
+    simulator: ResMut<AiSimulator>,
 ) -> Result {
-    let sources = sources.get(remove.entity)?;
-    simulator.near.remove_source(&sources.near);
-    simulator.far.remove_source(&sources.far);
+    let source = sources.get(remove.entity)?;
+    simulator.remove_source(source);
 
     Ok(())
 }

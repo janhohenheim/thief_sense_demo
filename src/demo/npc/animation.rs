@@ -9,7 +9,7 @@ use bevy::{
 use bevy_tnua::{TnuaAnimatingState, TnuaAnimatingStateDirective, prelude::*};
 
 use crate::{
-    AppSystems,
+    GameUpdateSystems,
     animation::{AnimationPlayers, find_bone_id, get_clip},
     demo::npc::{NPC_GLTF, NPC_MAX_SPEED, NPC_WALK_SPEED},
     screens::Screen,
@@ -20,7 +20,7 @@ pub(super) fn plugin(app: &mut App) {
         Update,
         play_animations
             .run_if(in_state(Screen::Gameplay).and(resource_exists::<NpcAnimations>))
-            .in_set(AppSystems::Animation),
+            .in_set(GameUpdateSystems::Animation),
     );
 }
 

@@ -13,7 +13,7 @@ use std::time::Duration;
 use bevy::prelude::*;
 
 use crate::{
-    AiSystems,
+    GameFixedSystems,
     demo::{
         ai::{
             awareness::AwarenessLevel, debug::DebugVision, hearing::listen::listen,
@@ -25,15 +25,16 @@ use crate::{
     staggered_timer::{StaggeredTimer, StaggeredTimerApp as _},
 };
 
-/// in seconds
-pub(crate) const SENSE_INTERVAL_NEAR: f32 = 0.2;
-pub(crate) const SENSE_INTERVAL_FAR: f32 = 0.5;
+/// in seconds. Original uses 0.2 and 0.5, but having exact multiples allows us to just simulate the short audio stuff n times in a long frame.
+pub(crate) const SENSE_INTERVAL_NEAR: f32 = 0.175;
+pub(crate) const SENSE_INTERVAL_NEAR_TO_FAR: usize = 3;
+pub(crate) const SENSE_INTERVAL_FAR: f32 = SENSE_INTERVAL_NEAR * SENSE_INTERVAL_NEAR_TO_FAR as f32;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_staggered_timer::<SenseTimer>();
     app.add_systems(
-        RunFixedMainLoop,
-        update_all_senses.in_set(AiSystems::Update),
+        FixedUpdate,
+        update_all_senses.in_set(GameFixedSystems::Senses),
     );
 }
 

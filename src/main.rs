@@ -113,14 +113,22 @@ impl Plugin for AppPlugin {
         ));
 
         // Order new `AppSystems` variants by adding them here:
-        app.configure_sets(Update, (AppSystems::Animation, AppSystems::Despawn).chain());
 
         app.configure_sets(
-            RunFixedMainLoop,
-            (AiSystems::Bookkeep, AiSystems::Commit, AiSystems::Update)
+            FixedUpdate,
+            (GameFixedSystems::Senses,)
                 .chain()
-                .run_if(any_with_component::<Player>)
+                .run_if(any_with_component::<Player>),
+        )
+        .configure_sets(
+            RunFixedMainLoop,
+            (GamePreFixedSystems::Bookkeep, GamePreFixedSystems::Commit)
+                .chain()
                 .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
+        )
+        .configure_sets(
+            Update,
+            (GameUpdateSystems::Animation, GameUpdateSystems::Despawn).chain(),
         );
 
         // Spawn the main camera.
@@ -132,18 +140,21 @@ impl Plugin for AppPlugin {
 /// When adding a new variant, make sure to order it in the `configure_sets`
 /// call above.
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
-enum AppSystems {
+enum GameUpdateSystems {
     Animation,
     Despawn,
 }
 
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
-enum AiSystems {
+enum GamePreFixedSystems {
     Bookkeep,
     /// Prepare simulators
     Commit,
-    /// Update senses
-    Update,
+}
+
+#[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
+enum GameFixedSystems {
+    Senses,
 }
 
 fn spawn_camera(mut commands: Commands, mut image_assets: ResMut<Assets<Image>>) {

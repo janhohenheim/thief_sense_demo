@@ -4,7 +4,7 @@ use crate::demo::ai::{
     awareness::AwarenessLevel,
     debug::DebugHearing,
     hearing::{
-        AiSources,
+        AiSource,
         loudness::{LoudnessInput, loudness_to_listener},
         simulate::{AiSimulationInputs, update_simulation_for_listener},
     },
@@ -25,7 +25,6 @@ pub(crate) fn listen(
         AiSimulationInputs {
             listener: npc,
             sources: sources.clone(),
-            near,
         },
     )?;
     let mut pulses = Vec::new();
@@ -59,7 +58,7 @@ pub(crate) fn listen(
 fn sources_for_listener(
     In(npc): In<Entity>,
     transform: Query<&GlobalTransform>,
-    sources: Query<(Entity, &GlobalTransform), With<AiSources>>,
+    sources: Query<(Entity, &GlobalTransform), With<AiSource>>,
 ) -> Result<Vec<Entity>> {
     let npc_translation = transform.get(npc)?.translation();
     let sources = sources

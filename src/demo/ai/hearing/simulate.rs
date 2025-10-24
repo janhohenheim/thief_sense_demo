@@ -5,9 +5,9 @@ use bevy_steam_audio::{
 };
 
 use crate::{
-    AiSystems,
+    GamePreFixedSystems,
     demo::ai::hearing::{
-        AiSimulators, AiSources,
+        AiSimulator, AiSource,
         debug::{EnableAudioWriter, PathVisualization, PathVisualizations, VisualizationsPtr},
         param,
     },
@@ -16,30 +16,26 @@ use crate::{
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         RunFixedMainLoop,
-        commit_simulators.in_set(AiSystems::Commit),
+        commit_simulators.in_set(GamePreFixedSystems::Commit),
     );
 }
 
 pub(crate) struct AiSimulationInputs {
     pub(crate) listener: Entity,
     pub(crate) sources: Vec<Entity>,
-    pub(crate) near: bool,
 }
 
-fn commit_simulators(mut simulators: ResMut<AiSimulators>) {
-    for simulator in simulators.iter_mut() {
-        simulator.commit();
-    }
+fn commit_simulators(mut simulator: ResMut<AiSimulator>) {
+    simulator.commit();
 }
 
 pub(crate) fn update_simulation_for_listener(
     In(AiSimulationInputs {
         listener,
         sources: source_entities,
-        near,
     }): In<AiSimulationInputs>,
-    simulators: ResMut<AiSimulators>,
-    mut sources: Query<(&mut AiSources, &GlobalTransform)>,
+    simulator: ResMut<AiSimulator>,
+    mut sources: Query<(&mut AiSource, &GlobalTransform)>,
     mut errors: Local<Vec<String>>,
     transform: Query<&GlobalTransform>,
     batch: Res<SteamAudioProbeBatch>,
@@ -50,12 +46,8 @@ pub(crate) fn update_simulation_for_listener(
     errors.clear();
     let listener = transform.get(listener)?;
     let listener = AudionimbusCoordinateSystem::from(*listener);
-    let simulator = if near {
-        &simulators.near
-    } else {
-        &simulators.far
-    };
 
+    // The simulator runs just once, even for far NPCs. That's fine, let's pretend the NPC was at it's current position the entire time.
     simulator.set_shared_inputs(
         param::FLAGS,
         &audionimbus::SimulationSharedInputs {
@@ -77,12 +69,7 @@ pub(crate) fn update_simulation_for_listener(
     );
 
     let mut sources = sources.iter_many_mut(source_entities);
-    while let Some((mut sources, transform)) = sources.fetch_next() {
-        let source = if near {
-            &mut sources.near
-        } else {
-            &mut sources.far
-        };
+    while let Some((mut source, transform)) = sources.fetch_next() {
         source.set_inputs(
             param::FLAGS,
             audionimbus::SimulationInputs {

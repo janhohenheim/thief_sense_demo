@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use bevy_tnua::{TnuaAnimatingState, TnuaAnimatingStateDirective, prelude::*};
 
 use crate::{
-    AppSystems,
+    GameUpdateSystems,
     animation::AnimationPlayers,
     demo::player::{PLAYER_GLTF, PLAYER_RUN_SPEED, PLAYER_WALK_SPEED},
     screens::Screen,
@@ -18,7 +18,7 @@ pub(super) fn plugin(app: &mut App) {
         Update,
         play_animations
             .run_if(in_state(Screen::Gameplay))
-            .in_set(AppSystems::Animation),
+            .in_set(GameUpdateSystems::Animation),
     );
 }
 
