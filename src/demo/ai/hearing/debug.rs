@@ -1,5 +1,6 @@
 use std::{
-    fs::File,
+    fs::{self, File},
+    path::PathBuf,
     sync::{Arc, Mutex},
 };
 
@@ -75,19 +76,21 @@ impl PathVisualization {
 #[derive(Component, Deref, DerefMut)]
 pub(crate) struct AudioDebugWriter(WavWriter<File>);
 
-fn add_writer(add: On<Add, Npc>, name: Query<NameOrEntity>, mut commands: Commands) {
+fn add_writer(add: On<Add, Npc>, name: Query<NameOrEntity>, mut commands: Commands) -> Result {
     let name = name.get(add.entity).unwrap();
-    let writer = AudioDebugWriter(
-        WavWriter::new(
-            File::create(format!("{name}.wav")).unwrap(),
-            WavSpec {
-                channels: 1,
-                sample_rate: SAMPLING_RATE,
-                bits_per_sample: 32,
-                sample_format: SampleFormat::Float,
-            },
-        )
-        .unwrap(),
-    );
+    let debug_dir = PathBuf::from("debug");
+    fs::create_dir_all(&debug_dir).unwrap();
+    let debug_file = debug_dir.join(format!("{name}.wav"));
+    let debug_file = File::create(debug_file)?;
+    let writer = AudioDebugWriter(WavWriter::new(
+        debug_file,
+        WavSpec {
+            channels: 1,
+            sample_rate: SAMPLING_RATE,
+            bits_per_sample: 32,
+            sample_format: SampleFormat::Float,
+        },
+    )?);
     commands.entity(add.entity).insert(writer);
+    Ok(())
 }
