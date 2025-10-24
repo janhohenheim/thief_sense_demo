@@ -14,9 +14,7 @@ use crate::{
     AiSystems,
     demo::{
         ai::{
-            awareness::AwarenessLevel,
-            debug::{DebugHearing, DebugVision},
-            hearing::listen::listen,
+            awareness::AwarenessLevel, debug::DebugVision, hearing::listen::listen,
             vision::look::look,
         },
         npc::Npc,

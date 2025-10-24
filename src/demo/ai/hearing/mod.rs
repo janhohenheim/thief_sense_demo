@@ -1,8 +1,6 @@
 use bevy::prelude::*;
 use bevy_steam_audio::STEAM_AUDIO_CONTEXT;
 
-use crate::demo::ai::sense::{SENSE_INTERVAL_FAR, SENSE_INTERVAL_NEAR};
-
 mod bookkeeping;
 mod debug;
 pub(crate) mod listen;
@@ -22,12 +20,15 @@ pub(super) fn plugin(app: &mut App) {
     ));
 }
 
-/// Nyquist frequency is 4k, that's two octaves above 1k, which the human ear is most sensitive to.
-const SAMPLING_RATE: u32 = 8000;
-const FRAME_SIZE_NEAR: u32 = ((SAMPLING_RATE as f32) * SENSE_INTERVAL_NEAR) as u32;
-const FRAME_SIZE_FAR: u32 = ((SAMPLING_RATE as f32) * SENSE_INTERVAL_FAR) as u32;
-
 mod param {
+    use crate::demo::ai::sense::{SENSE_INTERVAL_FAR, SENSE_INTERVAL_NEAR};
+
+    /// Nyquist frequency is 4k, that's two octaves above 1k, which the human ear is most sensitive to.
+    pub(super) const SAMPLING_RATE: u32 = 8000;
+    pub(super) const FRAME_SIZE_NEAR: u32 = ((SAMPLING_RATE as f32) * SENSE_INTERVAL_NEAR) as u32;
+    pub(super) const FRAME_SIZE_FAR: u32 = ((SAMPLING_RATE as f32) * SENSE_INTERVAL_FAR) as u32;
+    pub(super) const MAX_FRAME_SIZE: u32 = FRAME_SIZE_FAR;
+
     pub(super) const ORDER: u32 = 1;
     pub(super) const CHANNELS: u32 = (ORDER + 1) * (ORDER + 1);
     pub(super) const FLAGS: audionimbus::SimulationFlags =
@@ -56,7 +57,7 @@ impl FromWorld for AiSimulators {
         let simulator = |frame_size: u32| {
             audionimbus::Simulator::builder(
                 audionimbus::SceneParams::Default,
-                SAMPLING_RATE,
+                param::SAMPLING_RATE,
                 frame_size,
             )
             .with_direct(audionimbus::DirectSimulationSettings {
@@ -70,8 +71,8 @@ impl FromWorld for AiSimulators {
             .unwrap()
         };
         Self {
-            near: simulator(FRAME_SIZE_NEAR),
-            far: simulator(FRAME_SIZE_FAR),
+            near: simulator(param::FRAME_SIZE_NEAR),
+            far: simulator(param::FRAME_SIZE_FAR),
         }
     }
 }

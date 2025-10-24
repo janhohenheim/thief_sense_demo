@@ -27,7 +27,7 @@ use rubato::{FastFixedOut, PolynomialDegree, Resampler};
 
 use crate::{
     demo::ai::{
-        hearing::{AiAudible, FRAME_SIZE_FAR, SAMPLING_RATE},
+        hearing::{AiAudible, param},
         sense::SENSE_INTERVAL_FAR,
     },
     despawn::Despawn,
@@ -98,11 +98,11 @@ fn despawn_pool_late(remove: On<Remove, AiPool>, mut commands: Commands) {
 }
 
 fn update_input_buffer(mut buffers: Query<(&mut InputBuffer, Has<Despawn>)>, time: Res<Time>) {
-    let mut scratch = [0.0; FRAME_SIZE_FAR as usize];
+    let mut scratch = [0.0; param::MAX_FRAME_SIZE as usize];
     for (mut buffer, despawn) in buffers.iter_mut() {
         if despawn {
-            let silence = ((time.delta_secs() * SAMPLING_RATE as f32).ceil() as usize)
-                .min(FRAME_SIZE_FAR as usize);
+            let silence = ((time.delta_secs() * param::SAMPLING_RATE as f32).ceil() as usize)
+                .min(param::MAX_FRAME_SIZE as usize);
 
             buffer.inputs.drain(..silence);
             buffer.inputs.extend(iter::repeat_n(0.0, silence));
@@ -130,11 +130,11 @@ fn establish_channel(
         let Ok(mut events) = input_buffers.get_effect_mut(effects) else {
             continue;
         };
-        let (prod, cons) = HeapRb::new(FRAME_SIZE_FAR as usize).split();
+        let (prod, cons) = HeapRb::new(param::MAX_FRAME_SIZE as usize).split();
         let event = InputBufferInitEvent(Some(prod));
         events.push(NodeEventType::custom(event));
         commands.entity(entity).insert(InputBuffer {
-            inputs: vec![0.0; FRAME_SIZE_FAR as usize],
+            inputs: vec![0.0; param::MAX_FRAME_SIZE as usize],
             loudness: 0.0,
             cons: Mutex::new(cons),
         });
@@ -162,7 +162,7 @@ impl AudioNode for InputBufferNode {
         _configuration: &Self::Configuration,
         cx: firewheel::node::ConstructProcessorContext,
     ) -> impl firewheel::node::AudioNodeProcessor {
-        let resample_ratio = SAMPLING_RATE as f64 / cx.stream_info.sample_rate.get() as f64;
+        let resample_ratio = param::SAMPLING_RATE as f64 / cx.stream_info.sample_rate.get() as f64;
         let max_resample_ratio_relative = 1.0;
         let interpolation_type = PolynomialDegree::Linear;
         let chunk_size = (resample_ratio * FIXED_BLOCK_SIZE as f64).floor() as usize;
@@ -239,7 +239,7 @@ impl AudioNodeProcessor for InputBufferProcessor {
         if stream_info.sample_rate == stream_info.prev_sample_rate {
             return;
         };
-        let resample_ratio = SAMPLING_RATE as f64 / stream_info.sample_rate.get() as f64;
+        let resample_ratio = param::SAMPLING_RATE as f64 / stream_info.sample_rate.get() as f64;
         let max_resample_ratio_relative = 1.0;
         let interpolation_type = PolynomialDegree::Linear;
         let chunk_size = (resample_ratio * FIXED_BLOCK_SIZE as f64).ceil() as usize;

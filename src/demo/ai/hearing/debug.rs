@@ -7,7 +7,7 @@ use std::{
 use bevy::{color::palettes::tailwind, prelude::*};
 use hound::{SampleFormat, WavSpec, WavWriter};
 
-use crate::demo::{ai::hearing::SAMPLING_RATE, npc::Npc};
+use crate::demo::{ai::hearing::param, npc::Npc};
 
 pub(super) fn plugin(app: &mut App) {
     app.init_resource::<PathVisualizations>()
@@ -86,7 +86,7 @@ fn add_writer(add: On<Add, Npc>, name: Query<NameOrEntity>, mut commands: Comman
         debug_file,
         WavSpec {
             channels: 1,
-            sample_rate: SAMPLING_RATE,
+            sample_rate: param::SAMPLING_RATE,
             bits_per_sample: 32,
             sample_format: SampleFormat::Float,
         },

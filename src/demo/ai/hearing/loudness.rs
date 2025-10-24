@@ -1,4 +1,4 @@
-use std::{array, f32::consts::TAU};
+use std::array;
 
 use bevy::prelude::*;
 use bevy_steam_audio::{
@@ -6,15 +6,7 @@ use bevy_steam_audio::{
     wrapper::{AudionimbusCoordinateSystem, ToSteamAudioVec3},
 };
 
-use crate::demo::ai::{
-    debug::DebugHearing,
-    hearing::{
-        AiSources, FRAME_SIZE_FAR, FRAME_SIZE_NEAR, SAMPLING_RATE,
-        debug::AudioDebugWriter,
-        node::InputBuffer,
-        param::{self, FLAGS, ORDER},
-    },
-};
+use crate::demo::ai::hearing::{AiSources, debug::AudioDebugWriter, node::InputBuffer, param};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(create_effects);
@@ -32,7 +24,6 @@ pub(crate) fn loudness_to_listener(
         source,
         near,
     }): In<LoudnessInput>,
-    mut commands: Commands,
     transform: Query<&GlobalTransform>,
     mut sample_player: Query<(
         &mut InputBuffer,
@@ -57,9 +48,9 @@ pub(crate) fn loudness_to_listener(
     };
     let source_transform = AudionimbusCoordinateSystem::from(*source_transform);
     let size = if near {
-        FRAME_SIZE_NEAR
+        param::FRAME_SIZE_NEAR
     } else {
-        FRAME_SIZE_FAR
+        param::FRAME_SIZE_FAR
     } as usize;
     // Safety: all borrowed data is valid until this buffer is dropped again.
     // Also, we pinky promise not to leak the second mutable reference hihi
@@ -67,14 +58,14 @@ pub(crate) fn loudness_to_listener(
     let in_buffer =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
-    let mut direct_buffer = [0.0; FRAME_SIZE_FAR as usize];
+    let mut direct_buffer = [0.0; param::MAX_FRAME_SIZE as usize];
     let channel_ptrs = [direct_buffer.as_mut_ptr()];
     // Safety: all borrowed data is valid until this buffer is dropped again.
     // Also, we pinky promise not to leak the second mutable reference hihi
     let direct_out =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
-    let mut path_buffer = [[0.0; FRAME_SIZE_FAR as usize]; param::CHANNELS as usize];
+    let mut path_buffer = [[0.0; param::MAX_FRAME_SIZE as usize]; param::CHANNELS as usize];
     let channel_ptrs: [*mut f32; param::CHANNELS as usize] =
         array::from_fn(|i| path_buffer[i].as_mut_ptr());
     // Safety: all borrowed data is valid until this buffer is dropped again.
@@ -82,7 +73,7 @@ pub(crate) fn loudness_to_listener(
     let path_out =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
-    let outputs = source.get_outputs(FLAGS);
+    let outputs = source.get_outputs(param::FLAGS);
 
     effects.direct.apply(
         &audionimbus::DirectEffectParams {
@@ -108,7 +99,7 @@ pub(crate) fn loudness_to_listener(
 
     effects.path.apply(
         &audionimbus::PathEffectParams {
-            order: ORDER,
+            order: param::ORDER,
             binaural: false,
             listener: listener_transform.into(),
             ..outputs.pathing().into_inner()
@@ -148,12 +139,12 @@ pub(crate) fn loudness_to_listener(
 
 fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
     let near_settings = audionimbus::AudioSettings {
-        sampling_rate: SAMPLING_RATE,
-        frame_size: FRAME_SIZE_NEAR,
+        sampling_rate: param::SAMPLING_RATE,
+        frame_size: param::FRAME_SIZE_NEAR,
     };
     let far_settings = audionimbus::AudioSettings {
-        sampling_rate: SAMPLING_RATE,
-        frame_size: FRAME_SIZE_FAR,
+        sampling_rate: param::SAMPLING_RATE,
+        frame_size: param::FRAME_SIZE_FAR,
     };
     let direct_settings = audionimbus::DirectEffectSettings { num_channels: 1 };
     commands.entity(add.entity).try_insert(SteamAudioEffects {
@@ -167,7 +158,7 @@ fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
                 &STEAM_AUDIO_CONTEXT,
                 &near_settings,
                 &audionimbus::PathEffectSettings {
-                    max_order: ORDER,
+                    max_order: param::ORDER,
                     spatialization: None,
                 },
             )?,
@@ -182,7 +173,7 @@ fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
                 &STEAM_AUDIO_CONTEXT,
                 &far_settings,
                 &audionimbus::PathEffectSettings {
-                    max_order: ORDER,
+                    max_order: param::ORDER,
                     spatialization: None,
                 },
             )?,

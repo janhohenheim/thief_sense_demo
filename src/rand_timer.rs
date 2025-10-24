@@ -47,11 +47,6 @@ impl RandTimer {
     }
 
     /// Does *not* reset the timer
-    pub(crate) fn set_base_time_millis(&mut self, duration: u64) {
-        self.set_base_time(Duration::from_millis(duration));
-    }
-
-    /// Does *not* reset the timer
     pub(crate) fn set_base_time_secs_f32(&mut self, duration: f32) {
         self.set_base_time(Duration::from_secs_f32(duration));
     }
