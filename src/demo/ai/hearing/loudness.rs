@@ -49,9 +49,10 @@ pub(crate) fn loudness_to_listener(
         path,
         direct_buffer,
         path_buffer,
-        out_buffer,
+        iteration_out_buffer,
         accumulated_output,
     } = effects.as_mut();
+    accumulated_output.clear();
 
     let source_transform = AudionimbusCoordinateSystem::from(*source_transform);
 
@@ -70,20 +71,49 @@ pub(crate) fn loudness_to_listener(
         audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, MIN_FRAME_SIZE)
     }?;
 
-    let channel_ptrs = [out_buffer.as_mut_ptr()];
+    let channel_ptrs = [iteration_out_buffer.as_mut_ptr()];
     // Safety: all borrowed data is valid until this buffer is dropped again.
     // Also, we pinky promise not to leak the second mutable reference hihi
-    let mut out_sa_buffer = unsafe {
+    let mut iteration_out_sa_buffer = unsafe {
         audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, MIN_FRAME_SIZE)
     }?;
-    accumulated_output.clear();
 
     let outputs = source.get_outputs(param::FLAGS);
+    let direct_params = audionimbus::DirectEffectParams {
+        distance_attenuation: audionimbus::distance_attenuation(
+            &STEAM_AUDIO_CONTEXT,
+            source_transform.origin.to_steam_audio_vec3(),
+            listener_transform.origin.to_steam_audio_vec3(),
+            &audionimbus::DistanceAttenuationModel::Default,
+        )
+        .into(),
+        air_absorption: audionimbus::air_absorption(
+            &STEAM_AUDIO_CONTEXT,
+            &source_transform.origin.to_steam_audio_vec3(),
+            &listener_transform.origin.to_steam_audio_vec3(),
+            &audionimbus::AirAbsorptionModel::Default,
+        )
+        .into(),
+        ..outputs.direct().into_inner()
+    };
+
+    let path_params = {
+        let mut params = audionimbus::PathEffectParams {
+            order: param::ORDER,
+            binaural: false,
+            listener: listener_transform.into(),
+            ..outputs.pathing().into_inner()
+        };
+        for coeff in &mut params.eq_coeffs {
+            *coeff = coeff.max(0.1);
+        }
+        params
+    };
 
     let repeat = if near { 1 } else { SENSE_INTERVAL_NEAR_TO_FAR };
     let now = std::time::Instant::now();
     for i in 0..repeat {
-        out_buffer.fill(0.0);
+        iteration_out_buffer.fill(0.0);
         // Safety: all borrowed data is valid until this buffer is dropped again.
         // Also, we pinky promise not to leak the second mutable reference hihi
         let channel_ptrs = [buffer.inputs
@@ -116,40 +146,10 @@ pub(crate) fn loudness_to_listener(
         // - We use only one ambisonic channel. This means we can just as well just use zeroth order ambisonics.
         //   - heck ye 4x speed up in parts?!?!?!?
         //   - Eh, maybe not: turns out the simulator uses the ambisonics to guide the pathfinding. We should keep it at 1 imo.
-        direct.apply(
-            &audionimbus::DirectEffectParams {
-                distance_attenuation: audionimbus::distance_attenuation(
-                    &STEAM_AUDIO_CONTEXT,
-                    source_transform.origin.to_steam_audio_vec3(),
-                    listener_transform.origin.to_steam_audio_vec3(),
-                    &audionimbus::DistanceAttenuationModel::Default,
-                )
-                .into(),
-                air_absorption: audionimbus::air_absorption(
-                    &STEAM_AUDIO_CONTEXT,
-                    &source_transform.origin.to_steam_audio_vec3(),
-                    &listener_transform.origin.to_steam_audio_vec3(),
-                    &audionimbus::AirAbsorptionModel::Default,
-                )
-                .into(),
-                ..outputs.direct().into_inner()
-            },
-            &in_sa_buffer,
-            &direct_sa_buffer,
-        );
-        out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &direct_sa_buffer);
+        direct.apply(&direct_params, &in_sa_buffer, &direct_sa_buffer);
+        iteration_out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &direct_sa_buffer);
 
-        let mut params = audionimbus::PathEffectParams {
-            order: param::ORDER,
-            binaural: false,
-            listener: listener_transform.into(),
-            ..outputs.pathing().into_inner()
-        };
-        for coeff in &mut params.eq_coeffs {
-            *coeff = coeff.max(0.1);
-        }
-
-        path.apply(&params, &in_sa_buffer, &path_sa_buffer);
+        path.apply(&path_params, &in_sa_buffer, &path_sa_buffer);
 
         // In 1st order ambisonics, we can just yoink the W channel to get the omnidirectional component
         // Since we only care about the incoming pressure, we don't care about any directionality
@@ -157,12 +157,12 @@ pub(crate) fn loudness_to_listener(
         let channel_ptrs = [path_buffer[0].as_mut_ptr()];
         // Safety: all borrowed data is valid until this buffer is dropped again.
         // Also, we pinky promise not to leak the *third* mutable reference hihi
-        let omnidir_path_out = unsafe {
+        let omnidir_sa_buffer = unsafe {
             audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, MIN_FRAME_SIZE)
         }?;
 
-        out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &omnidir_path_out);
-        accumulated_output.extend_from_slice(out_buffer);
+        iteration_out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &omnidir_sa_buffer);
+        accumulated_output.extend_from_slice(iteration_out_buffer);
     }
     info!("Effects took {:?}", now.elapsed());
 
@@ -197,7 +197,7 @@ fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
         )?,
         direct_buffer: [0.0; param::MIN_FRAME_SIZE as usize],
         path_buffer: [[0.0; param::MIN_FRAME_SIZE as usize]; param::CHANNELS as usize],
-        out_buffer: [0.0; param::MIN_FRAME_SIZE as usize],
+        iteration_out_buffer: [0.0; param::MIN_FRAME_SIZE as usize],
         accumulated_output: Vec::with_capacity(param::MAX_FRAME_SIZE as usize),
     });
     Ok(())
@@ -209,6 +209,6 @@ pub(crate) struct SteamAudioEffects {
     path: audionimbus::PathEffect,
     direct_buffer: [f32; param::MIN_FRAME_SIZE as usize],
     path_buffer: [[f32; param::MIN_FRAME_SIZE as usize]; param::CHANNELS as usize],
-    out_buffer: [f32; param::MIN_FRAME_SIZE as usize],
+    iteration_out_buffer: [f32; param::MIN_FRAME_SIZE as usize],
     accumulated_output: Vec<f32>,
 }
