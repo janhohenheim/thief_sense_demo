@@ -92,7 +92,8 @@ fn despawn_pool_late(remove: On<Remove, AiPool>, mut commands: Commands) {
     commands
         .entity(remove.entity)
         .try_remove::<SteamAudioPool>()
-        .insert(Despawn::after(SENSE_INTERVAL_FAR));
+        .try_remove::<AudionimbusSource>()
+        .try_insert(Despawn::after(SENSE_INTERVAL_FAR));
 }
 
 fn update_input_buffer(mut buffers: Query<(&mut InputBuffer, Has<Despawn>)>, time: Res<Time>) {

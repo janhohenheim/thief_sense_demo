@@ -92,6 +92,10 @@ impl Plugin for AppPlugin {
         app.set_error_handler(bevy::ecs::error::error);
 
         app.insert_resource(AmbientLight::NONE);
+        app.insert_resource(MeshPickingSettings {
+            require_markers: true,
+            ..default()
+        });
 
         // Add other plugins.
         app.add_plugins((
@@ -160,6 +164,7 @@ fn spawn_camera(mut commands: Commands, mut image_assets: ResMut<Assets<Image>>)
     commands.spawn((
         Name::new("Camera"),
         Camera3d::default(),
+        MeshPickingCamera,
         Transform::from_xyz(0.0, 10.0, 8.0).looking_to(Vec3::new(0.0, -1.0, -0.7), Vec3::Y),
         EnvironmentMapLight {
             intensity: 60.0,

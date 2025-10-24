@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy_landmass::prelude::*;
 use bevy_rerecast::Navmesh;
 use bevy_steam_audio::probes::GenerateProbes;
-use bevy_trenchbroom::physics::SceneCollidersReady;
+use bevy_trenchbroom::{geometry::Brushes, physics::SceneCollidersReady};
 use landmass_rerecast::{Island3dBundle, NavMeshHandle3d};
 
 use crate::{
@@ -15,7 +15,6 @@ use crate::{
 
 pub(super) fn plugin(app: &mut App) {
     app.load_asset::<Scene>(MAP).load_asset::<Navmesh>(NAVMESH);
-    app.add_observer(bake_probes);
 }
 
 const MAP: &str = "maps/main_level.map#Scene";
@@ -30,7 +29,9 @@ pub(crate) fn spawn_level(mut commands: Commands, assets: Res<AssetServer>) {
             DespawnOnExit(Screen::Gameplay),
         ))
         .observe(link_path_corners)
-        .observe(link_targets);
+        .observe(link_targets)
+        .observe(make_brushes_pickable)
+        .observe(bake_probes);
     let archipelago = commands
         .spawn((
             Name::new("Main Level Archipelago"),
@@ -52,4 +53,16 @@ pub(crate) fn spawn_level(mut commands: Commands, assets: Res<AssetServer>) {
 
 fn bake_probes(_ready: On<SceneCollidersReady>, mut generate: MessageWriter<GenerateProbes>) {
     generate.write(GenerateProbes::default());
+}
+
+fn make_brushes_pickable(
+    ready: On<SceneCollidersReady>,
+    children: Query<&Children>,
+    // contains only brushes at this point; entities are not spawned yet (I think)
+    meshes: Query<Entity, With<Mesh3d>>,
+    mut commands: Commands,
+) {
+    for entity in meshes.iter_many(children.iter_descendants(ready.scene_root_entity)) {
+        commands.entity(entity).insert(Pickable::default());
+    }
 }

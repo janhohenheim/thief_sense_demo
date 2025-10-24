@@ -9,6 +9,7 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 fn setup_ai_debug_ui(add: On<Add, Npc>, mut commands: Commands) {
+    // Yes, all of these `Pickable::IGNORE` are needed for the movement gizmo to work :/
     commands
         .entity(add.entity)
         .insert(AnchoredUiNodes::spawn_one((
@@ -25,6 +26,7 @@ fn setup_ai_debug_ui(add: On<Add, Npc>, mut commands: Commands) {
                     min_height: px(100.0),
                     ..default()
                 },
+                Pickable::IGNORE,
                 children![
                     (
                         HearingBar,
@@ -33,11 +35,13 @@ fn setup_ai_debug_ui(add: On<Add, Npc>, mut commands: Commands) {
                             width: px(10.0),
                             ..default()
                         },
-                        BackgroundColor(tailwind::RED_600.into())
+                        BackgroundColor(tailwind::RED_600.into()),
+                        Pickable::IGNORE,
                     ),
-                    (VisionText, Text::default())
+                    (VisionText, Text::default(), Pickable::IGNORE,)
                 ]
             )],
+            Pickable::IGNORE,
         )));
 }
 
