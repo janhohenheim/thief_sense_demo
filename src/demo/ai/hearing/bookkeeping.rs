@@ -13,9 +13,7 @@ pub(super) fn plugin(app: &mut App) {
         RunFixedMainLoop,
         update_probe_batch.in_set(AiSystems::Bookkeep),
     );
-    app.add_observer(add_source)
-        .add_observer(remove_source)
-        .add_observer(sync_source_removal);
+    app.add_observer(add_source).add_observer(remove_source);
 }
 
 fn init_simulation(mut simulators: ResMut<AiSimulators>, scene: Res<SteamAudioRootScene>) {
@@ -62,10 +60,6 @@ fn add_source(
 
     commands.entity(add.entity).try_insert(sources);
     Ok(())
-}
-
-fn sync_source_removal(remove: On<Remove, AudionimbusSource>, mut commands: Commands) {
-    commands.entity(remove.entity).try_remove::<AiSources>();
 }
 
 fn remove_source(

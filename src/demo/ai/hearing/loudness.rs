@@ -143,7 +143,6 @@ pub(crate) fn loudness_to_listener(
     let loudness_mean_squared = mix.fold(0.0, |acc, val| acc + val * val) / size as f32;
     let loudness = loudness_mean_squared.sqrt();
 
-    commands.entity(listener).insert(DebugHearing(loudness));
     Ok(loudness)
 }
 

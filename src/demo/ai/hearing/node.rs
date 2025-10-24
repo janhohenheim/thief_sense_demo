@@ -7,7 +7,10 @@ use bevy_seedling::{
     prelude::*,
     sample_effects,
 };
-use bevy_steam_audio::nodes::{FixedProcessBlock, SteamAudioNode};
+use bevy_steam_audio::{
+    nodes::{FixedProcessBlock, SteamAudioNode, SteamAudioPool},
+    sources::AudionimbusSource,
+};
 use firewheel::{
     channel_config::ChannelConfig,
     diff::{Diff, EventQueue as _, Patch, RealtimeClone},
@@ -89,6 +92,8 @@ fn setup_sample_player(
 fn despawn_pool_late(remove: On<Remove, AiPool>, mut commands: Commands) {
     commands
         .entity(remove.entity)
+        .try_remove::<SteamAudioPool>()
+        .try_remove::<AudionimbusSource>()
         .insert(Despawn::after(SENSE_INTERVAL_FAR));
 }
 

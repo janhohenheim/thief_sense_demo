@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::demo::ai::{
     awareness::AwarenessLevel,
+    debug::DebugHearing,
     hearing::{
         AiSources,
         loudness::{LoudnessInput, loudness_to_listener},
@@ -28,6 +29,7 @@ pub(crate) fn listen(
         },
     )?;
     let mut pulses = Vec::new();
+    let mut total_loudness = 0.0;
     for source in sources {
         let raw_loudness: f32 = world.run_system_cached_with(
             loudness_to_listener,
@@ -37,6 +39,7 @@ pub(crate) fn listen(
                 near,
             },
         )?;
+        total_loudness += raw_loudness;
         let loudness = raw_loudness as u32;
 
         // TODO: This is just placeholder code. It's fine, but the loudness is still raw and not factoring in any attenuation factors or object "mod" factors.
@@ -48,6 +51,8 @@ pub(crate) fn listen(
         };
         pulses.push((source, pulse));
     }
+
+    world.entity_mut(npc).insert(DebugHearing(total_loudness));
     Ok(pulses)
 }
 

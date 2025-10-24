@@ -19,6 +19,8 @@ fn setup_ai_debug_ui(add: On<Add, Npc>, mut commands: Commands) {
             },
             children![(
                 Node {
+                    top: px(10.0),
+                    left: px(30.0),
                     column_gap: px(10.0),
                     min_height: px(100.0),
                     ..default()
