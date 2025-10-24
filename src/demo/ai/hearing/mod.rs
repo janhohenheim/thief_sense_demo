@@ -88,16 +88,8 @@ struct AiSources {
     far: audionimbus::Source,
 }
 
+#[inline]
 fn rms(samples: &[f32]) -> f32 {
-    let mut count = 0;
-    let sum = samples
-        .iter()
-        .copied()
-        .map(|x| {
-            count += 1;
-            x * x
-        })
-        .sum::<f32>();
-    assert!(count > 0);
-    (sum / count as f32).sqrt()
+    let sum = samples.iter().copied().map(|x| x * x).sum::<f32>();
+    (sum / samples.len() as f32).sqrt()
 }

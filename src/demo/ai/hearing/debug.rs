@@ -81,15 +81,7 @@ impl PathVisualization {
 #[derive(Component, Deref, DerefMut)]
 pub(crate) struct AudioDebugWriter(WavWriter<File>);
 
-fn add_writer(
-    add: On<Add, Npc>,
-    name: Query<NameOrEntity>,
-    mut commands: Commands,
-    enabled: Res<EnableAudioWriter>,
-) -> Result {
-    if !enabled.0 {
-        return Ok(());
-    }
+fn add_writer(add: On<Add, Npc>, name: Query<NameOrEntity>, mut commands: Commands) -> Result {
     let name = name.get(add.entity).unwrap();
     let debug_dir = PathBuf::from("debug");
     fs::create_dir_all(&debug_dir).unwrap();

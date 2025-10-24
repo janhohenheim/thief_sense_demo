@@ -8,7 +8,7 @@ use crate::{
     AiSystems,
     demo::ai::hearing::{
         AiSimulators, AiSources,
-        debug::{PathVisualization, PathVisualizations, VisualizationsPtr},
+        debug::{EnableAudioWriter, PathVisualization, PathVisualizations, VisualizationsPtr},
         param,
     },
 };
@@ -45,6 +45,7 @@ pub(crate) fn update_simulation_for_listener(
     batch: Res<SteamAudioProbeBatch>,
     path_baking_settings: Res<SteamAudioPathBakingSettings>,
     visualizations: Res<PathVisualizations>,
+    visualization_enabled: Res<EnableAudioWriter>,
 ) -> Result {
     errors.clear();
     let listener = transform.get(listener)?;
@@ -64,10 +65,14 @@ pub(crate) fn update_simulation_for_listener(
             duration: 0.0,
             order: param::ORDER,
             irradiance_min_distance: 1.0,
-            pathing_visualization_callback: Some(audionimbus::CallbackInformation {
-                callback: visualize_pathing,
-                user_data: &visualizations.0 as *const _ as *mut std::ffi::c_void,
-            }),
+            pathing_visualization_callback: if visualization_enabled.0 {
+                Some(audionimbus::CallbackInformation {
+                    callback: visualize_pathing,
+                    user_data: &visualizations.0 as *const _ as *mut std::ffi::c_void,
+                })
+            } else {
+                None
+            },
         },
     );
 

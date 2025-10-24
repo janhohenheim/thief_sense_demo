@@ -34,12 +34,13 @@ pub(crate) fn loudness_to_listener(
     mut writer: Query<&mut AudioDebugWriter>,
 ) -> Result<f32> {
     let listener_transform = AudionimbusCoordinateSystem::from(*transform.get(listener)?);
-    let (mut buffer, mut all_effects, mut sources, source_transform) =
-        sample_player.get_mut(source)?;
+    let (mut buffer, mut effects, mut sources, source_transform) = sample_player.get_mut(source)?;
     let SteamAudioEffects {
         near: near_effects,
         far: far_effects,
-    } = all_effects.as_mut();
+        path_buffer,
+        out_buffer,
+    } = effects.as_mut();
     let effects = if near { near_effects } else { far_effects };
     let source = if near {
         &mut sources.near
@@ -58,7 +59,9 @@ pub(crate) fn loudness_to_listener(
     let in_buffer =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
-    let mut path_buffer = [[0.0; param::MAX_FRAME_SIZE as usize]; param::CHANNELS as usize];
+    for channel in path_buffer.iter_mut() {
+        channel.fill(0.0);
+    }
     let channel_ptrs: [*mut f32; param::CHANNELS as usize] =
         array::from_fn(|i| path_buffer[i].as_mut_ptr());
     // Safety: all borrowed data is valid until this buffer is dropped again.
@@ -66,7 +69,7 @@ pub(crate) fn loudness_to_listener(
     let path_out =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
-    let mut out_buffer = [0.0; param::MAX_FRAME_SIZE as usize];
+    out_buffer.fill(0.0);
     let channel_ptrs = [out_buffer.as_mut_ptr()];
     // Safety: all borrowed data is valid until this buffer is dropped again.
     // Also, we pinky promise not to leak the second mutable reference hihi
@@ -117,6 +120,7 @@ pub(crate) fn loudness_to_listener(
     // Also, we pinky promise not to leak the second mutable reference hihi
     let omnidir_path_out =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
+
     out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &omnidir_path_out);
 
     if let Ok(mut writer) = writer.get_mut(listener) {
@@ -170,6 +174,8 @@ fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
                 },
             )?,
         },
+        path_buffer: [[0.0; param::MAX_FRAME_SIZE as usize]; param::CHANNELS as usize],
+        out_buffer: [0.0; param::MAX_FRAME_SIZE as usize],
     });
     Ok(())
 }
@@ -178,6 +184,8 @@ fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
 pub(crate) struct SteamAudioEffects {
     near: Effects,
     far: Effects,
+    path_buffer: [[f32; param::MAX_FRAME_SIZE as usize]; param::CHANNELS as usize],
+    out_buffer: [f32; param::MAX_FRAME_SIZE as usize],
 }
 
 #[derive(Clone, Debug)]
