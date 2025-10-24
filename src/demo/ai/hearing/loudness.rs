@@ -99,6 +99,9 @@ pub(crate) fn loudness_to_listener(
     //   - So it may still be worth it, heck.
     //   - But wait, we don't need to update the sim for any NPC that is not hearing anything
     //     - Then again, we want them all to be very tuned to footsteps, so it will still be plenty NPCs hearing
+    // - We use only one ambisonic channel. This means we can just as well just use zeroth order ambisonics.
+    //   - heck ye 4x speed up in parts?!?!?!?
+    //   - Eh, maybe not: turns out the simulator uses the ambisonics to guide the pathfinding. We should keep it at 1 imo.
     effects.direct.apply(
         &audionimbus::DirectEffectParams {
             distance_attenuation: audionimbus::distance_attenuation(
