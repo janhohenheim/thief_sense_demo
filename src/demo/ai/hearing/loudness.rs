@@ -134,6 +134,7 @@ pub(crate) fn loudness_to_listener(
         let output = direct_buffer
             .iter()
             .zip(ambisonic_buffer)
+            .take(size)
             .map(|(direct, path)| *direct + path);
         for sample in output {
             writer.write_sample(sample).unwrap();
