@@ -122,8 +122,10 @@ pub(crate) fn update_simulation_for_listener(
         );
     }
 
+    let now = std::time::Instant::now();
     simulator.run_direct();
     simulator.run_pathing();
+    info!("Simulation took {:?}", now.elapsed());
 
     if errors.is_empty() {
         Ok(())
