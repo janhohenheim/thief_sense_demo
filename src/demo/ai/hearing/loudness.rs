@@ -1,4 +1,4 @@
-use std::{array, time::Instant};
+use std::array;
 
 use bevy::prelude::*;
 use bevy_steam_audio::{
@@ -117,15 +117,15 @@ pub(crate) fn loudness_to_listener(
     // Source: it was revealed to me in a cryptic dream
     let channel_ptrs = [path_buffer[0].as_mut_ptr()];
     // Safety: all borrowed data is valid until this buffer is dropped again.
-    // Also, we pinky promise not to leak the second mutable reference hihi
+    // Also, we pinky promise not to leak the *third* mutable reference hihi
     let omnidir_path_out =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
     out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &omnidir_path_out);
 
     if let Ok(mut writer) = writer.get_mut(listener) {
-        for sample in &out_buffer[..size] {
-            writer.write_sample(*sample).unwrap();
+        for (i, sample) in out_buffer[..size].iter().enumerate() {
+            writer.write_sample(i, *sample);
         }
     }
     let loudness = rms(&out_buffer[..size]);

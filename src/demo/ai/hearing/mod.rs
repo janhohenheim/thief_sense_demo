@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_steam_audio::STEAM_AUDIO_CONTEXT;
 
+use crate::demo::ai::hearing::debug::{EnableAudioPathVisualization, EnableAudioWriter};
+
 mod bookkeeping;
 mod debug;
 pub(crate) mod listen;
@@ -18,6 +20,8 @@ pub(super) fn plugin(app: &mut App) {
         node::plugin,
         debug::plugin,
     ));
+    app.insert_resource(EnableAudioPathVisualization(false))
+        .insert_resource(EnableAudioWriter(true));
 }
 
 mod param {

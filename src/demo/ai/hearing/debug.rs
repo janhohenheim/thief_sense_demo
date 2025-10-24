@@ -13,7 +13,7 @@ pub(super) fn plugin(app: &mut App) {
     app.init_resource::<PathVisualizations>()
         .init_resource::<EnableAudioPathVisualization>()
         .init_resource::<EnableAudioWriter>();
-    app.add_systems(PostUpdate, tick_visualizations);
+    app.add_systems(PostUpdate, (tick_visualizations, flush_writer));
     app.add_observer(add_writer);
 }
 
@@ -78,8 +78,27 @@ impl PathVisualization {
     }
 }
 
-#[derive(Component, Deref, DerefMut)]
-pub(crate) struct AudioDebugWriter(WavWriter<File>);
+#[derive(Component)]
+pub(crate) struct AudioDebugWriter {
+    writer: WavWriter<File>,
+    buffer: Vec<f32>,
+}
+
+impl AudioDebugWriter {
+    pub(crate) fn write_sample(&mut self, i: usize, sample: f32) {
+        if i >= self.buffer.len() {
+            self.buffer.push(sample);
+        } else {
+            self.buffer[i] += sample;
+        }
+    }
+
+    pub(crate) fn write_batch(&mut self) {
+        for sample in self.buffer.drain(..) {
+            self.writer.write_sample(sample).unwrap();
+        }
+    }
+}
 
 fn add_writer(add: On<Add, Npc>, name: Query<NameOrEntity>, mut commands: Commands) -> Result {
     let name = name.get(add.entity).unwrap();
@@ -87,15 +106,24 @@ fn add_writer(add: On<Add, Npc>, name: Query<NameOrEntity>, mut commands: Comman
     fs::create_dir_all(&debug_dir).unwrap();
     let debug_file = debug_dir.join(format!("{name}.wav"));
     let debug_file = File::create(debug_file)?;
-    let writer = AudioDebugWriter(WavWriter::new(
-        debug_file,
-        WavSpec {
-            channels: 1,
-            sample_rate: param::SAMPLING_RATE,
-            bits_per_sample: 32,
-            sample_format: SampleFormat::Float,
-        },
-    )?);
+    let writer = AudioDebugWriter {
+        writer: WavWriter::new(
+            debug_file,
+            WavSpec {
+                channels: 1,
+                sample_rate: param::SAMPLING_RATE,
+                bits_per_sample: 32,
+                sample_format: SampleFormat::Float,
+            },
+        )?,
+        buffer: Vec::new(),
+    };
     commands.entity(add.entity).insert(writer);
     Ok(())
+}
+
+fn flush_writer(mut query: Query<&mut AudioDebugWriter>) {
+    for mut writer in query.iter_mut() {
+        writer.write_batch();
+    }
 }

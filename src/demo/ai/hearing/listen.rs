@@ -20,7 +20,6 @@ pub(crate) fn listen(
     In((npc, near)): In<(Entity, bool)>,
     world: &mut World,
 ) -> Result<Vec<(Entity, AwarenessLevel)>> {
-    let now = Instant::now();
     let sources: Vec<_> = world.run_system_cached_with(sources_for_listener, npc)?;
 
     () = world.run_system_cached_with(
@@ -55,7 +54,7 @@ pub(crate) fn listen(
         pulses.push((source, pulse));
     }
     world.entity_mut(npc).insert(DebugHearing(total_loudness));
-    info!("Elapsed time: {:?}", now.elapsed());
+
     Ok(pulses)
 }
 

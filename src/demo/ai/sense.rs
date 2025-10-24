@@ -8,6 +8,8 @@
 //! Interestingly, all of this is only true for the AI sensing players and NPCs. Looking at suspicious objects is done completely separately, no vision cones involved.
 //! Sound for e.g. thrown plates is also done separately, but I'm not sure of the timers used in both cases.
 
+use std::time::Instant;
+
 use bevy::prelude::*;
 
 use crate::{
