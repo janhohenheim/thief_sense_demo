@@ -1,3 +1,5 @@
+use std::array;
+
 use bevy::prelude::*;
 use bevy_steam_audio::{
     STEAM_AUDIO_CONTEXT,
@@ -71,12 +73,8 @@ pub(crate) fn loudness_to_listener(
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
     let mut path_buffer = [[0.0; FRAME_SIZE_FAR as usize]; param::CHANNELS as usize];
-    let channel_ptrs = [
-        path_buffer[0].as_mut_ptr(),
-        path_buffer[1].as_mut_ptr(),
-        path_buffer[2].as_mut_ptr(),
-        path_buffer[3].as_mut_ptr(),
-    ];
+    let channel_ptrs: [*mut f32; param::CHANNELS as usize] =
+        array::from_fn(|i| path_buffer[i].as_mut_ptr());
     // Safety: all borrowed data is valid until this buffer is dropped again.
     let path_out =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
