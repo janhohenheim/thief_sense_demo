@@ -70,7 +70,6 @@ pub(crate) fn loudness_to_listener(
         audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, MIN_FRAME_SIZE)
     }?;
 
-    out_buffer.fill(0.0);
     let channel_ptrs = [out_buffer.as_mut_ptr()];
     // Safety: all borrowed data is valid until this buffer is dropped again.
     // Also, we pinky promise not to leak the second mutable reference hihi
@@ -84,9 +83,12 @@ pub(crate) fn loudness_to_listener(
     let repeat = if near { 1 } else { SENSE_INTERVAL_NEAR_TO_FAR };
     let now = std::time::Instant::now();
     for i in 0..repeat {
+        out_buffer.fill(0.0);
         // Safety: all borrowed data is valid until this buffer is dropped again.
         // Also, we pinky promise not to leak the second mutable reference hihi
-        let channel_ptrs = [buffer.inputs[i * MIN_FRAME_SIZE as usize..].as_mut_ptr()];
+        let channel_ptrs = [buffer.inputs
+            [i * MIN_FRAME_SIZE as usize..(i + 1) * MIN_FRAME_SIZE as usize]
+            .as_mut_ptr()];
         let in_sa_buffer = unsafe {
             audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, MIN_FRAME_SIZE)
         }?;
