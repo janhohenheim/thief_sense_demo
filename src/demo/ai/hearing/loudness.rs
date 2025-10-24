@@ -1,4 +1,4 @@
-use std::array;
+use std::{array, f32::consts::TAU};
 
 use bevy::prelude::*;
 use bevy_steam_audio::{
@@ -62,6 +62,7 @@ pub(crate) fn loudness_to_listener(
         FRAME_SIZE_FAR
     } as usize;
     // Safety: all borrowed data is valid until this buffer is dropped again.
+    // Also, we pinky promise not to leak the second mutable reference hihi
     let channel_ptrs = [buffer.inputs.as_mut_ptr()];
     let in_buffer =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
@@ -69,6 +70,7 @@ pub(crate) fn loudness_to_listener(
     let mut direct_buffer = [0.0; FRAME_SIZE_FAR as usize];
     let channel_ptrs = [direct_buffer.as_mut_ptr()];
     // Safety: all borrowed data is valid until this buffer is dropped again.
+    // Also, we pinky promise not to leak the second mutable reference hihi
     let direct_out =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
@@ -76,13 +78,8 @@ pub(crate) fn loudness_to_listener(
     let channel_ptrs: [*mut f32; param::CHANNELS as usize] =
         array::from_fn(|i| path_buffer[i].as_mut_ptr());
     // Safety: all borrowed data is valid until this buffer is dropped again.
+    // Also, we pinky promise not to leak the second mutable reference hihi
     let path_out =
-        unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
-
-    let mut ambisonic_buffer = [0.0; FRAME_SIZE_FAR as usize];
-    let channel_ptrs = [ambisonic_buffer.as_mut_ptr()];
-    // Safety: all borrowed data is valid until this buffer is dropped again.
-    let ambisonic_out =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
     let outputs = source.get_outputs(FLAGS);
@@ -120,34 +117,30 @@ pub(crate) fn loudness_to_listener(
         &path_out,
     );
 
-    effects.decode.apply(
-        &audionimbus::AmbisonicsDecodeEffectParams {
-            order: ORDER,
-            hrtf: &audionimbus::Hrtf::from(std::ptr::null_mut()),
-            orientation: listener_transform.into(),
-            binaural: false,
-        },
-        &path_out,
-        &ambisonic_out,
-    );
+    // In 1st order ambisonics, we can just yoink the W channel to get the omnidirectional component
+    // Since we only care about the incoming pressure, we don't care about any directionality
+    // The normalization that Steam Audio uses is  0.5 * sqrt(1/pi) = 0.282095
+    // Source: it was revealed to me in a cryptic dream
+    let mut omnidir_path_component = path_buffer[0];
+    for sample in &mut omnidir_path_component {
+        // TODO: no clue why that clamp is necessary. Sometimes the pathing generates crazy high values (>1e6).
+        // But it sounds alright when just clamping, so uuuuh let's do that for now
+        *sample = (*sample / 0.282095).clamp(-1.0, 1.0);
+    }
+
+    let mix = direct_buffer
+        .iter()
+        .copied()
+        .zip(omnidir_path_component)
+        .take(size)
+        .map(|(direct, path)| direct + path);
+
     if let Ok(mut writer) = writer.get_mut(listener) {
-        let output = direct_buffer
-            .iter()
-            .zip(ambisonic_buffer)
-            .take(size)
-            .map(|(direct, path)| *direct + path);
-        for sample in output {
+        for sample in mix.clone() {
             writer.write_sample(sample).unwrap();
         }
     }
-    let loudness_mean_squared = direct_buffer
-        .iter()
-        .zip(ambisonic_buffer)
-        .take(size)
-        .fold(0.0, |acc, (direct, path)| {
-            acc + (*direct + path) * (*direct + path)
-        })
-        / size as f32;
+    let loudness_mean_squared = mix.fold(0.0, |acc, val| acc + val * val) / size as f32;
     let loudness = loudness_mean_squared.sqrt();
 
     commands.entity(listener).insert(DebugHearing(loudness));
@@ -179,15 +172,6 @@ fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
                     spatialization: None,
                 },
             )?,
-            decode: audionimbus::AmbisonicsDecodeEffect::try_new(
-                &STEAM_AUDIO_CONTEXT,
-                &near_settings,
-                &audionimbus::AmbisonicsDecodeEffectSettings {
-                    max_order: ORDER,
-                    speaker_layout: audionimbus::SpeakerLayout::Mono,
-                    hrtf: &audionimbus::Hrtf::from(std::ptr::null_mut()),
-                },
-            )?,
         },
         far: Effects {
             direct: audionimbus::DirectEffect::try_new(
@@ -201,15 +185,6 @@ fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
                 &audionimbus::PathEffectSettings {
                     max_order: ORDER,
                     spatialization: None,
-                },
-            )?,
-            decode: audionimbus::AmbisonicsDecodeEffect::try_new(
-                &STEAM_AUDIO_CONTEXT,
-                &far_settings,
-                &audionimbus::AmbisonicsDecodeEffectSettings {
-                    max_order: ORDER,
-                    speaker_layout: audionimbus::SpeakerLayout::Mono,
-                    hrtf: &audionimbus::Hrtf::from(std::ptr::null_mut()),
                 },
             )?,
         },
@@ -227,5 +202,4 @@ pub(crate) struct SteamAudioEffects {
 struct Effects {
     direct: audionimbus::DirectEffect,
     path: audionimbus::PathEffect,
-    decode: audionimbus::AmbisonicsDecodeEffect,
 }
