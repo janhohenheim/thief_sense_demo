@@ -6,7 +6,7 @@ use bevy_steam_audio::{
     wrapper::{AudionimbusCoordinateSystem, ToSteamAudioVec3},
 };
 
-use crate::demo::ai::hearing::{AiSources, debug::AudioDebugWriter, node::InputBuffer, param};
+use crate::demo::ai::hearing::{AiSources, debug::AudioDebugWriter, node::InputBuffer, param, rms};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(create_effects);
@@ -97,26 +97,44 @@ pub(crate) fn loudness_to_listener(
         &direct_out,
     );
 
-    effects.path.apply(
-        &audionimbus::PathEffectParams {
-            order: param::ORDER,
-            binaural: false,
-            listener: listener_transform.into(),
-            ..outputs.pathing().into_inner()
-        },
-        &in_buffer,
-        &path_out,
-    );
+    for i in 0..direct_buffer.len() {
+        let mut sample = direct_buffer[i];
+        // Todo: idk why this can be NaN
+        if !sample.is_finite() {
+            sample = if i == 0 { 0.0 } else { direct_buffer[i - 1] };
+        }
+        direct_buffer[i] = sample;
+    }
+
+    let mut params = audionimbus::PathEffectParams {
+        order: param::ORDER,
+        binaural: false,
+        listener: listener_transform.into(),
+        ..outputs.pathing().into_inner()
+    };
+    for coeff in &mut params.eq_coeffs {
+        *coeff = coeff.max(0.1);
+    }
+
+    effects.path.apply(&params, &in_buffer, &path_out);
 
     // In 1st order ambisonics, we can just yoink the W channel to get the omnidirectional component
     // Since we only care about the incoming pressure, we don't care about any directionality
-    // The normalization that Steam Audio uses is  0.5 * sqrt(1/pi) = 0.282095
     // Source: it was revealed to me in a cryptic dream
     let mut omnidir_path_component = path_buffer[0];
-    for sample in &mut omnidir_path_component {
-        // TODO: no clue why that clamp is necessary. Sometimes the pathing generates crazy high values (>1e6).
-        // But it sounds alright when just clamping, so uuuuh let's do that for now
-        *sample = (*sample / 0.282095).clamp(-1.0, 1.0);
+    for i in 0..omnidir_path_component.len() {
+        let mut sample = omnidir_path_component[i];
+
+        // TODO: no clue why this is necessary. Sometimes the pathing generates crazy high values (>1e5).
+        // But it sounds alright when just discarding them, so uuuuh let's do that for now
+        if sample.abs() > 1.0e5 || !sample.is_finite() {
+            sample = if i == 0 {
+                0.0
+            } else {
+                omnidir_path_component[i - 1]
+            };
+        }
+        omnidir_path_component[i] = sample;
     }
 
     let mix = direct_buffer
@@ -131,8 +149,7 @@ pub(crate) fn loudness_to_listener(
             writer.write_sample(sample).unwrap();
         }
     }
-    let loudness_mean_squared = mix.fold(0.0, |acc, val| acc + val * val) / size as f32;
-    let loudness = loudness_mean_squared.sqrt();
+    let loudness = rms(mix);
 
     Ok(loudness)
 }

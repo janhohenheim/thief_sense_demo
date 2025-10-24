@@ -40,6 +40,7 @@ pub(crate) fn listen(
             },
         )?;
         total_loudness += raw_loudness;
+        info!("{raw_loudness:0.8}");
         let loudness = raw_loudness as u32;
 
         // TODO: This is just placeholder code. It's fine, but the loudness is still raw and not factoring in any attenuation factors or object "mod" factors.
@@ -51,7 +52,7 @@ pub(crate) fn listen(
         };
         pulses.push((source, pulse));
     }
-
+    info!("");
     world.entity_mut(npc).insert(DebugHearing(total_loudness));
     Ok(pulses)
 }

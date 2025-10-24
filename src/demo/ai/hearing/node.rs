@@ -27,7 +27,7 @@ use rubato::{FastFixedOut, PolynomialDegree, Resampler};
 
 use crate::{
     demo::ai::{
-        hearing::{AiAudible, param},
+        hearing::{AiAudible, param, rms},
         sense::SENSE_INTERVAL_FAR,
     },
     despawn::Despawn,
@@ -54,8 +54,7 @@ pub(crate) struct InputBuffer {
 
 impl InputBuffer {
     pub fn update_loudness(&mut self) {
-        let sum_of_squares = self.inputs.iter().map(|&x| x * x).sum::<f32>();
-        self.loudness = (sum_of_squares / self.inputs.len() as f32).sqrt()
+        self.loudness = rms(self.inputs.iter().copied());
     }
 }
 
@@ -223,9 +222,16 @@ impl AudioNodeProcessor for InputBufferProcessor {
             for (i, sample) in self.resample_in[0].iter_mut().enumerate() {
                 *sample = (inputs[0][i] + inputs[1][i]) / 2.0;
             }
+
+            let rms_before = rms(self.resample_in[0].iter().copied());
             self.resampler
                 .process_into_buffer(&self.resample_in, &mut self.resample_out, None)
                 .unwrap();
+            let rms_after = rms(self.resample_out[0].iter().copied());
+            let ratio = rms_before / rms_after;
+            for sample in self.resample_out[0].iter_mut() {
+                *sample *= ratio;
+            }
             prod.push_slice(&self.resample_out[0]);
         });
         ProcessStatus::Bypass
