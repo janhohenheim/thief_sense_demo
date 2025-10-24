@@ -78,6 +78,11 @@ pub(crate) fn loudness_to_listener(
 
     let outputs = source.get_outputs(param::FLAGS);
 
+    // TODO: There effects are per-source, but the same source is active for many NPCs, making the internal state of these effects bogus.
+    // The effects need to be per-NPC, not per-source.
+    // Also, when the simulation runs, we only run the far simulation and not the near usually.
+    // Does that not also fuck with the internal state?
+    // I mean, next time the near sim ran, the wall clock will have passed e.g. 1 sec, but the simulation clock will have passed 0.01 sec
     effects.direct.apply(
         &audionimbus::DirectEffectParams {
             distance_attenuation: audionimbus::distance_attenuation(
