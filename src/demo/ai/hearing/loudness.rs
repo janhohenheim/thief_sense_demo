@@ -64,13 +64,13 @@ pub(crate) fn loudness_to_listener(
     let in_buffer =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
-    let mut direct_buffer = [0.0; FRAME_SIZE_NEAR as usize];
+    let mut direct_buffer = [0.0; FRAME_SIZE_FAR as usize];
     let channel_ptrs = [direct_buffer.as_mut_ptr()];
     // Safety: all borrowed data is valid until this buffer is dropped again.
     let direct_out =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
-    let mut path_buffer = [[0.0; FRAME_SIZE_NEAR as usize]; param::CHANNELS as usize];
+    let mut path_buffer = [[0.0; FRAME_SIZE_FAR as usize]; param::CHANNELS as usize];
     let channel_ptrs = [
         path_buffer[0].as_mut_ptr(),
         path_buffer[1].as_mut_ptr(),
@@ -81,7 +81,7 @@ pub(crate) fn loudness_to_listener(
     let path_out =
         unsafe { audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, size as u32) }?;
 
-    let mut ambisonic_buffer = [0.0; FRAME_SIZE_NEAR as usize];
+    let mut ambisonic_buffer = [0.0; FRAME_SIZE_FAR as usize];
     let channel_ptrs = [ambisonic_buffer.as_mut_ptr()];
     // Safety: all borrowed data is valid until this buffer is dropped again.
     let ambisonic_out =
