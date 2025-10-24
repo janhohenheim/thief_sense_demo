@@ -1,4 +1,10 @@
-use std::{iter, sync::Mutex};
+use std::{
+    iter,
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
+};
 
 use bevy::{ecs::entity_disabling::Disabled, prelude::*};
 use bevy_seedling::{
@@ -50,6 +56,7 @@ pub(crate) struct InputBuffer {
     pub(crate) inputs: Vec<f32>,
     pub(crate) loudness: f32,
     cons: Mutex<Cons>,
+    is_dropped: Arc<AtomicBool>,
 }
 
 impl InputBuffer {
@@ -93,22 +100,31 @@ fn despawn_pool_late(remove: On<Remove, AiPool>, mut commands: Commands) {
         .entity(remove.entity)
         .try_remove::<SteamAudioPool>()
         .try_remove::<AudionimbusSource>()
-        .try_insert(Despawn::after(SENSE_INTERVAL_FAR * 10.0));
+        .try_insert(Despawn::after(SENSE_INTERVAL_FAR));
 }
 
 fn update_input_buffer(mut buffers: Query<(&mut InputBuffer, Has<Despawn>)>, time: Res<Time>) {
     let mut scratch = [0.0; param::MAX_FRAME_SIZE as usize];
     for (mut buffer, despawn) in buffers.iter_mut() {
-        if despawn {
-            let silence = ((time.delta_secs() * param::SAMPLING_RATE as f32).ceil() as usize)
+        let is_dropped = buffer.is_dropped.load(Ordering::Relaxed);
+        if is_dropped {
+            assert!(despawn);
+        }
+        if despawn && is_dropped {
+            let silence = ((time.delta_secs() * param::SAMPLING_RATE as f32).floor() as usize)
                 .min(param::MAX_FRAME_SIZE as usize);
 
             buffer.inputs.drain(..silence);
             buffer.inputs.extend(iter::repeat_n(0.0, silence));
             buffer.update_loudness();
+            // info!("despawn + dropped")
         } else {
             loop {
                 let incoming = buffer.cons.lock().unwrap().pop_slice(&mut scratch);
+                //info!(?despawn, ?is_dropped, ?incoming);
+                if despawn && !is_dropped {
+                    // info!(a=?scratch[..incoming])
+                }
                 if incoming == 0 {
                     break;
                 }
@@ -130,17 +146,25 @@ fn establish_channel(
             continue;
         };
         let (prod, cons) = HeapRb::new(param::MAX_FRAME_SIZE as usize).split();
-        let event = InputBufferInitEvent(Some(prod));
+        let is_dropped = Arc::new(AtomicBool::new(false));
+        let event = InputBufferInitEvent {
+            prod: Some(prod),
+            is_dropped: is_dropped.clone(),
+        };
         events.push(NodeEventType::custom(event));
         commands.entity(entity).insert(InputBuffer {
             inputs: vec![0.0; param::MAX_FRAME_SIZE as usize],
             loudness: 0.0,
             cons: Mutex::new(cons),
+            is_dropped,
         });
     }
 }
 
-struct InputBufferInitEvent(Option<Prod>);
+struct InputBufferInitEvent {
+    prod: Option<Prod>,
+    is_dropped: Arc<AtomicBool>,
+}
 
 const FIXED_BLOCK_SIZE: usize = 1024;
 
@@ -151,7 +175,7 @@ impl AudioNode for InputBufferNode {
         firewheel::node::AudioNodeInfo::new()
             .debug_name("input buffer")
             .channel_config(ChannelConfig {
-                num_inputs: ChannelCount::STEREO,
+                num_inputs: ChannelCount::MONO,
                 num_outputs: ChannelCount::STEREO,
             })
     }
@@ -176,27 +200,27 @@ impl AudioNode for InputBufferNode {
         .unwrap();
         InputBufferProcessor {
             prod: None,
+            is_prod_dropped: None,
             resampler,
-            fixed_block: FixedProcessBlock::new(FIXED_BLOCK_SIZE, 0, 2, 0),
-            resample_in: [vec![0.0; FIXED_BLOCK_SIZE]; 1],
-            resample_out: [vec![0.0; chunk_size]; 1],
+            fixed_input: Vec::with_capacity(FIXED_BLOCK_SIZE),
+            fixed_out: vec![0.0; chunk_size],
         }
     }
 }
 
 struct InputBufferProcessor {
     prod: Option<Prod>,
+    is_prod_dropped: Option<Arc<AtomicBool>>,
     resampler: FastFixedOut<f32>,
-    fixed_block: FixedProcessBlock,
-    resample_in: [Vec<f32>; 1],
-    resample_out: [Vec<f32>; 1],
+    fixed_input: Vec<f32>,
+    fixed_out: Vec<f32>,
 }
 
 impl AudioNodeProcessor for InputBufferProcessor {
     fn process(
         &mut self,
         proc_info: &ProcInfo,
-        proc_buffers: ProcBuffers,
+        ProcBuffers { inputs, .. }: ProcBuffers,
         events: &mut ProcEvents,
         _extra: &mut ProcExtra,
     ) -> firewheel::node::ProcessStatus {
@@ -204,36 +228,49 @@ impl AudioNodeProcessor for InputBufferProcessor {
             if let Some(out_stream_event) = event.downcast_mut::<InputBufferInitEvent>() {
                 // Swap the values so that the old producer gets dropped on
                 // the main thread.
-                core::mem::swap(&mut self.prod, &mut out_stream_event.0);
+                core::mem::swap(&mut self.prod, &mut out_stream_event.prod);
+                let old_prod_dropped = self
+                    .is_prod_dropped
+                    .replace(out_stream_event.is_dropped.clone());
+                if let Some(old_prod_dropped) = old_prod_dropped {
+                    old_prod_dropped.store(true, Ordering::Relaxed);
+                }
             }
         }
 
         // Don't early return on empty input: that is a valid thing to buffer.
 
+        if self.fixed_input.len() + proc_info.frames > FIXED_BLOCK_SIZE {
+            let diff = proc_info.frames + self.fixed_input.len() - FIXED_BLOCK_SIZE;
+            self.fixed_input.drain(..diff);
+        }
+        for sample in inputs[0] {
+            // downsample from stereo to mono
+            self.fixed_input.push(*sample * 0.5);
+        }
+        if self.fixed_input.len() < self.fixed_input.capacity() {
+            return ProcessStatus::Bypass;
+        }
         let Some(prod) = self.prod.as_mut() else {
             return ProcessStatus::Bypass;
         };
-        let fixed_block = &mut self.fixed_block;
-        let temp_proc = ProcBuffers {
-            inputs: proc_buffers.inputs,
-            outputs: proc_buffers.outputs,
-        };
-        fixed_block.process(temp_proc, proc_info, |inputs, _outputs| {
-            for (i, sample) in self.resample_in[0].iter_mut().enumerate() {
-                *sample = (inputs[0][i] + inputs[1][i]) / 2.0;
-            }
 
-            let rms_before = rms(&self.resample_in[0]);
-            self.resampler
-                .process_into_buffer(&self.resample_in, &mut self.resample_out, None)
-                .unwrap();
-            let rms_after = rms(&self.resample_out[0]);
+        let rms_before = rms(&self.fixed_input);
+        let (read, written) = self
+            .resampler
+            .process_into_buffer(&[&self.fixed_input], &mut [&mut self.fixed_out], None)
+            .unwrap();
+        self.fixed_input.drain(..read);
+        let out = &mut self.fixed_out[..written];
+
+        let rms_after = rms(out);
+        if rms_after > 1e-5 {
             let ratio = rms_before / rms_after;
-            for sample in self.resample_out[0].iter_mut() {
+            for sample in out.iter_mut() {
                 *sample *= ratio;
             }
-            prod.push_slice(&self.resample_out[0]);
-        });
+        }
+        prod.push_slice(out);
         ProcessStatus::Bypass
     }
 
@@ -248,7 +285,7 @@ impl AudioNodeProcessor for InputBufferProcessor {
         let resample_ratio = param::SAMPLING_RATE as f64 / stream_info.sample_rate.get() as f64;
         let max_resample_ratio_relative = 1.0;
         let interpolation_type = PolynomialDegree::Linear;
-        let chunk_size = (resample_ratio * FIXED_BLOCK_SIZE as f64).ceil() as usize;
+        let chunk_size = (resample_ratio * FIXED_BLOCK_SIZE as f64).floor() as usize;
         let nbr_channels = 1;
         self.resampler = FastFixedOut::new(
             resample_ratio,
@@ -258,6 +295,6 @@ impl AudioNodeProcessor for InputBufferProcessor {
             nbr_channels,
         )
         .unwrap();
-        self.resample_out[0] = vec![0.0; chunk_size];
+        self.fixed_out = vec![0.0; chunk_size];
     }
 }
