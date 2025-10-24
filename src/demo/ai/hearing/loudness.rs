@@ -11,7 +11,7 @@ use crate::demo::ai::{
         AiSource,
         debug::AudioDebugWriter,
         node::InputBuffer,
-        param::{self, MAX_FRAME_SIZE, MIN_FRAME_SIZE},
+        param::{self, MIN_FRAME_SIZE},
         rms,
     },
     sense::SENSE_INTERVAL_NEAR_TO_FAR,
@@ -169,7 +169,7 @@ pub(crate) fn loudness_to_listener(
             writer.write_sample(i, *sample);
         }
     }
-    let loudness = rms(&accumulated_output);
+    let loudness = rms(accumulated_output);
 
     Ok(loudness)
 }
