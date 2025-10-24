@@ -78,6 +78,16 @@ pub(crate) fn loudness_to_listener(
         audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, MIN_FRAME_SIZE)
     }?;
 
+    // In 1st order ambisonics, we can just yoink the W channel to get the omnidirectional component
+    // Since we only care about the incoming pressure, we don't care about any directionality
+    // Source: it was revealed to me in a cryptic dream
+    let channel_ptrs = [path_buffer[0].as_mut_ptr()];
+    // Safety: all borrowed data is valid until this buffer is dropped again.
+    // Also, we pinky promise not to leak the *third* mutable reference hihi
+    let omnidir_sa_buffer = unsafe {
+        audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, MIN_FRAME_SIZE)
+    }?;
+
     let outputs = source.get_outputs(param::FLAGS);
     let direct_params = audionimbus::DirectEffectParams {
         distance_attenuation: audionimbus::distance_attenuation(
@@ -150,18 +160,8 @@ pub(crate) fn loudness_to_listener(
         iteration_out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &direct_sa_buffer);
 
         path.apply(&path_params, &in_sa_buffer, &path_sa_buffer);
-
-        // In 1st order ambisonics, we can just yoink the W channel to get the omnidirectional component
-        // Since we only care about the incoming pressure, we don't care about any directionality
-        // Source: it was revealed to me in a cryptic dream
-        let channel_ptrs = [path_buffer[0].as_mut_ptr()];
-        // Safety: all borrowed data is valid until this buffer is dropped again.
-        // Also, we pinky promise not to leak the *third* mutable reference hihi
-        let omnidir_sa_buffer = unsafe {
-            audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, MIN_FRAME_SIZE)
-        }?;
-
         iteration_out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &omnidir_sa_buffer);
+
         accumulated_output.extend_from_slice(iteration_out_buffer);
     }
     info!("Effects took {:?}", now.elapsed());
