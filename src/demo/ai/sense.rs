@@ -8,6 +8,8 @@
 //! Interestingly, all of this is only true for the AI sensing players and NPCs. Looking at suspicious objects is done completely separately, no vision cones involved.
 //! Sound for e.g. thrown plates is also done separately, but I'm not sure of the timers used in both cases.
 
+use std::time::Duration;
+
 use bevy::prelude::*;
 
 use crate::{
@@ -20,7 +22,7 @@ use crate::{
         npc::Npc,
         player::Player,
     },
-    rand_timer::{RandTimer, RandTimerApp},
+    staggered_timer::{StaggeredTimer, StaggeredTimerApp as _},
 };
 
 /// in seconds
@@ -28,7 +30,7 @@ pub(crate) const SENSE_INTERVAL_NEAR: f32 = 0.2;
 pub(crate) const SENSE_INTERVAL_FAR: f32 = 0.5;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_rand_timer::<SenseTimer>();
+    app.add_staggered_timer::<SenseTimer>();
     app.add_systems(
         RunFixedMainLoop,
         update_all_senses.in_set(AiSystems::Update),
@@ -64,9 +66,11 @@ struct ToUpdate {
 fn get_npcs_to_update(
     player_transform: Single<&Transform, With<Player>>,
     mut npcs: Query<(Entity, &Transform, &mut SenseTimer), With<Npc>>,
+    time: Res<Time>,
 ) -> Vec<ToUpdate> {
     npcs.iter_mut()
         .filter_map(|(entity, npc_transform, mut timer)| {
+            timer.tick(time.delta());
             if !timer.is_finished() {
                 return None;
             }
@@ -80,7 +84,7 @@ fn get_npcs_to_update(
             } else {
                 (true, SENSE_INTERVAL_NEAR)
             };
-            timer.set_base_time_secs_f32(secs);
+            timer.reset_with(Duration::from_secs_f32(secs));
             Some(ToUpdate { entity, near })
         })
         .collect::<Vec<_>>()
@@ -93,10 +97,12 @@ fn update_senses(In(npc): In<ToUpdate>, world: &mut World) -> Result {
 }
 
 #[derive(Component, Debug, Deref, DerefMut)]
-pub(crate) struct SenseTimer(pub(crate) RandTimer);
+pub(crate) struct SenseTimer(pub(crate) StaggeredTimer);
 
 impl Default for SenseTimer {
     fn default() -> Self {
-        Self(RandTimer::from_secs_f32(SENSE_INTERVAL_FAR))
+        Self(StaggeredTimer::new(Duration::from_secs_f32(
+            SENSE_INTERVAL_FAR,
+        )))
     }
 }

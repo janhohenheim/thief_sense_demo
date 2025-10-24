@@ -7,7 +7,6 @@ use crate::{
     collision_layer::CollisionLayer,
     cpu_lighting::estimate_tone_mapped_lighting,
     demo::player::{PLAYER_RUN_SPEED, PLAYER_WALK_SPEED},
-    rand_timer::RandTimer,
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -15,12 +14,17 @@ pub(super) fn plugin(app: &mut App) {
     app.add_systems(PreUpdate, tick_visibility_timer);
 }
 
+/// Timer for how often an object should maximally update its visibility when observed by any AI.
+///
+/// Doesn't need to be staggered since very few AI visible objects will be observed at any given time,
+/// and they probably won't be observed on the same frame. Remember the AI visibility systems themselves
+/// are already staggered, so observing anything and thus updating its visibility is indirectly staggered too.
 #[derive(Component, Deref, DerefMut)]
-pub(crate) struct VisibilityTimer(RandTimer);
+pub(crate) struct VisibilityTimer(Timer);
 
 impl Default for VisibilityTimer {
     fn default() -> Self {
-        let mut timer = RandTimer::from_millis(200);
+        let mut timer = Timer::from_seconds(0.2, TimerMode::Once);
         // The visibility starts off uncalculated,
         // so start the timer finished in order to always "re"calculate the visibility when it's first requested.
         timer.finish();
@@ -194,6 +198,6 @@ fn calculate_light_rating(
 
 fn tick_visibility_timer(mut timers: Query<&mut VisibilityTimer>, time: Res<Time>) {
     for mut timer in timers.iter_mut() {
-        timer.tick(&time);
+        timer.tick(time.delta());
     }
 }

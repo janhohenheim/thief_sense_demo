@@ -15,6 +15,8 @@ mod dev_tools;
 mod link_head;
 mod movement;
 mod screens;
+mod solid_color;
+mod staggered_timer;
 mod third_party;
 use bevy::{
     color::palettes::tailwind,
@@ -28,8 +30,6 @@ use crate::{
     demo::player::Player, solid_color::SolidColorEnvironmentMapLight as _,
     third_party::ui_anchor::UiAnchorCamera,
 };
-mod rand_timer;
-mod solid_color;
 
 fn main() -> AppExit {
     App::new().add_plugins(AppPlugin).run()
@@ -103,7 +103,7 @@ impl Plugin for AppPlugin {
             #[cfg(feature = "dev")]
             dev_tools::plugin,
             screens::plugin,
-            rand_timer::plugin,
+            staggered_timer::plugin,
             movement::plugin,
             cpu_lighting::plugin,
             solid_color::plugin,

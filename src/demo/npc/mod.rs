@@ -41,6 +41,7 @@ const NPC_MAX_SPEED: f32 = 5.0;
 const NPC_WALK_SPEED: f32 = 2.5;
 
 #[point_class(base(TargetBase), model("models/npc.glb"))]
+#[derive(Debug)]
 pub(crate) struct Npc;
 
 fn spawn_npc(
