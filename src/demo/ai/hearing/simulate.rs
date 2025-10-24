@@ -66,7 +66,7 @@ pub(crate) fn update_simulation_for_listener(
             irradiance_min_distance: 1.0,
             pathing_visualization_callback: Some(audionimbus::CallbackInformation {
                 callback: visualize_pathing,
-                user_data: Box::into_raw(visualizations.0.clone()) as *mut std::ffi::c_void,
+                user_data: &visualizations.0 as *const _ as *mut std::ffi::c_void,
             }),
         },
     );
@@ -134,8 +134,8 @@ unsafe extern "C" fn visualize_pathing(
     user_data: *mut std::ffi::c_void,
 ) {
     let visualizations = user_data as VisualizationsPtr;
-    // Safety: This is owned by the ECS and never deallocated
-    let visualizations = &mut unsafe { (*visualizations).clone() };
+    // Safety: This is owned by the ECS and never deallocated. Don't you dare deallocate it.
+    let visualizations = unsafe { &*visualizations };
     let visualization = PathVisualization::new(from, to, occluded);
     visualizations.lock().unwrap().push(visualization);
 }

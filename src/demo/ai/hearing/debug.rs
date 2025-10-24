@@ -1,7 +1,7 @@
 use std::{
     fs::{self, File},
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::Mutex,
 };
 
 use bevy::{color::palettes::tailwind, prelude::*};
@@ -45,10 +45,10 @@ fn tick_visualizations(
 #[reflect(Resource)]
 pub(crate) struct EnableAudioPathVisualization(pub(crate) bool);
 
-pub(crate) type VisualizationsPtr = *mut Arc<Mutex<Vec<PathVisualization>>>;
+pub(crate) type VisualizationsPtr = *mut Mutex<Vec<PathVisualization>>;
 
-#[derive(Resource, Default, Clone, Deref, DerefMut)]
-pub(crate) struct PathVisualizations(pub(crate) Box<Arc<Mutex<Vec<PathVisualization>>>>);
+#[derive(Resource, Default, Deref, DerefMut)]
+pub(crate) struct PathVisualizations(pub(crate) Mutex<Vec<PathVisualization>>);
 
 #[derive(Reflect, Debug)]
 pub(crate) struct PathVisualization {
