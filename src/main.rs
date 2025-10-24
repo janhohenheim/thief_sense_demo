@@ -58,7 +58,7 @@ impl Plugin for AppPlugin {
                 .set(LogPlugin {
                     filter: format!(
                         concat!(
-                            "{default}",
+                            "{default},",
                             "symphonia_bundle_mp3::demuxer=warn,",
                             "symphonia_format_caf::demuxer=warn,",
                             "symphonia_format_isompf4::demuxer=warn,",
