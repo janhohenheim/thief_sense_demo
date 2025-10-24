@@ -117,7 +117,6 @@ pub(crate) fn loudness_to_listener(
         for coeff in &mut params.eq_coeffs {
             *coeff = coeff.max(0.1);
         }
-        info!(?params);
         params
     };
 
@@ -162,7 +161,6 @@ pub(crate) fn loudness_to_listener(
         // - We use only one ambisonic channel. This means we can just as well just use zeroth order ambisonics.
         //   - heck ye 4x speed up in parts?!?!?!?
         //   - Eh, maybe not: turns out the simulator uses the ambisonics to guide the pathfinding. We should keep it at 1 imo.
-        info!(?direct_params);
         direct.apply(&direct_params, &in_sa_buffer, &direct_sa_buffer);
         iteration_out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &direct_sa_buffer);
 
@@ -170,29 +168,6 @@ pub(crate) fn loudness_to_listener(
         iteration_out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &omnidir_sa_buffer);
 
         accumulated_output.extend_from_slice(iteration_out_buffer);
-        info!(
-            max_input = buffer
-                .inputs
-                .iter()
-                .copied()
-                .map(|x| x.abs())
-                .fold(f32::NEG_INFINITY, f32::max),
-            max_direction = direct_buffer
-                .iter()
-                .copied()
-                .map(|x| x.abs())
-                .fold(f32::NEG_INFINITY, f32::max),
-            max_path = path_buffer[0]
-                .iter()
-                .copied()
-                .map(|x| x.abs())
-                .fold(f32::NEG_INFINITY, f32::max),
-            max_iteration_out = iteration_out_buffer
-                .iter()
-                .copied()
-                .map(|x| x.abs())
-                .fold(f32::NEG_INFINITY, f32::max),
-        );
     }
     info!("Effects took {:?}", now.elapsed());
 
@@ -202,7 +177,6 @@ pub(crate) fn loudness_to_listener(
         }
     }
     let loudness = rms(accumulated_output);
-    info!(?loudness);
 
     Ok(loudness)
 }

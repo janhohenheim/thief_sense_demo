@@ -14,7 +14,7 @@ use bevy_seedling::{
     sample_effects,
 };
 use bevy_steam_audio::{
-    nodes::{FixedProcessBlock, SteamAudioNode, SteamAudioPool},
+    nodes::{SteamAudioNode, SteamAudioPool},
     sources::AudionimbusSource,
 };
 use firewheel::{
@@ -121,14 +121,9 @@ fn update_input_buffer(mut buffers: Query<(&mut InputBuffer, Has<Despawn>)>, tim
             buffer.inputs.drain(..silence);
             buffer.inputs.extend(iter::repeat_n(0.0, silence));
             buffer.update_loudness();
-            // info!("despawn + dropped")
         } else {
             loop {
                 let incoming = buffer.cons.lock().unwrap().pop_slice(&mut scratch);
-                //info!(?despawn, ?is_dropped, ?incoming);
-                if despawn && !is_dropped {
-                    // info!(a=?scratch[..incoming])
-                }
                 if incoming == 0 {
                     break;
                 }

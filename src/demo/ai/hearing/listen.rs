@@ -51,7 +51,6 @@ pub(crate) fn listen(
         pulses.push((source, pulse));
     }
     world.entity_mut(npc).insert(DebugHearing(total_loudness));
-    info!(?total_loudness);
 
     Ok(pulses)
 }
