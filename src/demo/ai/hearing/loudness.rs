@@ -163,6 +163,18 @@ pub(crate) fn loudness_to_listener(
         iteration_out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &omnidir_sa_buffer);
 
         accumulated_output.extend_from_slice(iteration_out_buffer);
+        info!(
+            max_direction = direct_buffer
+                .iter()
+                .copied()
+                .map(|x| x.abs())
+                .fold(f32::NEG_INFINITY, f32::max),
+            max_path = path_buffer[0]
+                .iter()
+                .copied()
+                .map(|x| x.abs())
+                .fold(f32::NEG_INFINITY, f32::max)
+        );
     }
     info!("Effects took {:?}", now.elapsed());
 
@@ -172,6 +184,7 @@ pub(crate) fn loudness_to_listener(
         }
     }
     let loudness = rms(accumulated_output);
+    info!(?loudness);
 
     Ok(loudness)
 }

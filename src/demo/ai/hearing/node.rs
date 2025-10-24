@@ -33,7 +33,11 @@ use rubato::{FastFixedOut, PolynomialDegree, Resampler};
 
 use crate::{
     demo::ai::{
-        hearing::{AiAudible, param, rms},
+        hearing::{
+            AiAudible,
+            param::{self, MAX_FRAME_SIZE},
+            rms,
+        },
         sense::SENSE_INTERVAL_FAR,
     },
     despawn::Despawn,
@@ -100,7 +104,7 @@ fn despawn_pool_late(remove: On<Remove, AiPool>, mut commands: Commands) {
         .entity(remove.entity)
         .try_remove::<SteamAudioPool>()
         .try_remove::<AudionimbusSource>()
-        .try_insert(Despawn::after(SENSE_INTERVAL_FAR));
+        .try_insert(Despawn::after(SENSE_INTERVAL_FAR * 10.0));
 }
 
 fn update_input_buffer(mut buffers: Query<(&mut InputBuffer, Has<Despawn>)>, time: Res<Time>) {
@@ -133,6 +137,9 @@ fn update_input_buffer(mut buffers: Query<(&mut InputBuffer, Has<Despawn>)>, tim
                 buffer.update_loudness();
             }
         }
+        if buffer.inputs.capacity() > MAX_FRAME_SIZE as usize {
+            error!("Input buffer capacity exceeded {MAX_FRAME_SIZE}");
+        }
     }
 }
 
@@ -145,7 +152,10 @@ fn establish_channel(
         let Ok(mut events) = input_buffers.get_effect_mut(effects) else {
             continue;
         };
-        let (prod, cons) = HeapRb::new(param::MAX_FRAME_SIZE as usize).split();
+        // This should be BLOCK_SIZE * n for some wiggle room for when the audio thread is pushing faster than we can process.
+        // Turns out `MAX_FRAME_SIZE` fits the bill nicely!
+        let ringbuf_capacity = param::MAX_FRAME_SIZE as usize;
+        let (prod, cons) = HeapRb::new(ringbuf_capacity).split();
         let is_dropped = Arc::new(AtomicBool::new(false));
         let event = InputBufferInitEvent {
             prod: Some(prod),
@@ -236,6 +246,12 @@ impl AudioNodeProcessor for InputBufferProcessor {
                     old_prod_dropped.store(true, Ordering::Relaxed);
                 }
             }
+        }
+        if self.fixed_input.capacity() > FIXED_BLOCK_SIZE {
+            error_once!("Allocated fixed_input in audio thread");
+        }
+        if self.fixed_out.len() > FIXED_BLOCK_SIZE {
+            error_once!("Allocated fixed_out in audio thread");
         }
 
         // Don't early return on empty input: that is a valid thing to buffer.
