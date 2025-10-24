@@ -11,7 +11,7 @@ use crate::demo::ai::{
         AiSource,
         debug::AudioDebugWriter,
         node::InputBuffer,
-        param::{self, MIN_FRAME_SIZE},
+        param::{self, MAX_FRAME_SIZE, MIN_FRAME_SIZE},
         rms,
     },
     sense::SENSE_INTERVAL_NEAR_TO_FAR,
@@ -50,6 +50,7 @@ pub(crate) fn loudness_to_listener(
         direct_buffer,
         path_buffer,
         out_buffer,
+        accumulated_output,
     } = effects.as_mut();
 
     let source_transform = AudionimbusCoordinateSystem::from(*source_transform);
@@ -76,6 +77,7 @@ pub(crate) fn loudness_to_listener(
     let mut out_sa_buffer = unsafe {
         audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, MIN_FRAME_SIZE)
     }?;
+    accumulated_output.clear();
 
     let outputs = source.get_outputs(param::FLAGS);
 
@@ -158,15 +160,16 @@ pub(crate) fn loudness_to_listener(
         }?;
 
         out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &omnidir_path_out);
+        accumulated_output.extend_from_slice(out_buffer);
     }
     info!("Effects took {:?}", now.elapsed());
 
     if let Ok(mut writer) = writer.get_mut(listener) {
-        for (i, sample) in out_buffer.iter().enumerate() {
+        for (i, sample) in accumulated_output.iter().enumerate() {
             writer.write_sample(i, *sample);
         }
     }
-    let loudness = rms(out_buffer);
+    let loudness = rms(&accumulated_output);
 
     Ok(loudness)
 }
@@ -193,6 +196,7 @@ fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
         direct_buffer: [0.0; param::MIN_FRAME_SIZE as usize],
         path_buffer: [[0.0; param::MIN_FRAME_SIZE as usize]; param::CHANNELS as usize],
         out_buffer: [0.0; param::MIN_FRAME_SIZE as usize],
+        accumulated_output: Vec::with_capacity(param::MAX_FRAME_SIZE as usize),
     });
     Ok(())
 }
@@ -204,4 +208,5 @@ pub(crate) struct SteamAudioEffects {
     direct_buffer: [f32; param::MIN_FRAME_SIZE as usize],
     path_buffer: [[f32; param::MIN_FRAME_SIZE as usize]; param::CHANNELS as usize],
     out_buffer: [f32; param::MIN_FRAME_SIZE as usize],
+    accumulated_output: Vec<f32>,
 }
