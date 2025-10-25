@@ -184,10 +184,7 @@ fn establish_channel(
             resampling_channel_config(),
         );
         let dropped = Arc::new(AtomicBool::new(false));
-        let event = InputBufferEvent::ReplaceProd {
-            prod: Some(prod),
-            dropped: dropped.clone(),
-        };
+        let event = InputBufferEvent(Some(prod));
         events.push(event.into());
 
         commands.entity(entity).insert(InputBuffer {
@@ -218,20 +215,14 @@ fn reestablish_channel(
             param::SAMPLING_RATE,
             resampling_channel_config(),
         );
-        let event = InputBufferEvent::UpdateProd(Some(prod));
+        let event = InputBufferEvent(Some(prod));
         events.push(event.into());
 
         input_buffer.cons = Mutex::new(cons);
     }
 }
 
-enum InputBufferEvent {
-    ReplaceProd {
-        prod: Option<Prod>,
-        dropped: Arc<AtomicBool>,
-    },
-    UpdateProd(Option<Prod>),
-}
+struct InputBufferEvent(Option<Prod>);
 
 impl From<InputBufferEvent> for NodeEventType {
     fn from(event: InputBufferEvent) -> Self {
@@ -258,7 +249,6 @@ impl AudioNode for InputBufferNode {
     ) -> impl firewheel::node::AudioNodeProcessor {
         InputBufferProcessor {
             prod: None,
-            dropped: None,
             mono_buffer: Vec::with_capacity(cx.stream_info.max_block_frames.get() as usize),
         }
     }
@@ -274,7 +264,6 @@ fn resampling_channel_config() -> ResamplingChannelConfig {
 
 struct InputBufferProcessor {
     prod: Option<Prod>,
-    dropped: Option<Arc<AtomicBool>>,
     mono_buffer: Vec<f32>,
 }
 
@@ -290,22 +279,10 @@ impl AudioNodeProcessor for InputBufferProcessor {
             if let Some(event) = event.downcast_mut::<InputBufferEvent>() {
                 // Swap the values so that the old producer gets dropped on
                 // the main thread.
-                match event {
-                    InputBufferEvent::ReplaceProd { prod, dropped } => {
-                        core::mem::swap(&mut self.prod, prod);
-                        self.dropped = Some(dropped.clone());
-                    }
-                    InputBufferEvent::UpdateProd(prod) => core::mem::swap(&mut self.prod, prod),
-                }
+                core::mem::swap(&mut self.prod, &mut event.0)
             }
         }
 
-        let Some(dropped) = self.dropped.as_ref() else {
-            return ProcessStatus::Bypass;
-        };
-        if dropped.load(Ordering::Relaxed) {
-            return ProcessStatus::Bypass;
-        }
         let Some(prod) = self.prod.as_mut() else {
             return ProcessStatus::Bypass;
         };
@@ -322,8 +299,9 @@ impl AudioNodeProcessor for InputBufferProcessor {
         match status {
             fixed_resample::PushStatus::Ok => {}
             fixed_resample::PushStatus::OutputNotReady => {}
-            fixed_resample::PushStatus::OverflowOccurred { num_frames_pushed } => {
-                warn!("Overflow while pushing data: {num_frames_pushed}")
+            fixed_resample::PushStatus::OverflowOccurred { .. } => {
+                // expected: the ECS-side might already be despawned
+                {}
             }
             fixed_resample::PushStatus::UnderflowCorrected {
                 num_zero_frames_pushed,
