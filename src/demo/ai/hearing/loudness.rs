@@ -3,8 +3,7 @@ use bevy_steam_audio::{
     STEAM_AUDIO_CONTEXT,
     wrapper::{AudionimbusCoordinateSystem, ToSteamAudioVec3},
 };
-use std::io::Write;
-use std::{array, fs::File};
+use std::array;
 
 use crate::demo::ai::{
     hearing::{
