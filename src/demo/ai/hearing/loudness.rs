@@ -50,10 +50,6 @@ pub(crate) fn loudness_to_listener(
     let (mut buffer, mut source, source_transform) = sample_player.get_mut(source)?;
     let (direct_buffer, path_buffer, iteration_out_buffer, accumulated_output, direct) = buffers
         .get_or_insert_with(|| {
-            let settings = audionimbus::AudioSettings {
-                sampling_rate: param::SAMPLING_RATE,
-                frame_size: param::MIN_FRAME_SIZE,
-            };
             (
                 [0.0; _],
                 [[0.0; _]; _],
@@ -61,7 +57,7 @@ pub(crate) fn loudness_to_listener(
                 Vec::with_capacity(param::MAX_FRAME_SIZE as usize),
                 audionimbus::DirectEffect::try_new(
                     &STEAM_AUDIO_CONTEXT,
-                    &settings,
+                    &param::AUDIO_SETTINGS,
                     &audionimbus::DirectEffectSettings { num_channels: 1 },
                 )
                 .unwrap(),
@@ -133,11 +129,6 @@ pub(crate) fn loudness_to_listener(
     let repeat = if near { 1 } else { SENSE_INTERVAL_NEAR_TO_FAR };
     let now = std::time::Instant::now();
 
-    let settings = audionimbus::AudioSettings {
-        sampling_rate: param::SAMPLING_RATE,
-        frame_size: param::MIN_FRAME_SIZE,
-    };
-
     // Caching the path creates a shit ton of artifacts on our inputs (maybe related to them being discontinuous due to decimation).
     // I have no clue why. We call reset on it,
     // and I can't see anything in the C++ code that is not cleared. It doesn't need to be wiped per iteration,
@@ -145,7 +136,7 @@ pub(crate) fn loudness_to_listener(
     // Creating the path seems to be ~N(3 µs, 2 µs) by eyeballing it. Which is not that much, but also shit in the hot path.
     let mut path = audionimbus::PathEffect::try_new(
         &STEAM_AUDIO_CONTEXT,
-        &settings,
+        &param::AUDIO_SETTINGS,
         &audionimbus::PathEffectSettings {
             max_order: param::ORDER,
             spatialization: None,

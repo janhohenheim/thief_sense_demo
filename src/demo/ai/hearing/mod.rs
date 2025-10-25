@@ -41,6 +41,10 @@ mod param {
             audionimbus::SimulationFlags::DIRECT.bits()
                 | audionimbus::SimulationFlags::PATHING.bits(),
         );
+    pub(super) const AUDIO_SETTINGS: audionimbus::AudioSettings = audionimbus::AudioSettings {
+        sampling_rate: SAMPLING_RATE,
+        frame_size: MIN_FRAME_SIZE,
+    };
 }
 
 type Simulator = audionimbus::Simulator<audionimbus::Direct, (), audionimbus::Pathing>;
