@@ -196,13 +196,6 @@ pub(crate) fn loudness_to_listener(
         }
     }
     let loudness = rms(accumulated_output);
-    if loudness > 1.0 {
-        let mut file = File::create("debug/data.csv").unwrap();
-        for sample in accumulated_output.iter() {
-            writeln!(file, "{}", sample).unwrap();
-        }
-        panic!("loudness: {loudness}");
-    }
 
     Ok(loudness)
 }
