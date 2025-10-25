@@ -18,7 +18,7 @@ use crate::demo::ai::{
 };
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_observer(create_effects);
+    let _ = app;
 }
 
 pub(crate) struct LoudnessInput {
@@ -34,12 +34,7 @@ pub(crate) fn loudness_to_listener(
         near,
     }): In<LoudnessInput>,
     transform: Query<&GlobalTransform>,
-    mut sample_player: Query<(
-        &mut InputBuffer,
-        &mut SteamAudioEffects,
-        &mut AiSource,
-        &GlobalTransform,
-    )>,
+    mut sample_player: Query<(&mut InputBuffer, &mut AiSource, &GlobalTransform)>,
     mut writer: Query<&mut AudioDebugWriter>,
     mut buffers: Local<
         Option<(
@@ -47,19 +42,29 @@ pub(crate) fn loudness_to_listener(
             [[f32; param::MIN_FRAME_SIZE as usize]; param::CHANNELS as usize],
             [f32; param::MIN_FRAME_SIZE as usize],
             Vec<f32>,
+            audionimbus::DirectEffect,
         )>,
     >,
 ) -> Result<f32> {
     let listener_transform = AudionimbusCoordinateSystem::from(*transform.get(listener)?);
-    let (mut buffer, mut effects, mut source, source_transform) = sample_player.get_mut(source)?;
-    let SteamAudioEffects { direct, path } = effects.as_mut();
-    let (direct_buffer, path_buffer, iteration_out_buffer, accumulated_output) = buffers
+    let (mut buffer, mut source, source_transform) = sample_player.get_mut(source)?;
+    let (direct_buffer, path_buffer, iteration_out_buffer, accumulated_output, direct) = buffers
         .get_or_insert_with(|| {
+            let settings = audionimbus::AudioSettings {
+                sampling_rate: param::SAMPLING_RATE,
+                frame_size: param::MIN_FRAME_SIZE,
+            };
             (
                 [0.0; _],
                 [[0.0; _]; _],
                 [0.0; _],
                 Vec::with_capacity(param::MAX_FRAME_SIZE as usize),
+                audionimbus::DirectEffect::try_new(
+                    &STEAM_AUDIO_CONTEXT,
+                    &settings,
+                    &audionimbus::DirectEffectSettings { num_channels: 1 },
+                )
+                .unwrap(),
             )
         });
     accumulated_output.clear();
@@ -118,11 +123,8 @@ pub(crate) fn loudness_to_listener(
     let mut coeffs = [0.0; param::CHANNELS as usize];
     coeffs[0] = 1.0;
     let path_params = audionimbus::PathEffectParams {
-        eq_coeffs: [1.0; 3],
-        sh_coeffs: audionimbus::ShCoeffs(coeffs.as_mut_ptr()),
         order: param::ORDER,
         binaural: false,
-        hrtf: audionimbus::Hrtf::from(std::ptr::null_mut()),
         listener: listener_transform.into(),
         normalize_eq: false,
         ..outputs.pathing().into_inner()
@@ -130,6 +132,20 @@ pub(crate) fn loudness_to_listener(
 
     let repeat = if near { 1 } else { SENSE_INTERVAL_NEAR_TO_FAR };
     let now = std::time::Instant::now();
+
+    let settings = audionimbus::AudioSettings {
+        sampling_rate: param::SAMPLING_RATE,
+        frame_size: param::MIN_FRAME_SIZE,
+    };
+    let mut path = audionimbus::PathEffect::try_new(
+        &STEAM_AUDIO_CONTEXT,
+        &settings,
+        &audionimbus::PathEffectSettings {
+            max_order: param::ORDER,
+            spatialization: None,
+        },
+    )?;
+
     for i in 0..repeat {
         // The input we use is highly sporadic given that we reuse whatever window happens do be available from the audio thread.
         // That means we often process the same sound multiple times, with some heavy cuts in it, e.g.
@@ -162,7 +178,7 @@ pub(crate) fn loudness_to_listener(
         //   - The effects need to be per-NPC-per-source, not per-source.
 
         direct.apply(&direct_params, &in_sa_buffer, &direct_sa_buffer);
-        // iteration_out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &direct_sa_buffer);
+        iteration_out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &direct_sa_buffer);
 
         path.apply(&path_params, &in_sa_buffer, &path_sa_buffer);
         iteration_out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &omnidir_sa_buffer);
@@ -189,33 +205,4 @@ pub(crate) fn loudness_to_listener(
     }
 
     Ok(loudness)
-}
-
-fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
-    let settings = audionimbus::AudioSettings {
-        sampling_rate: param::SAMPLING_RATE,
-        frame_size: param::MIN_FRAME_SIZE,
-    };
-    commands.entity(add.entity).try_insert(SteamAudioEffects {
-        direct: audionimbus::DirectEffect::try_new(
-            &STEAM_AUDIO_CONTEXT,
-            &settings,
-            &audionimbus::DirectEffectSettings { num_channels: 1 },
-        )?,
-        path: audionimbus::PathEffect::try_new(
-            &STEAM_AUDIO_CONTEXT,
-            &settings,
-            &audionimbus::PathEffectSettings {
-                max_order: param::ORDER,
-                spatialization: None,
-            },
-        )?,
-    });
-    Ok(())
-}
-
-#[derive(Component, Clone, Debug)]
-pub(crate) struct SteamAudioEffects {
-    direct: audionimbus::DirectEffect,
-    path: audionimbus::PathEffect,
 }
