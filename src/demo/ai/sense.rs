@@ -26,6 +26,7 @@ use crate::{
 };
 
 /// in seconds. Original uses 0.2 and 0.5, but having exact multiples allows us to just simulate the short audio stuff n times in a long frame.
+/// These numbers are also neat because the sampling rate (8k Hz) times the interval is an integer.
 pub(crate) const SENSE_INTERVAL_NEAR: f32 = 0.175;
 pub(crate) const SENSE_INTERVAL_NEAR_TO_FAR: usize = 3;
 pub(crate) const SENSE_INTERVAL_FAR: f32 = SENSE_INTERVAL_NEAR * SENSE_INTERVAL_NEAR_TO_FAR as f32;

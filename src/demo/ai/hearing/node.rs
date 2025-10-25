@@ -55,11 +55,17 @@ pub(super) fn plugin(app: &mut App) {
     app.register_node::<InputBufferNode>();
 }
 
+/// A buffer of the last [`param::MAX_FRAME_SIZE`] samples played by a [`SamplePlayer`].
+/// Corresponds to the time interval in [`SENSE_INTERVAL_FAR`].
+///
+/// Note that because the audio thread runs asynchronously from the ECS, this buffer will never exactly match the ECS time.
+/// Does not let any leftover samples ring out when the sample player is removed. Instead, silence will be filled in every fixed update.
 #[derive(Component)]
 pub(crate) struct InputBuffer {
     pub(crate) inputs: Vec<f32>,
     pub(crate) loudness: f32,
     cons: Mutex<Cons>,
+    /// Whether the sample player has already been removed
     dropped: Arc<AtomicBool>,
 }
 
