@@ -56,9 +56,9 @@ pub(crate) fn loudness_to_listener(
     let (direct_buffer, path_buffer, iteration_out_buffer, accumulated_output) = buffers
         .get_or_insert_with(|| {
             (
-                [0.0; param::MIN_FRAME_SIZE as usize],
-                [[0.0; param::MIN_FRAME_SIZE as usize]; param::CHANNELS as usize],
-                [0.0; param::MIN_FRAME_SIZE as usize],
+                [0.0; _],
+                [[0.0; _]; _],
+                [0.0; _],
                 Vec::with_capacity(param::MAX_FRAME_SIZE as usize),
             )
         });

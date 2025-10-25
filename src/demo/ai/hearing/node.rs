@@ -125,9 +125,9 @@ fn clear_prod(
 fn update_input_buffer(
     mut buffers: Query<(&mut InputBuffer, Has<Despawn>)>,
     time: Res<Time>,
-    mut scratch: Local<Option<Vec<f32>>>,
+    mut scratch: Local<Option<[f32; param::MAX_FRAME_SIZE as usize]>>,
 ) {
-    let scratch = scratch.get_or_insert_with(|| vec![0.0; param::MAX_FRAME_SIZE as usize]);
+    let scratch = scratch.get_or_insert_with(|| [0.0; _]);
     for (mut buffer, despawning) in buffers.iter_mut() {
         if despawning {
             let silence = ((time.delta_secs() * param::SAMPLING_RATE as f32).floor() as usize)
