@@ -141,26 +141,7 @@ pub(crate) fn loudness_to_listener(
         // TODO:
         // - These effects are per-source, but the same source is active for many NPCs, making the internal state of these effects bogus.
         //   - The effects need to be per-NPC-per-source, not per-source.
-        //   - Applying both effects takes about 20 us (rounded up)
-        //   - 20 us effect application * 5 sources * 50 NPCS = 5 ms PER FRAME = nope
-        //   - Idea:
-        //     - only create the npc-source pair when the NPC first heard that source.
-        //     - Then keep it alive until the NPC got a netto loudness of 0.0 for like 0.5 seconds in a row (= the state should be wiped now)
-        //   - This should dramatically reduce the amount of effects in the world (which, remember, *all* need to be updated every frame for the state to stay valid)
-        //   - yes, both direct and pathing are stateful, sorry
-        // - Also, when the simulation runs, we only run the far simulation and not the near usually.
-        //   - That *may* be fine, just something to keep in mind (source inputs + outputs are outdated for the effect application).
-        // - Can we just use one sim?
-        //   - It looks to me like the bottleneck in perf is not the simulation, but the effect application, which is *every frame* anyways.
-        //   - for comparison, the sim takes 30 us per NPC per update interval
-        //     - BUT this may be more in a bigger scene!
-        //   - This means at 200 Hz, we need one sim per frame per 12 NPCs (200 / 16.666). At 500 Hz, that's 30 NPCs. much better.
-        //   - So it may still be worth it, heck.
-        //   - But wait, we don't need to update the sim for any NPC that is not hearing anything
-        //     - Then again, we want them all to be very tuned to footsteps, so it will still be plenty NPCs hearing
-        // - We use only one ambisonic channel. This means we can just as well just use zeroth order ambisonics.
-        //   - heck ye 4x speed up in parts?!?!?!?
-        //   - Eh, maybe not: turns out the simulator uses the ambisonics to guide the pathfinding. We should keep it at 1 imo.
+
         direct.apply(&direct_params, &in_sa_buffer, &direct_sa_buffer);
         iteration_out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &direct_sa_buffer);
 
