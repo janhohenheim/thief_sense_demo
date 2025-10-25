@@ -302,7 +302,7 @@ impl AudioNodeProcessor for InputBufferProcessor {
             fixed_resample::PushStatus::Ok => {}
             fixed_resample::PushStatus::OutputNotReady => {}
             fixed_resample::PushStatus::OverflowOccurred { num_frames_pushed } => {
-                warn!("Overflor while pushing data: {num_frames_pushed}")
+                warn!("Overflow while pushing data: {num_frames_pushed}")
             }
             fixed_resample::PushStatus::UnderflowCorrected {
                 num_zero_frames_pushed,
