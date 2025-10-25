@@ -137,6 +137,12 @@ pub(crate) fn loudness_to_listener(
         sampling_rate: param::SAMPLING_RATE,
         frame_size: param::MIN_FRAME_SIZE,
     };
+
+    // Caching the path creates a shit ton of artifacts on our inputs (maybe related to them being discontinuous due to decimation).
+    // I have no clue why. We call reset on it,
+    // and I can't see anything in the C++ code that is not cleared. It doesn't need to be wiped per iteration,
+    // the below path never produced artifacts for far away NPCs. So it can be cached *to an extent*. I just don't know it.
+    // Creating the path seems to be ~N(3 µs, 2 µs) by eyeballing it. Which is not that much, but also shit in the hot path.
     let mut path = audionimbus::PathEffect::try_new(
         &STEAM_AUDIO_CONTEXT,
         &settings,
