@@ -104,8 +104,7 @@ fn add_writer(add: On<Add, Npc>, name: Query<NameOrEntity>, mut commands: Comman
     let name = name.get(add.entity).unwrap();
     let debug_dir = PathBuf::from("debug");
     fs::create_dir_all(&debug_dir).unwrap();
-    let id = add.entity;
-    let debug_file = debug_dir.join(format!("{name}{id}.wav"));
+    let debug_file = debug_dir.join(format!("{name}.wav"));
     let debug_file = File::create(debug_file)?;
     let writer = AudioDebugWriter {
         writer: WavWriter::new(

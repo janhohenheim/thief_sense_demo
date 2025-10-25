@@ -49,7 +49,8 @@ pub(super) fn plugin(app: &mut App) {
         .add_systems(Last, establish_channel.in_set(SeedlingSystems::Queue));
     app.add_observer(setup_sample_player)
         .add_observer(despawn_pool_late)
-        .add_observer(reestablish_channel);
+        .add_observer(reestablish_channel)
+        .add_observer(clear_prod);
     app.register_required_components::<AiPool, AiAudible>();
     app.register_node::<InputBufferNode>();
 }
@@ -58,6 +59,7 @@ pub(super) fn plugin(app: &mut App) {
 pub(crate) struct InputBuffer {
     pub(crate) inputs: Vec<f32>,
     pub(crate) loudness: f32,
+    /// Whether this dead sample player was already removed from the pool
     is_dropped: Arc<AtomicBool>,
     cons: Mutex<Cons>,
 }
@@ -104,6 +106,20 @@ fn despawn_pool_late(remove: On<Remove, AiPool>, mut commands: Commands) {
         .try_remove::<SteamAudioPool>()
         .try_remove::<AudionimbusSource>()
         .try_insert(Despawn::after(SENSE_INTERVAL_FAR * 10.0));
+}
+
+fn clear_prod(
+    remove: On<Remove, InputBuffer>,
+    effects: Query<&SampleEffects, Allow<Disabled>>,
+    mut input_buffer_node: Query<&mut AudioEvents, (With<InputBufferNode>, Allow<Disabled>)>,
+) -> Result {
+    let effects = effects.get(remove.entity)?;
+    let mut events = input_buffer_node.get_effect_mut(effects)?;
+    events.push(NodeEventType::custom(InputBufferInitEvent {
+        replace_prod: None,
+        replace_dropped_notifier: None,
+    }));
+    Ok(())
 }
 
 fn update_input_buffer(
@@ -177,8 +193,8 @@ fn establish_channel(
         );
         let is_dropped = Arc::new(AtomicBool::new(false));
         let event = InputBufferInitEvent {
-            prod: Some(prod),
-            is_dropped: Some(is_dropped.clone()),
+            replace_prod: Some(prod),
+            replace_dropped_notifier: Some(is_dropped.clone()),
         };
         events.push(NodeEventType::custom(event));
 
@@ -211,8 +227,8 @@ fn reestablish_channel(
             resampling_channel_config(),
         );
         let event = InputBufferInitEvent {
-            prod: Some(prod),
-            is_dropped: None,
+            replace_prod: Some(prod),
+            replace_dropped_notifier: None,
         };
         events.push(NodeEventType::custom(event));
 
@@ -221,8 +237,10 @@ fn reestablish_channel(
 }
 
 struct InputBufferInitEvent {
-    prod: Option<Prod>,
-    is_dropped: Option<Arc<AtomicBool>>,
+    /// If `None`, removes the old prod
+    replace_prod: Option<Prod>,
+    /// Ignored if `None`
+    replace_dropped_notifier: Option<Arc<AtomicBool>>,
 }
 
 impl AudioNode for InputBufferNode {
@@ -244,7 +262,7 @@ impl AudioNode for InputBufferNode {
     ) -> impl firewheel::node::AudioNodeProcessor {
         InputBufferProcessor {
             prod: None,
-            is_prod_dropped: None,
+            prod_drop_notify: None,
             mono_buffer: Vec::with_capacity(cx.stream_info.max_block_frames.get() as usize),
         }
     }
@@ -260,7 +278,7 @@ fn resampling_channel_config() -> ResamplingChannelConfig {
 
 struct InputBufferProcessor {
     prod: Option<Prod>,
-    is_prod_dropped: Option<Arc<AtomicBool>>,
+    prod_drop_notify: Option<Arc<AtomicBool>>,
     mono_buffer: Vec<f32>,
 }
 
@@ -276,11 +294,11 @@ impl AudioNodeProcessor for InputBufferProcessor {
             if let Some(out_stream_event) = event.downcast_mut::<InputBufferInitEvent>() {
                 // Swap the values so that the old producer gets dropped on
                 // the main thread.
-                core::mem::swap(&mut self.prod, &mut out_stream_event.prod);
-                if let Some(new_prod_dropped) = out_stream_event.is_dropped.take() {
-                    let old_prod_dropped = self.is_prod_dropped.replace(new_prod_dropped);
-                    if let Some(old_prod_dropped) = old_prod_dropped {
-                        old_prod_dropped.store(true, Ordering::Relaxed);
+                core::mem::swap(&mut self.prod, &mut out_stream_event.replace_prod);
+                if let Some(new_notify) = out_stream_event.replace_dropped_notifier.take() {
+                    let old_notity = self.prod_drop_notify.replace(new_notify);
+                    if let Some(old_notity) = old_notity {
+                        old_notity.store(true, Ordering::Relaxed);
                     }
                 }
             }
