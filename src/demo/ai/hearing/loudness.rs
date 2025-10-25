@@ -115,8 +115,6 @@ pub(crate) fn loudness_to_listener(
         ..outputs.direct().into_inner()
     };
 
-    let mut coeffs = [0.0; param::CHANNELS as usize];
-    coeffs[0] = 1.0;
     let path_params = audionimbus::PathEffectParams {
         order: param::ORDER,
         binaural: false,
@@ -168,10 +166,6 @@ pub(crate) fn loudness_to_listener(
         let in_sa_buffer = unsafe {
             audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, MIN_FRAME_SIZE)
         }?;
-
-        // TODO:
-        // - These effects are per-source, but the same source is active for many NPCs, making the internal state of these effects bogus.
-        //   - The effects need to be per-NPC-per-source, not per-source.
 
         direct.apply(&direct_params, &in_sa_buffer, &direct_sa_buffer);
         iteration_out_sa_buffer.mix(&STEAM_AUDIO_CONTEXT, &direct_sa_buffer);

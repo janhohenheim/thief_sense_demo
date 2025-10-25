@@ -47,7 +47,8 @@ mod param {
     };
 }
 
-type Simulator = audionimbus::Simulator<audionimbus::Direct, (), audionimbus::Pathing>;
+type Simulator =
+    audionimbus::Simulator<audionimbus::Direct, audionimbus::Reflections, audionimbus::Pathing>;
 
 #[derive(Debug, Clone, Resource, Deref, DerefMut)]
 struct AiSimulator(Simulator);
@@ -63,6 +64,15 @@ impl FromWorld for AiSimulator {
             .with_direct(audionimbus::DirectSimulationSettings {
                 // We use raycasts, not volumetric
                 max_num_occlusion_samples: 0,
+            })
+            // TODO: pretend we use reflections until https://github.com/MaxenceMaire/audionimbus/pull/31
+            .with_reflections(audionimbus::ReflectionsSimulationSettings::Convolution {
+                max_order: param::ORDER, // <- The important bit :)
+                max_num_rays: 1,
+                num_diffuse_samples: 1,
+                max_duration: 1.0,
+                max_num_sources: 1,
+                num_threads: 1,
             })
             .with_pathing(audionimbus::PathingSimulationSettings {
                 num_visibility_samples: 8,
