@@ -59,9 +59,8 @@ pub(super) fn plugin(app: &mut App) {
 pub(crate) struct InputBuffer {
     pub(crate) inputs: Vec<f32>,
     pub(crate) loudness: f32,
-    /// Whether this dead sample player was already removed from the pool
-    is_dropped: Arc<AtomicBool>,
     cons: Mutex<Cons>,
+    dropped: Arc<AtomicBool>,
 }
 
 impl InputBuffer {
@@ -110,28 +109,21 @@ fn despawn_pool_late(remove: On<Remove, AiPool>, mut commands: Commands) {
 
 fn clear_prod(
     remove: On<Remove, InputBuffer>,
-    effects: Query<&SampleEffects, Allow<Disabled>>,
-    mut input_buffer_node: Query<&mut AudioEvents, (With<InputBufferNode>, Allow<Disabled>)>,
+    input_buffers: Query<&InputBuffer, Allow<Disabled>>,
 ) -> Result {
-    let effects = effects.get(remove.entity)?;
-    let mut events = input_buffer_node.get_effect_mut(effects)?;
-    events.push(NodeEventType::custom(InputBufferInitEvent {
-        replace_prod: None,
-        replace_dropped_notifier: None,
-    }));
+    let input_buffer = input_buffers.get(remove.entity)?;
+    input_buffer.dropped.store(true, Ordering::Relaxed);
     Ok(())
 }
 
 fn update_input_buffer(
-    mut buffers: Query<&mut InputBuffer>,
+    mut buffers: Query<(&mut InputBuffer, Has<Despawn>)>,
     time: Res<Time>,
     mut scratch: Local<Option<Vec<f32>>>,
 ) {
     let scratch = scratch.get_or_insert_with(|| vec![0.0; param::MAX_FRAME_SIZE as usize]);
-    for mut buffer in buffers.iter_mut() {
-        let is_dropped = buffer.is_dropped.load(Ordering::Relaxed);
-
-        if is_dropped {
+    for (mut buffer, despawning) in buffers.iter_mut() {
+        if despawning {
             let silence = ((time.delta_secs() * param::SAMPLING_RATE as f32).floor() as usize)
                 .min(param::MAX_FRAME_SIZE as usize);
 
@@ -191,18 +183,18 @@ fn establish_channel(
             param::SAMPLING_RATE,
             resampling_channel_config(),
         );
-        let is_dropped = Arc::new(AtomicBool::new(false));
-        let event = InputBufferInitEvent {
-            replace_prod: Some(prod),
-            replace_dropped_notifier: Some(is_dropped.clone()),
+        let dropped = Arc::new(AtomicBool::new(false));
+        let event = InputBufferEvent::ReplaceProd {
+            prod: Some(prod),
+            dropped: dropped.clone(),
         };
-        events.push(NodeEventType::custom(event));
+        events.push(event.into());
 
         commands.entity(entity).insert(InputBuffer {
             inputs: vec![0.0; param::MAX_FRAME_SIZE as usize],
             loudness: 0.0,
-            is_dropped,
             cons: Mutex::new(cons),
+            dropped,
         });
     }
 }
@@ -226,21 +218,25 @@ fn reestablish_channel(
             param::SAMPLING_RATE,
             resampling_channel_config(),
         );
-        let event = InputBufferInitEvent {
-            replace_prod: Some(prod),
-            replace_dropped_notifier: None,
-        };
-        events.push(NodeEventType::custom(event));
+        let event = InputBufferEvent::UpdateProd(Some(prod));
+        events.push(event.into());
 
         input_buffer.cons = Mutex::new(cons);
     }
 }
 
-struct InputBufferInitEvent {
-    /// If `None`, removes the old prod
-    replace_prod: Option<Prod>,
-    /// Ignored if `None`
-    replace_dropped_notifier: Option<Arc<AtomicBool>>,
+enum InputBufferEvent {
+    ReplaceProd {
+        prod: Option<Prod>,
+        dropped: Arc<AtomicBool>,
+    },
+    UpdateProd(Option<Prod>),
+}
+
+impl From<InputBufferEvent> for NodeEventType {
+    fn from(event: InputBufferEvent) -> Self {
+        NodeEventType::custom(event)
+    }
 }
 
 impl AudioNode for InputBufferNode {
@@ -262,7 +258,7 @@ impl AudioNode for InputBufferNode {
     ) -> impl firewheel::node::AudioNodeProcessor {
         InputBufferProcessor {
             prod: None,
-            prod_drop_notify: None,
+            dropped: None,
             mono_buffer: Vec::with_capacity(cx.stream_info.max_block_frames.get() as usize),
         }
     }
@@ -278,7 +274,7 @@ fn resampling_channel_config() -> ResamplingChannelConfig {
 
 struct InputBufferProcessor {
     prod: Option<Prod>,
-    prod_drop_notify: Option<Arc<AtomicBool>>,
+    dropped: Option<Arc<AtomicBool>>,
     mono_buffer: Vec<f32>,
 }
 
@@ -291,17 +287,24 @@ impl AudioNodeProcessor for InputBufferProcessor {
         _extra: &mut ProcExtra,
     ) -> firewheel::node::ProcessStatus {
         for mut event in events.drain() {
-            if let Some(out_stream_event) = event.downcast_mut::<InputBufferInitEvent>() {
+            if let Some(event) = event.downcast_mut::<InputBufferEvent>() {
                 // Swap the values so that the old producer gets dropped on
                 // the main thread.
-                core::mem::swap(&mut self.prod, &mut out_stream_event.replace_prod);
-                if let Some(new_notify) = out_stream_event.replace_dropped_notifier.take() {
-                    let old_notity = self.prod_drop_notify.replace(new_notify);
-                    if let Some(old_notity) = old_notity {
-                        old_notity.store(true, Ordering::Relaxed);
+                match event {
+                    InputBufferEvent::ReplaceProd { prod, dropped } => {
+                        core::mem::swap(&mut self.prod, prod);
+                        self.dropped = Some(dropped.clone());
                     }
+                    InputBufferEvent::UpdateProd(prod) => core::mem::swap(&mut self.prod, prod),
                 }
             }
+        }
+
+        let Some(dropped) = self.dropped.as_ref() else {
+            return ProcessStatus::Bypass;
+        };
+        if dropped.load(Ordering::Relaxed) {
+            return ProcessStatus::Bypass;
         }
         let Some(prod) = self.prod.as_mut() else {
             return ProcessStatus::Bypass;
