@@ -47,6 +47,7 @@ pub(crate) fn loudness_to_listener(
 ) -> Result<f32> {
     let listener_transform = AudionimbusCoordinateSystem::from(*transform.get(listener)?);
     let (mut buffer, mut source, source_transform) = sample_player.get_mut(source)?;
+
     let (direct_buffer, path_buffer, iteration_out_buffer, accumulated_output, direct) = buffers
         .get_or_insert_with(|| {
             (
@@ -124,7 +125,6 @@ pub(crate) fn loudness_to_listener(
     };
 
     let repeat = if near { 1 } else { SENSE_INTERVAL_NEAR_TO_FAR };
-    let now = std::time::Instant::now();
 
     // Caching the path creates a shit ton of artifacts on our inputs (maybe related to them being discontinuous due to decimation).
     // I have no clue why. We call reset on it,
@@ -141,6 +141,9 @@ pub(crate) fn loudness_to_listener(
     )?;
 
     for i in 0..repeat {
+        let iteration_in =
+            &mut buffer.inputs[i * MIN_FRAME_SIZE as usize..(i + 1) * MIN_FRAME_SIZE as usize];
+
         // The input we use is highly sporadic given that we reuse whatever window happens do be available from the audio thread.
         // That means we often process the same sound multiple times, with some heavy cuts in it, e.g.
         // - Process sound start
@@ -157,9 +160,6 @@ pub(crate) fn loudness_to_listener(
 
         iteration_out_buffer.fill(0.0);
 
-        let iteration_in =
-            &mut buffer.inputs[i * MIN_FRAME_SIZE as usize..(i + 1) * MIN_FRAME_SIZE as usize];
-
         // Safety: all borrowed data is valid until this buffer is dropped again.
         // Also, we pinky promise not to leak the second mutable reference hihi
         let channel_ptrs = [iteration_in.as_mut_ptr()];
@@ -175,7 +175,6 @@ pub(crate) fn loudness_to_listener(
 
         accumulated_output.extend_from_slice(iteration_out_buffer);
     }
-    debug!("Effects took {:?}", now.elapsed());
 
     if let Ok(mut writer) = writer.get_mut(listener) {
         // if you want to debug the input, make sure to use the following on near NPCs:

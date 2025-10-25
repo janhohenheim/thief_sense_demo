@@ -21,7 +21,7 @@ pub(super) fn plugin(app: &mut App) {
         debug::plugin,
     ));
     app.insert_resource(EnableAudioPathVisualization(false))
-        .insert_resource(EnableAudioWriter(true));
+        .insert_resource(EnableAudioWriter(false));
 }
 
 mod param {
@@ -68,11 +68,11 @@ impl FromWorld for AiSimulator {
             // TODO: pretend we use reflections until https://github.com/MaxenceMaire/audionimbus/pull/31
             .with_reflections(audionimbus::ReflectionsSimulationSettings::Convolution {
                 max_order: param::ORDER, // <- The important bit :)
-                max_num_rays: 1,
-                num_diffuse_samples: 1,
-                max_duration: 1.0,
-                max_num_sources: 1,
-                num_threads: 1,
+                max_num_rays: 0,
+                num_diffuse_samples: 0,
+                max_duration: 0.0,
+                max_num_sources: 0,
+                num_threads: 0,
             })
             .with_pathing(audionimbus::PathingSimulationSettings {
                 num_visibility_samples: 8,

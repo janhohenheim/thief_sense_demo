@@ -45,7 +45,7 @@ rand = "0.9"
 # Compile low-severity logs out of builds for performance.
 tracing = { version = "0.1", features = [
     "max_level_debug",
-    "release_max_level_warn",
+    "release_max_level_debug",
 ] }
 bevy_trenchbroom = {version = "0.10.0", features = ["avian"]}
 avian3d = "0.4.0"

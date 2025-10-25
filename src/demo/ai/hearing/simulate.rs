@@ -107,10 +107,8 @@ pub(crate) fn update_simulation_for_listener(
         );
     }
 
-    let now = std::time::Instant::now();
     simulator.run_direct();
     simulator.run_pathing();
-    debug!("Simulation took {:?}", now.elapsed());
 
     Ok(())
 }
