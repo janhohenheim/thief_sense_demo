@@ -172,6 +172,9 @@ pub(crate) fn loudness_to_listener(
     debug!("Effects took {:?}", now.elapsed());
 
     if let Ok(mut writer) = writer.get_mut(listener) {
+        // if you want to debug the input, make sure to use the following on near NPCs:
+        // `buffer.inputs[..param::MIN_FRAME_SIZE as usize].iter().enumerate()`
+        // Otherwise they would debug write the entire 525 ms buffer every 175 ms
         for (i, sample) in accumulated_output.iter().enumerate() {
             writer.write_sample(i, *sample);
         }
