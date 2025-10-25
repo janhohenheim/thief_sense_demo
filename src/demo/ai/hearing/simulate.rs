@@ -36,14 +36,12 @@ pub(crate) fn update_simulation_for_listener(
     }): In<AiSimulationInputs>,
     simulator: ResMut<AiSimulator>,
     mut sources: Query<(&mut AiSource, &GlobalTransform)>,
-    mut errors: Local<Vec<String>>,
     transform: Query<&GlobalTransform>,
     batch: Res<SteamAudioProbeBatch>,
     path_baking_settings: Res<SteamAudioPathBakingSettings>,
     visualizations: Res<PathVisualizations>,
     visualization_enabled: Res<EnableAudioWriter>,
 ) -> Result {
-    errors.clear();
     let listener = transform.get(listener)?;
     let listener = AudionimbusCoordinateSystem::from(*listener);
 
@@ -114,11 +112,7 @@ pub(crate) fn update_simulation_for_listener(
     simulator.run_pathing();
     debug!("Simulation took {:?}", now.elapsed());
 
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(errors.join("\n").into())
-    }
+    Ok(())
 }
 
 unsafe extern "C" fn visualize_pathing(

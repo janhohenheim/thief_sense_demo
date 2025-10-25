@@ -23,14 +23,13 @@ pub(crate) fn look(
     let entities_in_view: Vec<(Entity, ViewCone)> =
         world.run_system_cached_with(check_view_cones, npc)?;
     let mut pulses = Vec::new();
-    let mut errors = Vec::new();
     for (entity, view_cone) in entities_in_view {
         // Process entities in view
         let ai_visibility: AiVisibility =
             match world.run_system_cached_with(get_or_update_visibility, entity) {
                 Ok(visibility) => visibility,
                 Err(err) => {
-                    errors.push(err.to_string());
+                    error!("{err}");
                     continue;
                 }
             };
@@ -39,7 +38,7 @@ pub(crate) fn look(
         {
             Ok(visibility) => visibility,
             Err(err) => {
-                errors.push(err.to_string());
+                error!("{err}");
                 continue;
             }
         };
@@ -55,13 +54,7 @@ pub(crate) fn look(
         });
         pulses.push((entity, pulse));
     }
-    // Todo: don't fail the entire fn when a single pulse fails
-    match errors {
-        errors if errors.is_empty() => Ok(pulses),
-        errors => Err(BevyError::from(
-            errors.iter().fold(String::new(), |acc, err| acc + err),
-        )),
-    }
+    Ok(pulses)
 }
 
 fn visibility_to_viewer(
