@@ -87,7 +87,7 @@ fn init_pool(mut commands: Commands) {
     commands.spawn((
         Name::new("AI sound pool"),
         SamplerPool(AiPool),
-        sample_effects![InputBufferNode::default(), SteamAudioNode::default(),],
+        sample_effects![InputBufferNode, SteamAudioNode::default(),],
     ));
 }
 
@@ -321,9 +321,7 @@ impl AudioNodeProcessor for InputBufferProcessor {
         stream_info: &firewheel::StreamInfo,
         _context: &mut firewheel::node::ProcStreamCtx,
     ) {
-        if stream_info.sample_rate == stream_info.prev_sample_rate {
-            return;
-        }
+        if stream_info.sample_rate == stream_info.prev_sample_rate {}
 
         // We could drop self.prod here and wait until the ECS sends a new one, but that would drop frames.
         // Better imo to resample some inputs at the wrong rate than to drop them.

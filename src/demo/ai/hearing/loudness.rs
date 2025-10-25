@@ -4,7 +4,7 @@ use bevy_steam_audio::{
     wrapper::{AudionimbusCoordinateSystem, ToSteamAudioVec3},
 };
 use std::io::Write;
-use std::{array, fs::File, iter};
+use std::{array, fs::File};
 
 use crate::demo::ai::{
     hearing::{
@@ -105,23 +105,10 @@ pub(crate) fn loudness_to_listener(
         ..outputs.direct().into_inner()
     };
 
-    let path_params = {
-        let mut params = audionimbus::PathEffectParams {
-            order: param::ORDER,
-            binaural: false,
-            listener: listener_transform.into(),
-            ..outputs.pathing().into_inner()
-        };
-        for coeff in &mut params.eq_coeffs {
-            *coeff = coeff.max(0.1);
-        }
-        params
-    };
-
     let mut coeffs = [0.0; 20];
     coeffs[0] = 1.0;
     let mut path_params = audionimbus::PathEffectParams {
-        //eq_coeffs: [0.5; 3],
+        eq_coeffs: [1.0; 3],
         sh_coeffs: audionimbus::ShCoeffs(coeffs.as_mut_ptr()),
         order: param::ORDER,
         binaural: false,
@@ -187,95 +174,12 @@ pub(crate) fn loudness_to_listener(
     if loudness > 1.0 {
         let mut file = File::create("debug/data.csv").unwrap();
         for sample in accumulated_output.iter() {
-            write!(file, "{}\n", sample).unwrap();
+            writeln!(file, "{}", sample).unwrap();
         }
         panic!("loudness: {loudness}");
     }
 
     Ok(loudness)
-}
-
-fn detect_hampel(signal: &[f32], half_win: usize, thresh: f32) -> Vec<bool> {
-    let n = signal.len();
-    let mut is_spike = vec![false; n];
-    if n == 0 {
-        return is_spike;
-    }
-
-    // For each center sample, compute median and MAD in window [i-half_win .. i+half_win]
-    for i in 0..n {
-        let lo = i.saturating_sub(half_win);
-        let hi = (i + half_win).min(n - 1);
-        let mut win: Vec<f32> = signal[lo..=hi].to_vec();
-        let med = median(&mut win);
-        // compute absolute deviations
-        for v in win.iter_mut() {
-            *v = (*v - med).abs();
-        }
-        let mad = median(&mut win);
-        let sigma_est = 1.4826 * (if mad == 0.0 { 1e-12 } else { mad }); // avoid zero
-        let z = ((signal[i] - med).abs()) / sigma_est;
-        if z > thresh {
-            is_spike[i] = true;
-        }
-    }
-    is_spike
-}
-
-fn remove_spikes_interp(signal: &mut [f32], is_spike: &[bool]) {
-    let n = signal.len();
-    let mut i = 0usize;
-    while i < n {
-        if !is_spike[i] {
-            i += 1;
-            continue;
-        }
-        // start of spike run
-        let start = i;
-        while i < n && is_spike[i] {
-            i += 1;
-        }
-        let end = i; // [start, end) are spikes
-
-        // find left neighbor (start-1) and right neighbor (end)
-        let left_idx = if start == 0 { None } else { Some(start - 1) };
-        let right_idx = if end >= n { None } else { Some(end) };
-
-        match (left_idx, right_idx) {
-            (Some(l), Some(r)) => {
-                let left = signal[l];
-                let right = signal[r];
-                let len = (end - start) as f32 + 1.0;
-                for k in 0..(end - start) {
-                    let alpha = (k as f32 + 1.0) / (len + 1.0); // fraction between left and right
-                    signal[start + k] = left * (1.0 - alpha) + right * alpha;
-                }
-            }
-            (Some(l), None) => {
-                // trailing spikes: fill with left neighbor value (or repeat)
-                for k in start..end {
-                    signal[k] = signal[l];
-                }
-            }
-            (None, Some(r)) => {
-                // leading spikes: fill with right neighbor
-                for k in start..end {
-                    signal[k] = signal[r];
-                }
-            }
-            (None, None) => { /* all signal is spikes: do nothing */ }
-        }
-    }
-}
-
-fn median(slice: &mut [f32]) -> f32 {
-    slice.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    let n = slice.len();
-    if n % 2 == 1 {
-        slice[n / 2]
-    } else {
-        0.5 * (slice[n / 2 - 1] + slice[n / 2])
-    }
 }
 
 fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
