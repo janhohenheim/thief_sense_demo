@@ -15,16 +15,14 @@ use bevy_seedling::{
 };
 use bevy_steam_audio::{
     nodes::{SteamAudioNode, SteamAudioPool},
-    simulation::AudionimbusSimulator,
     sources::AudionimbusSource,
 };
 use firewheel::{
     channel_config::ChannelConfig,
-    diff::{Diff, EventQueue as _, Patch, RealtimeClone},
-    event::{NodeEventType, ProcEvents},
+    diff::{Diff, EventQueue as _, Patch},
+    event::ProcEvents,
     node::{
-        AudioNode, AudioNodeProcessor, EmptyConfig, ProcBuffers, ProcExtra, ProcInfo, ProcStore,
-        ProcessStatus,
+        AudioNode, AudioNodeProcessor, EmptyConfig, ProcBuffers, ProcExtra, ProcInfo, ProcessStatus,
     },
 };
 use fixed_resample::{ResampleQuality, ResamplingChannelConfig};
@@ -176,7 +174,7 @@ fn establish_channel(
     mut commands: Commands,
 ) {
     for (entity, effects) in nodes.iter_mut() {
-        let Ok(mut events) = input_buffers.get_effect_mut(effects) else {
+        let Ok(events) = input_buffers.get_effect_mut(effects) else {
             continue;
         };
         // Todo: attach a new node to the processor
@@ -272,7 +270,7 @@ impl AudioNodeProcessor for InputBufferProcessor {
 
         // downsample from stereo to mono
         self.mono_buffer.clear();
-        for (l, r) in inputs[0].into_iter().zip(inputs[1]) {
+        for (l, r) in inputs[0].iter().zip(inputs[1]) {
             self.mono_buffer.push((l + r) / 2.0);
         }
 
@@ -295,9 +293,7 @@ impl AudioNodeProcessor for InputBufferProcessor {
         stream_info: &firewheel::StreamInfo,
         _context: &mut firewheel::node::ProcStreamCtx,
     ) {
-        if stream_info.sample_rate == stream_info.prev_sample_rate {
-            return;
-        };
+        if stream_info.sample_rate == stream_info.prev_sample_rate {}
         // TODO: (prod, cons) pair is now invalid
     }
 }
