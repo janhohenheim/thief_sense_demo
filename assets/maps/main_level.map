@@ -17,10 +17,10 @@
 // brush 1
 {
 ( -80 -80 16 ) ( -80 -79 16 ) ( -80 -80 17 ) Purple/texture_08 [ 0 -1 0 64 ] [ 0 0 -1 -32 ] 90 1 1
-( -80 -80 16 ) ( -80 -80 17 ) ( -79 -80 16 ) Purple/texture_08 [ 1 0 0 64 ] [ 0 0 -1 -32 ] 90 1 1
+( -80 -96 16 ) ( -80 -96 17 ) ( -79 -96 16 ) Purple/texture_08 [ 1 0 0 64 ] [ 0 0 -1 -32 ] 0 1 1
 ( -80 -80 16 ) ( -79 -80 16 ) ( -80 -79 16 ) Purple/texture_08 [ -1 0 0 64 ] [ 0 -1 0 -32 ] 90 1 1
 ( -64 80 112 ) ( -64 81 112 ) ( -63 80 112 ) Purple/texture_08 [ 1 0 0 64 ] [ 0 -1 0 -32 ] 90 1 1
-( -64 80 32 ) ( -63 80 32 ) ( -64 80 33 ) Purple/texture_08 [ -1 0 0 64 ] [ 0 0 -1 -32 ] 90 1 1
+( -64 224 32 ) ( -63 224 32 ) ( -64 224 33 ) Purple/texture_08 [ -1 0 0 64 ] [ 0 0 -1 -32 ] 180 1 1
 ( -64 80 32 ) ( -64 80 33 ) ( -64 81 32 ) Purple/texture_08 [ 0 1 0 64 ] [ 0 0 -1 -32 ] 90 1 1
 }
 // brush 2
@@ -53,20 +53,13 @@
 }
 // entity 1
 {
-"classname" "npc"
-"origin" "24 40 32"
-"angle" "180"
-"target" "a"
-}
-// entity 2
-{
 "classname" "path_corner"
 "origin" "72 -152 40"
 "targetname" "a"
 "target" "b"
 "wait" "2.5"
 }
-// entity 3
+// entity 2
 {
 "classname" "path_corner"
 "origin" "-184 -152 40"
@@ -74,7 +67,7 @@
 "target" "c"
 "wait" "2.5"
 }
-// entity 4
+// entity 3
 {
 "classname" "path_corner"
 "origin" "-184 40 40"
@@ -82,7 +75,7 @@
 "target" "d"
 "wait" "2.5"
 }
-// entity 5
+// entity 4
 {
 "classname" "path_corner"
 "origin" "72 56 40"
@@ -90,12 +83,12 @@
 "target" "a"
 "wait" "2.5"
 }
-// entity 6
+// entity 5
 {
 "classname" "player"
 "origin" "-72 -264 40"
 }
-// entity 7
+// entity 6
 {
 "classname" "light_directional"
 "origin" "296 -8 88"
@@ -103,7 +96,7 @@
 "shadows_enabled" "true"
 "illuminance" "100"
 }
-// entity 8
+// entity 7
 {
 "classname" "light_spot"
 "origin" "184 216 136"
@@ -111,10 +104,22 @@
 "intensity" "1e+06"
 "shadows_enabled" "true"
 }
-// entity 9
+// entity 8
 {
 "classname" "light_point"
 "origin" "32 -16 96"
 "shadows_enabled" "true"
 "intensity" "5e+05"
+}
+// entity 9
+{
+"classname" "npc"
+"origin" "72 72 40"
+"target" "a"
+}
+// entity 10
+{
+"classname" "npc"
+"origin" "-216 -136 40"
+"target" "c"
 }

@@ -102,8 +102,14 @@ impl AudioDebugWriter {
 
 fn add_writer(add: On<Add, Npc>, name: Query<NameOrEntity>, mut commands: Commands) -> Result {
     let name = name.get(add.entity).unwrap();
+    let name = if let Some(name) = name.name {
+        format!("{name}-{id}", id = add.entity)
+    } else {
+        format!("{id}", id = add.entity)
+    };
     let debug_dir = PathBuf::from("debug");
     fs::create_dir_all(&debug_dir).unwrap();
+
     let debug_file = debug_dir.join(format!("{name}.wav"));
     let debug_file = File::create(debug_file)?;
     let writer = AudioDebugWriter {

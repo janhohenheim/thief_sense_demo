@@ -21,7 +21,7 @@ pub(super) fn plugin(app: &mut App) {
         debug::plugin,
     ));
     app.insert_resource(EnableAudioPathVisualization(false))
-        .insert_resource(EnableAudioWriter(false));
+        .insert_resource(EnableAudioWriter(true));
 }
 
 mod param {
