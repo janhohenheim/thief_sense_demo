@@ -169,10 +169,10 @@ pub(crate) fn loudness_to_listener(
 
         accumulated_output.extend_from_slice(iteration_out_buffer);
     }
-    info!("Effects took {:?}", now.elapsed());
+    //info!("Effects took {:?}", now.elapsed());
 
     if let Ok(mut writer) = writer.get_mut(listener) {
-        for (i, sample) in accumulated_output.iter().enumerate() {
+        for (i, sample) in buffer.inputs.iter().enumerate() {
             writer.write_sample(i, *sample);
         }
     }

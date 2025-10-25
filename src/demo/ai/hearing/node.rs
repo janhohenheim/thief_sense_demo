@@ -15,6 +15,7 @@ use bevy_seedling::{
 };
 use bevy_steam_audio::{
     nodes::{SteamAudioNode, SteamAudioPool},
+    simulation::AudionimbusSimulator,
     sources::AudionimbusSource,
 };
 use firewheel::{
@@ -22,14 +23,11 @@ use firewheel::{
     diff::{Diff, EventQueue as _, Patch, RealtimeClone},
     event::{NodeEventType, ProcEvents},
     node::{
-        AudioNode, AudioNodeProcessor, EmptyConfig, ProcBuffers, ProcExtra, ProcInfo, ProcessStatus,
+        AudioNode, AudioNodeProcessor, EmptyConfig, ProcBuffers, ProcExtra, ProcInfo, ProcStore,
+        ProcessStatus,
     },
 };
-use ringbuf::{
-    HeapRb,
-    traits::{Consumer, Producer, Split},
-};
-use rubato::{FastFixedOut, PolynomialDegree, Resampler};
+use fixed_resample::{ResampleQuality, ResamplingChannelConfig};
 
 use crate::{
     demo::ai::{
@@ -42,8 +40,8 @@ use crate::{
     },
     despawn::Despawn,
 };
-type Prod = <HeapRb<f32> as Split>::Prod;
-type Cons = <HeapRb<f32> as Split>::Cons;
+type Prod = fixed_resample::ResamplingProd<f32, 1>;
+type Cons = fixed_resample::ResamplingCons<f32>;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(PreStartup, init_pool)
@@ -59,7 +57,6 @@ pub(super) fn plugin(app: &mut App) {
 pub(crate) struct InputBuffer {
     pub(crate) inputs: Vec<f32>,
     pub(crate) loudness: f32,
-    cons: Mutex<Cons>,
     is_dropped: Arc<AtomicBool>,
 }
 
@@ -73,15 +70,19 @@ impl InputBuffer {
 #[reflect(Component)]
 pub(crate) struct AiPool;
 
-#[derive(Diff, Patch, Debug, PartialEq, Clone, RealtimeClone, Component, Reflect)]
+#[derive(Component, Diff, Patch, Clone, Default, Reflect)]
 #[reflect(Component)]
-struct InputBufferNode;
+struct InputBufferNode {
+    #[reflect(ignore)]
+    #[diff(skip)]
+    cons: Arc<Mutex<Option<Cons>>>,
+}
 
 fn init_pool(mut commands: Commands) {
     commands.spawn((
         Name::new("AI sound pool"),
         SamplerPool(AiPool),
-        sample_effects![InputBufferNode, SteamAudioNode::default(),],
+        sample_effects![InputBufferNode::default(), SteamAudioNode::default(),],
     ));
 }
 
@@ -107,9 +108,18 @@ fn despawn_pool_late(remove: On<Remove, AiPool>, mut commands: Commands) {
         .try_insert(Despawn::after(SENSE_INTERVAL_FAR * 10.0));
 }
 
-fn update_input_buffer(mut buffers: Query<(&mut InputBuffer, Has<Despawn>)>, time: Res<Time>) {
-    let mut scratch = [0.0; param::MAX_FRAME_SIZE as usize];
-    for (mut buffer, despawn) in buffers.iter_mut() {
+fn update_input_buffer(
+    mut buffers: Query<(&mut InputBuffer, &SampleEffects, Has<Despawn>)>,
+    node: Query<&InputBufferNode>,
+    time: Res<Time>,
+    mut scratch: Local<Option<Vec<f32>>>,
+) {
+    let scratch = scratch.get_or_insert_with(|| vec![0.0; param::MAX_FRAME_SIZE as usize]);
+    for (mut buffer, effects, despawn) in buffers.iter_mut() {
+        let Ok(node) = node.get_effect(effects) else {
+            error!("Input buffer has no node");
+            continue;
+        };
         let is_dropped = buffer.is_dropped.load(Ordering::Relaxed);
         if is_dropped {
             assert!(despawn);
@@ -123,7 +133,29 @@ fn update_input_buffer(mut buffers: Query<(&mut InputBuffer, Has<Despawn>)>, tim
             buffer.update_loudness();
         } else {
             loop {
-                let incoming = buffer.cons.lock().unwrap().pop_slice(&mut scratch);
+                let Ok(mut cons) = node.cons.try_lock() else {
+                    error!("Node cons not unlocked");
+                    break;
+                };
+                let Some(cons) = cons.as_mut() else {
+                    error!("Node processor not ready");
+                    break;
+                };
+                let status = cons.read_interleaved(scratch);
+                let incoming = match status {
+                    fixed_resample::ReadStatus::Ok => param::MAX_FRAME_SIZE as usize,
+                    fixed_resample::ReadStatus::InputNotReady => 0,
+                    fixed_resample::ReadStatus::UnderflowOccurred { num_frames_read } => {
+                        // This is entirely expected: the producer and consumer run at different rates.
+                        num_frames_read
+                    }
+                    fixed_resample::ReadStatus::OverflowCorrected {
+                        num_frames_discarded,
+                    } => {
+                        warn!("Overflow in input buffer: {num_frames_discarded} frames discarded");
+                        param::MAX_FRAME_SIZE as usize
+                    }
+                };
                 if incoming == 0 {
                     break;
                 }
@@ -147,27 +179,21 @@ fn establish_channel(
         let Ok(mut events) = input_buffers.get_effect_mut(effects) else {
             continue;
         };
-        // This should be BLOCK_SIZE * n for some wiggle room for when the audio thread is pushing faster than we can process.
-        // Turns out `MAX_FRAME_SIZE` fits the bill nicely!
-        let ringbuf_capacity = param::MAX_FRAME_SIZE as usize;
-        let (prod, cons) = HeapRb::new(ringbuf_capacity).split();
+        // Todo: attach a new node to the processor
+        // - new (prod, cons)
+        // - tell the old it's dropped
+
         let is_dropped = Arc::new(AtomicBool::new(false));
-        let event = InputBufferInitEvent {
-            prod: Some(prod),
-            is_dropped: is_dropped.clone(),
-        };
-        events.push(NodeEventType::custom(event));
         commands.entity(entity).insert(InputBuffer {
             inputs: vec![0.0; param::MAX_FRAME_SIZE as usize],
             loudness: 0.0,
-            cons: Mutex::new(cons),
             is_dropped,
         });
     }
 }
 
 struct InputBufferInitEvent {
-    prod: Option<Prod>,
+    prod: Prod,
     is_dropped: Arc<AtomicBool>,
 }
 
@@ -180,7 +206,7 @@ impl AudioNode for InputBufferNode {
         firewheel::node::AudioNodeInfo::new()
             .debug_name("input buffer")
             .channel_config(ChannelConfig {
-                num_inputs: ChannelCount::MONO,
+                num_inputs: ChannelCount::STEREO,
                 num_outputs: ChannelCount::STEREO,
             })
     }
@@ -190,35 +216,34 @@ impl AudioNode for InputBufferNode {
         _configuration: &Self::Configuration,
         cx: firewheel::node::ConstructProcessorContext,
     ) -> impl firewheel::node::AudioNodeProcessor {
-        let resample_ratio = param::SAMPLING_RATE as f64 / cx.stream_info.sample_rate.get() as f64;
-        let max_resample_ratio_relative = 1.0;
-        let interpolation_type = PolynomialDegree::Linear;
-        let chunk_size = (resample_ratio * FIXED_BLOCK_SIZE as f64).floor() as usize;
-        let nbr_channels = 1;
-        let resampler = FastFixedOut::new(
-            resample_ratio,
-            max_resample_ratio_relative,
-            interpolation_type,
-            chunk_size,
-            nbr_channels,
-        )
-        .unwrap();
+        let (prod, cons) = fixed_resample::resampling_channel(
+            1.try_into().unwrap(),
+            cx.stream_info.sample_rate.get(),
+            param::SAMPLING_RATE,
+            resampling_channel_config(),
+        );
+        self.cons.try_lock().unwrap().replace(cons);
+
         InputBufferProcessor {
-            prod: None,
+            prod,
             is_prod_dropped: None,
-            resampler,
-            fixed_input: Vec::with_capacity(FIXED_BLOCK_SIZE),
-            fixed_out: vec![0.0; chunk_size],
+            mono_buffer: Vec::with_capacity(cx.stream_info.max_block_frames.get() as usize),
         }
     }
 }
 
+fn resampling_channel_config() -> ResamplingChannelConfig {
+    ResamplingChannelConfig {
+        quality: ResampleQuality::Low,
+        underflow_autocorrect_percent_threshold: None,
+        ..default()
+    }
+}
+
 struct InputBufferProcessor {
-    prod: Option<Prod>,
+    prod: Prod,
     is_prod_dropped: Option<Arc<AtomicBool>>,
-    resampler: FastFixedOut<f32>,
-    fixed_input: Vec<f32>,
-    fixed_out: Vec<f32>,
+    mono_buffer: Vec<f32>,
 }
 
 impl AudioNodeProcessor for InputBufferProcessor {
@@ -242,46 +267,26 @@ impl AudioNodeProcessor for InputBufferProcessor {
                 }
             }
         }
-        if self.fixed_input.capacity() > FIXED_BLOCK_SIZE {
-            error_once!("Allocated fixed_input in audio thread");
-        }
-        if self.fixed_out.len() > FIXED_BLOCK_SIZE {
-            error_once!("Allocated fixed_out in audio thread");
-        }
 
         // Don't early return on empty input: that is a valid thing to buffer.
 
-        if self.fixed_input.len() + proc_info.frames > FIXED_BLOCK_SIZE {
-            let diff = proc_info.frames + self.fixed_input.len() - FIXED_BLOCK_SIZE;
-            self.fixed_input.drain(..diff);
+        // downsample from stereo to mono
+        self.mono_buffer.clear();
+        for (l, r) in inputs[0].into_iter().zip(inputs[1]) {
+            self.mono_buffer.push((l + r) / 2.0);
         }
-        for sample in inputs[0] {
-            // downsample from stereo to mono
-            self.fixed_input.push(*sample * 0.5);
-        }
-        if self.fixed_input.len() < self.fixed_input.capacity() {
-            return ProcessStatus::Bypass;
-        }
-        let Some(prod) = self.prod.as_mut() else {
-            return ProcessStatus::Bypass;
-        };
 
-        let rms_before = rms(&self.fixed_input);
-        let (read, written) = self
-            .resampler
-            .process_into_buffer(&[&self.fixed_input], &mut [&mut self.fixed_out], None)
-            .unwrap();
-        self.fixed_input.drain(..read);
-        let out = &mut self.fixed_out[..written];
-
-        let rms_after = rms(out);
-        if rms_after > 1e-5 {
-            let ratio = rms_before / rms_after;
-            for sample in out.iter_mut() {
-                *sample *= ratio;
+        let status = self.prod.push_interleaved(&self.mono_buffer);
+        match status {
+            fixed_resample::PushStatus::Ok => {}
+            fixed_resample::PushStatus::OutputNotReady => {}
+            fixed_resample::PushStatus::OverflowOccurred { num_frames_pushed } => {
+                error!("Underflow while pushing data: {num_frames_pushed}")
             }
+            fixed_resample::PushStatus::UnderflowCorrected {
+                num_zero_frames_pushed,
+            } => error!("Underflow while pushing data: {num_zero_frames_pushed}"),
         }
-        prod.push_slice(out);
         ProcessStatus::Bypass
     }
 
@@ -293,19 +298,6 @@ impl AudioNodeProcessor for InputBufferProcessor {
         if stream_info.sample_rate == stream_info.prev_sample_rate {
             return;
         };
-        let resample_ratio = param::SAMPLING_RATE as f64 / stream_info.sample_rate.get() as f64;
-        let max_resample_ratio_relative = 1.0;
-        let interpolation_type = PolynomialDegree::Linear;
-        let chunk_size = (resample_ratio * FIXED_BLOCK_SIZE as f64).floor() as usize;
-        let nbr_channels = 1;
-        self.resampler = FastFixedOut::new(
-            resample_ratio,
-            max_resample_ratio_relative,
-            interpolation_type,
-            chunk_size,
-            nbr_channels,
-        )
-        .unwrap();
-        self.fixed_out = vec![0.0; chunk_size];
+        // TODO: (prod, cons) pair is now invalid
     }
 }

@@ -77,9 +77,8 @@ trenchbroom_steam_audio = { git = "https://github.com/janhohenheim/bevy_steam_au
 firewheel = { version = "0.8.0-rc.1", features = ["std"] }
 bevy_shuffle_bag = "0.3.0"
 crossbeam-channel = "0.5.15"
-ringbuf = "0.4.8"
-rubato = "0.16.2"
 hound = "3.5.1"
+fixed-resample = "0.9.2"
 
 [features]
 # Default to a native dev build.
