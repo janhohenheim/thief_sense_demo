@@ -5,11 +5,10 @@ use crate::demo::{ai::vision::visibility::AiVisibility, npc::Npc};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(setup_ai_debug_ui);
-    app.add_systems(PostUpdate, update_ai_debug_ui);
+    app.add_systems(Update, update_ai_debug_ui);
 }
 
 fn setup_ai_debug_ui(add: On<Add, Npc>, mut commands: Commands) {
-    // Yes, all of these `Pickable::IGNORE` are needed for the movement gizmo to work :/
     commands
         .entity(add.entity)
         .insert(AnchoredUiNodes::spawn_one((
@@ -20,28 +19,44 @@ fn setup_ai_debug_ui(add: On<Add, Npc>, mut commands: Commands) {
             },
             children![(
                 Node {
-                    top: px(10.0),
-                    left: px(30.0),
-                    column_gap: px(10.0),
-                    min_height: px(100.0),
+                    bottom: px(30.0),
+                    row_gap: px(10.0),
+                    flex_direction: FlexDirection::ColumnReverse,
+                    min_width: px(100.0),
                     ..default()
                 },
-                Pickable::IGNORE,
                 children![
                     (
-                        HearingBar,
                         Node {
-                            height: px(0.0),
-                            width: px(10.0),
+                            align_items: AlignItems::Center,
+                            column_gap: px(10.0),
                             ..default()
                         },
-                        BackgroundColor(tailwind::RED_600.into()),
-                        Pickable::IGNORE,
+                        children![
+                            (
+                                Text::new("Hearing:"),
+                                TextColor::from(tailwind::SLATE_200),
+                                TextFont::from_font_size(15.0)
+                            ),
+                            (
+                                HearingBar,
+                                Node {
+                                    height: px(10.0),
+                                    width: px(0.0),
+                                    ..default()
+                                },
+                                BackgroundColor(tailwind::RED_600.into()),
+                            )
+                        ]
                     ),
-                    (VisionText, Text::default(), Pickable::IGNORE,)
+                    (
+                        VisionText,
+                        Text::default(),
+                        TextColor::from(tailwind::SLATE_200),
+                        TextFont::from_font_size(15.0)
+                    ),
                 ]
             )],
-            Pickable::IGNORE,
         )));
 }
 
@@ -78,17 +93,17 @@ fn update_ai_debug_ui(
 
         vision_text.0 = if let Some(vision) = vision {
             format!(
-                "{vision_name}:\nlight: {light}\nexp: {exp}\nmov: {mov}",
+                "Seeing {vision_name}:\n  light: {light}\n  exp: {exp}\n  mov: {mov}",
                 vision_name = name.get(vision.entity).unwrap(),
                 light = vision.visibility.lighting,
                 exp = vision.visibility.exposure,
                 mov = vision.visibility.movement
             )
         } else {
-            "No vision".to_string()
+            "Seeing None".to_string()
         };
 
-        hearing_bar.height = if let Some(hearing) = hearing {
+        hearing_bar.width = if let Some(hearing) = hearing {
             px(hearing.0 * 3000.0)
         } else {
             px(0.0)

@@ -95,6 +95,9 @@ impl Plugin for AppPlugin {
         app.insert_resource(MeshPickingSettings {
             require_markers: true,
             ..default()
+        })
+        .insert_resource(UiPickingSettings {
+            require_markers: true,
         });
 
         // Add other plugins.

@@ -61,7 +61,7 @@
 // entity 2
 {
 "classname" "path_corner"
-"origin" "104 -152 40"
+"origin" "72 -152 40"
 "targetname" "a"
 "target" "b"
 "wait" "2.5"
@@ -85,7 +85,7 @@
 // entity 5
 {
 "classname" "path_corner"
-"origin" "104 56 40"
+"origin" "72 56 40"
 "targetname" "d"
 "target" "a"
 "wait" "2.5"

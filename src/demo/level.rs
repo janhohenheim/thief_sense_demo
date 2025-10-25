@@ -52,7 +52,11 @@ pub(crate) fn spawn_level(mut commands: Commands, assets: Res<AssetServer>) {
 }
 
 fn bake_probes(_ready: On<SceneCollidersReady>, mut generate: MessageWriter<GenerateProbes>) {
-    generate.write(GenerateProbes::default());
+    generate.write(GenerateProbes {
+        spacing: 2.0,
+        height: 1.0,
+        ..default()
+    });
 }
 
 fn make_brushes_pickable(
