@@ -122,37 +122,37 @@ fn update_input_buffer(
             buffer.inputs.drain(..silence);
             buffer.inputs.extend(iter::repeat_n(0.0, silence));
             buffer.update_loudness();
-        } else {
-            loop {
-                let status = {
-                    let Ok(mut cons) = buffer.cons.try_lock() else {
-                        error!("Node cons not unlocked");
-                        break;
-                    };
-                    cons.read_interleaved(scratch)
-                };
-                let incoming = match status {
-                    fixed_resample::ReadStatus::Ok => param::MAX_FRAME_SIZE as usize,
-                    fixed_resample::ReadStatus::InputNotReady => 0,
-                    fixed_resample::ReadStatus::UnderflowOccurred { num_frames_read } => {
-                        // This is entirely expected: the producer and consumer run at different rates.
-                        num_frames_read
-                    }
-                    fixed_resample::ReadStatus::OverflowCorrected {
-                        num_frames_discarded,
-                    } => {
-                        warn!("Overflow in input buffer: {num_frames_discarded} frames discarded");
-                        param::MAX_FRAME_SIZE as usize
-                    }
-                };
-                if incoming == 0 {
-                    break;
-                }
-                buffer.inputs.drain(..incoming);
-                buffer.inputs.extend(&scratch[..incoming]);
-                buffer.update_loudness();
-            }
+            continue;
         }
+
+        let status = {
+            let Ok(mut cons) = buffer.cons.try_lock() else {
+                error!("Node cons not unlocked");
+                continue;
+            };
+            cons.read_interleaved(scratch)
+        };
+        let incoming = match status {
+            fixed_resample::ReadStatus::Ok => param::MAX_FRAME_SIZE as usize,
+            fixed_resample::ReadStatus::InputNotReady => 0,
+            fixed_resample::ReadStatus::UnderflowOccurred { num_frames_read } => {
+                // This is entirely expected: the producer and consumer run at different rates.
+                num_frames_read
+            }
+            fixed_resample::ReadStatus::OverflowCorrected {
+                num_frames_discarded,
+            } => {
+                warn!("Overflow in input buffer: {num_frames_discarded} frames discarded");
+                param::MAX_FRAME_SIZE as usize
+            }
+        };
+        if incoming == 0 {
+            continue;
+        }
+        buffer.inputs.drain(..incoming);
+        buffer.inputs.extend(&scratch[..incoming]);
+        buffer.update_loudness();
+
         if buffer.inputs.capacity() > MAX_FRAME_SIZE as usize {
             error!("Input buffer capacity exceeded {MAX_FRAME_SIZE}");
         }
