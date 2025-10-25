@@ -9,18 +9,20 @@ use std::{
 use bevy::{ecs::entity_disabling::Disabled, prelude::*};
 use bevy_seedling::{
     SeedlingSystems,
+    context::StreamRestartEvent,
     pool::{Sampler, SamplerPool},
     prelude::*,
     sample_effects,
 };
 use bevy_steam_audio::{
     nodes::{SteamAudioNode, SteamAudioPool},
+    simulation::AudionimbusSimulator,
     sources::AudionimbusSource,
 };
 use firewheel::{
     channel_config::ChannelConfig,
-    diff::{Diff, EventQueue as _, Patch},
-    event::ProcEvents,
+    diff::{Diff, EventQueue as _, Patch, RealtimeClone},
+    event::{NodeEventType, ProcEvents},
     node::{
         AudioNode, AudioNodeProcessor, EmptyConfig, ProcBuffers, ProcExtra, ProcInfo, ProcessStatus,
     },
@@ -46,7 +48,8 @@ pub(super) fn plugin(app: &mut App) {
         .add_systems(FixedPreUpdate, update_input_buffer)
         .add_systems(Last, establish_channel.in_set(SeedlingSystems::Queue));
     app.add_observer(setup_sample_player)
-        .add_observer(despawn_pool_late);
+        .add_observer(despawn_pool_late)
+        .add_observer(reestablish_channel);
     app.register_required_components::<AiPool, AiAudible>();
     app.register_node::<InputBufferNode>();
 }
@@ -56,6 +59,7 @@ pub(crate) struct InputBuffer {
     pub(crate) inputs: Vec<f32>,
     pub(crate) loudness: f32,
     is_dropped: Arc<AtomicBool>,
+    cons: Mutex<Cons>,
 }
 
 impl InputBuffer {
@@ -68,13 +72,9 @@ impl InputBuffer {
 #[reflect(Component)]
 pub(crate) struct AiPool;
 
-#[derive(Component, Diff, Patch, Clone, Default, Reflect)]
+#[derive(Component, Diff, Patch, Clone, RealtimeClone, Default, Reflect)]
 #[reflect(Component)]
-struct InputBufferNode {
-    #[reflect(ignore)]
-    #[diff(skip)]
-    cons: Arc<Mutex<Option<Cons>>>,
-}
+struct InputBufferNode;
 
 fn init_pool(mut commands: Commands) {
     commands.spawn((
@@ -107,22 +107,15 @@ fn despawn_pool_late(remove: On<Remove, AiPool>, mut commands: Commands) {
 }
 
 fn update_input_buffer(
-    mut buffers: Query<(&mut InputBuffer, &SampleEffects, Has<Despawn>)>,
-    node: Query<&InputBufferNode>,
+    mut buffers: Query<&mut InputBuffer>,
     time: Res<Time>,
     mut scratch: Local<Option<Vec<f32>>>,
 ) {
     let scratch = scratch.get_or_insert_with(|| vec![0.0; param::MAX_FRAME_SIZE as usize]);
-    for (mut buffer, effects, despawn) in buffers.iter_mut() {
-        let Ok(node) = node.get_effect(effects) else {
-            error!("Input buffer has no node");
-            continue;
-        };
+    for mut buffer in buffers.iter_mut() {
         let is_dropped = buffer.is_dropped.load(Ordering::Relaxed);
+
         if is_dropped {
-            assert!(despawn);
-        }
-        if despawn && is_dropped {
             let silence = ((time.delta_secs() * param::SAMPLING_RATE as f32).floor() as usize)
                 .min(param::MAX_FRAME_SIZE as usize);
 
@@ -131,15 +124,13 @@ fn update_input_buffer(
             buffer.update_loudness();
         } else {
             loop {
-                let Ok(mut cons) = node.cons.try_lock() else {
-                    error!("Node cons not unlocked");
-                    break;
+                let status = {
+                    let Ok(mut cons) = buffer.cons.try_lock() else {
+                        error!("Node cons not unlocked");
+                        break;
+                    };
+                    cons.read_interleaved(scratch)
                 };
-                let Some(cons) = cons.as_mut() else {
-                    error!("Node processor not ready");
-                    break;
-                };
-                let status = cons.read_interleaved(scratch);
                 let incoming = match status {
                     fixed_resample::ReadStatus::Ok => param::MAX_FRAME_SIZE as usize,
                     fixed_resample::ReadStatus::InputNotReady => 0,
@@ -169,33 +160,70 @@ fn update_input_buffer(
 }
 
 fn establish_channel(
-    mut nodes: Query<(Entity, &SampleEffects), Added<Sampler>>,
-    mut input_buffers: Query<&mut AudioEvents, With<InputBufferNode>>,
+    nodes: Query<(Entity, &SampleEffects), Added<Sampler>>,
+    mut input_buffer_nodes: Query<&mut AudioEvents, With<InputBufferNode>>,
+    main_simulator: Res<AudionimbusSimulator>,
     mut commands: Commands,
 ) {
-    for (entity, effects) in nodes.iter_mut() {
-        let Ok(events) = input_buffers.get_effect_mut(effects) else {
+    for (entity, effects) in nodes.iter() {
+        let Ok(mut events) = input_buffer_nodes.get_effect_mut(effects) else {
             continue;
         };
-        // Todo: attach a new node to the processor
-        // - new (prod, cons)
-        // - tell the old it's dropped
-
+        let (prod, cons) = fixed_resample::resampling_channel(
+            1.try_into().unwrap(),
+            main_simulator.sampling_rate.get(),
+            param::SAMPLING_RATE,
+            resampling_channel_config(),
+        );
         let is_dropped = Arc::new(AtomicBool::new(false));
+        let event = InputBufferInitEvent {
+            prod: Some(prod),
+            is_dropped: Some(is_dropped.clone()),
+        };
+        events.push(NodeEventType::custom(event));
+
         commands.entity(entity).insert(InputBuffer {
             inputs: vec![0.0; param::MAX_FRAME_SIZE as usize],
             loudness: 0.0,
             is_dropped,
+            cons: Mutex::new(cons),
         });
     }
 }
 
-struct InputBufferInitEvent {
-    prod: Prod,
-    is_dropped: Arc<AtomicBool>,
+fn reestablish_channel(
+    restart: On<StreamRestartEvent>,
+    mut nodes: Query<(&SampleEffects, &mut InputBuffer)>,
+    mut input_buffer_nodes: Query<&mut AudioEvents, With<InputBufferNode>>,
+    main_simulator: Res<AudionimbusSimulator>,
+) {
+    if restart.event().previous_rate == restart.event().current_rate {
+        return;
+    }
+    for (effects, mut input_buffer) in nodes.iter_mut() {
+        let Ok(mut events) = input_buffer_nodes.get_effect_mut(effects) else {
+            continue;
+        };
+        let (prod, cons) = fixed_resample::resampling_channel(
+            1.try_into().unwrap(),
+            main_simulator.sampling_rate.get(),
+            param::SAMPLING_RATE,
+            resampling_channel_config(),
+        );
+        let event = InputBufferInitEvent {
+            prod: Some(prod),
+            is_dropped: None,
+        };
+        events.push(NodeEventType::custom(event));
+
+        input_buffer.cons = Mutex::new(cons);
+    }
 }
 
-const FIXED_BLOCK_SIZE: usize = 1024;
+struct InputBufferInitEvent {
+    prod: Option<Prod>,
+    is_dropped: Option<Arc<AtomicBool>>,
+}
 
 impl AudioNode for InputBufferNode {
     type Configuration = EmptyConfig;
@@ -214,16 +242,8 @@ impl AudioNode for InputBufferNode {
         _configuration: &Self::Configuration,
         cx: firewheel::node::ConstructProcessorContext,
     ) -> impl firewheel::node::AudioNodeProcessor {
-        let (prod, cons) = fixed_resample::resampling_channel(
-            1.try_into().unwrap(),
-            cx.stream_info.sample_rate.get(),
-            param::SAMPLING_RATE,
-            resampling_channel_config(),
-        );
-        self.cons.try_lock().unwrap().replace(cons);
-
         InputBufferProcessor {
-            prod,
+            prod: None,
             is_prod_dropped: None,
             mono_buffer: Vec::with_capacity(cx.stream_info.max_block_frames.get() as usize),
         }
@@ -239,7 +259,7 @@ fn resampling_channel_config() -> ResamplingChannelConfig {
 }
 
 struct InputBufferProcessor {
-    prod: Prod,
+    prod: Option<Prod>,
     is_prod_dropped: Option<Arc<AtomicBool>>,
     mono_buffer: Vec<f32>,
 }
@@ -247,7 +267,7 @@ struct InputBufferProcessor {
 impl AudioNodeProcessor for InputBufferProcessor {
     fn process(
         &mut self,
-        proc_info: &ProcInfo,
+        _proc_info: &ProcInfo,
         ProcBuffers { inputs, .. }: ProcBuffers,
         events: &mut ProcEvents,
         _extra: &mut ProcExtra,
@@ -257,14 +277,17 @@ impl AudioNodeProcessor for InputBufferProcessor {
                 // Swap the values so that the old producer gets dropped on
                 // the main thread.
                 core::mem::swap(&mut self.prod, &mut out_stream_event.prod);
-                let old_prod_dropped = self
-                    .is_prod_dropped
-                    .replace(out_stream_event.is_dropped.clone());
-                if let Some(old_prod_dropped) = old_prod_dropped {
-                    old_prod_dropped.store(true, Ordering::Relaxed);
+                if let Some(new_prod_dropped) = out_stream_event.is_dropped.take() {
+                    let old_prod_dropped = self.is_prod_dropped.replace(new_prod_dropped);
+                    if let Some(old_prod_dropped) = old_prod_dropped {
+                        old_prod_dropped.store(true, Ordering::Relaxed);
+                    }
                 }
             }
         }
+        let Some(prod) = self.prod.as_mut() else {
+            return ProcessStatus::Bypass;
+        };
 
         // Don't early return on empty input: that is a valid thing to buffer.
 
@@ -274,7 +297,7 @@ impl AudioNodeProcessor for InputBufferProcessor {
             self.mono_buffer.push((l + r) / 2.0);
         }
 
-        let status = self.prod.push_interleaved(&self.mono_buffer);
+        let status = prod.push_interleaved(&self.mono_buffer);
         match status {
             fixed_resample::PushStatus::Ok => {}
             fixed_resample::PushStatus::OutputNotReady => {}
@@ -293,7 +316,11 @@ impl AudioNodeProcessor for InputBufferProcessor {
         stream_info: &firewheel::StreamInfo,
         _context: &mut firewheel::node::ProcStreamCtx,
     ) {
-        if stream_info.sample_rate == stream_info.prev_sample_rate {}
-        // TODO: (prod, cons) pair is now invalid
+        if stream_info.sample_rate == stream_info.prev_sample_rate {
+            return;
+        }
+
+        // We could drop self.prod here and wait until the ECS sends a new one, but that would drop frames.
+        // Better imo to resample some inputs at the wrong rate than to drop them.
     }
 }
