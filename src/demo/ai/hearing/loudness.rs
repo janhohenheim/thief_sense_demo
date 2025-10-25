@@ -41,17 +41,27 @@ pub(crate) fn loudness_to_listener(
         &GlobalTransform,
     )>,
     mut writer: Query<&mut AudioDebugWriter>,
+    mut buffers: Local<
+        Option<(
+            [f32; param::MIN_FRAME_SIZE as usize],
+            [[f32; param::MIN_FRAME_SIZE as usize]; param::CHANNELS as usize],
+            [f32; param::MIN_FRAME_SIZE as usize],
+            Vec<f32>,
+        )>,
+    >,
 ) -> Result<f32> {
     let listener_transform = AudionimbusCoordinateSystem::from(*transform.get(listener)?);
     let (mut buffer, mut effects, mut source, source_transform) = sample_player.get_mut(source)?;
-    let SteamAudioEffects {
-        direct,
-        path,
-        direct_buffer,
-        path_buffer,
-        iteration_out_buffer,
-        accumulated_output,
-    } = effects.as_mut();
+    let SteamAudioEffects { direct, path } = effects.as_mut();
+    let (direct_buffer, path_buffer, iteration_out_buffer, accumulated_output) = buffers
+        .get_or_insert_with(|| {
+            (
+                [0.0; param::MIN_FRAME_SIZE as usize],
+                [[0.0; param::MIN_FRAME_SIZE as usize]; param::CHANNELS as usize],
+                [0.0; param::MIN_FRAME_SIZE as usize],
+                Vec::with_capacity(param::MAX_FRAME_SIZE as usize),
+            )
+        });
     accumulated_output.clear();
 
     let source_transform = AudionimbusCoordinateSystem::from(*source_transform);
@@ -105,9 +115,9 @@ pub(crate) fn loudness_to_listener(
         ..outputs.direct().into_inner()
     };
 
-    let mut coeffs = [0.0; 20];
+    let mut coeffs = [0.0; param::CHANNELS as usize];
     coeffs[0] = 1.0;
-    let mut path_params = audionimbus::PathEffectParams {
+    let path_params = audionimbus::PathEffectParams {
         eq_coeffs: [1.0; 3],
         sh_coeffs: audionimbus::ShCoeffs(coeffs.as_mut_ptr()),
         order: param::ORDER,
@@ -117,10 +127,6 @@ pub(crate) fn loudness_to_listener(
         normalize_eq: false,
         ..outputs.pathing().into_inner()
     };
-    for coeff in &mut path_params.eq_coeffs {
-        info!(?coeff);
-        *coeff = coeff.max(0.1);
-    }
 
     let repeat = if near { 1 } else { SENSE_INTERVAL_NEAR_TO_FAR };
     let now = std::time::Instant::now();
@@ -201,10 +207,6 @@ fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
                 spatialization: None,
             },
         )?,
-        direct_buffer: [0.0; param::MIN_FRAME_SIZE as usize],
-        path_buffer: [[0.0; param::MIN_FRAME_SIZE as usize]; param::CHANNELS as usize],
-        iteration_out_buffer: [0.0; param::MIN_FRAME_SIZE as usize],
-        accumulated_output: Vec::with_capacity(param::MAX_FRAME_SIZE as usize),
     });
     Ok(())
 }
@@ -213,8 +215,4 @@ fn create_effects(add: On<Add, InputBuffer>, mut commands: Commands) -> Result {
 pub(crate) struct SteamAudioEffects {
     direct: audionimbus::DirectEffect,
     path: audionimbus::PathEffect,
-    direct_buffer: [f32; param::MIN_FRAME_SIZE as usize],
-    path_buffer: [[f32; param::MIN_FRAME_SIZE as usize]; param::CHANNELS as usize],
-    iteration_out_buffer: [f32; param::MIN_FRAME_SIZE as usize],
-    accumulated_output: Vec<f32>,
 }
