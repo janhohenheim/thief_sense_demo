@@ -85,10 +85,6 @@ impl FromWorld for AiSimulator {
     }
 }
 
-#[derive(Component, Default, Reflect)]
-#[reflect(Component)]
-pub(crate) struct AiAudible;
-
 #[derive(Component, Clone, Deref, DerefMut)]
 #[require(Transform, GlobalTransform)]
 struct AiSource(audionimbus::Source);

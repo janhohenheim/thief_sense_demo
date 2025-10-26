@@ -7,7 +7,7 @@ use rand::rng;
 use crate::{
     animation::AnimationTargetOf,
     asset_tracking::LoadResource as _,
-    demo::{ai::hearing::AiAudible, npc::animation::HumanoidStep, player::Player},
+    demo::{ai::hearing::node::AiPool, npc::animation::HumanoidStep, player::Player},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -57,7 +57,7 @@ fn play_step_sound(
             SamplePlayer::new(audio.step_sound.pick(&mut rng()).clone()),
         ));
         if is_player {
-            child.insert(AiAudible);
+            child.insert(AiPool);
         } else {
             child.insert(SteamAudioPool);
         }

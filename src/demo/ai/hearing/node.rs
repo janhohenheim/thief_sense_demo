@@ -33,7 +33,6 @@ use crate::{
     GameFixedPreUpdateSystems,
     demo::ai::{
         hearing::{
-            AiAudible,
             param::{self, MAX_FRAME_SIZE},
             rms,
         },
@@ -55,7 +54,6 @@ pub(super) fn plugin(app: &mut App) {
         .add_observer(despawn_pool_late)
         .add_observer(reestablish_channel)
         .add_observer(clear_prod);
-    app.register_required_components::<AiAudible, AiPool>();
     app.register_node::<InputBufferNode>();
 }
 
@@ -81,7 +79,7 @@ impl InputBuffer {
 
 #[derive(PoolLabel, Reflect, Default, PartialEq, Eq, Debug, Hash, Clone)]
 #[reflect(Component)]
-struct AiPool;
+pub(crate) struct AiPool;
 
 #[derive(Component, Diff, Patch, Clone, RealtimeClone, Default, Reflect)]
 #[reflect(Component)]
