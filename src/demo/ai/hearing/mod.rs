@@ -23,7 +23,7 @@ pub(super) fn plugin(app: &mut App) {
         accumulator::plugin,
     ));
     app.insert_resource(EnableAudioPathVisualization(false))
-        .insert_resource(EnableAudioWriter(true));
+        .insert_resource(EnableAudioWriter(cfg!(feature = "dev")));
 }
 
 mod param {

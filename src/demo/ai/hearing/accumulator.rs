@@ -16,11 +16,11 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 #[derive(EntityEvent)]
-pub(crate) struct AudioInputsReady(pub(crate) Entity);
+pub(crate) struct InitSource(pub(crate) Entity);
 
-impl From<Entity> for AudioInputsReady {
+impl From<Entity> for InitSource {
     fn from(entity: Entity) -> Self {
-        AudioInputsReady(entity)
+        InitSource(entity)
     }
 }
 
@@ -108,15 +108,13 @@ fn link_accumulator(
         .chain(child_of.iter_ancestors(add.entity))
         .find(|e| accumulators.contains(*e));
     let Some(accumulator_entity) = accumulator else {
-        commands.entity(add.entity).trigger(AudioInputsReady);
+        commands.entity(add.entity).trigger(InitSource);
         return;
     };
     commands
         .entity(add.entity)
         .try_insert(InputBufferOf(accumulator_entity));
-    commands
-        .entity(accumulator_entity)
-        .trigger(AudioInputsReady);
+    commands.entity(accumulator_entity).trigger(InitSource);
 }
 
 fn update_accumulators(

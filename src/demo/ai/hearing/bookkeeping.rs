@@ -3,7 +3,7 @@ use bevy_steam_audio::{probes::SteamAudioProbeBatch, scene::SteamAudioRootScene}
 
 use crate::{
     GamePreFixedSystems,
-    demo::ai::hearing::{AiSimulator, AiSource, accumulator::AudioInputsReady, param},
+    demo::ai::hearing::{AiSimulator, AiSource, accumulator::InitSource, param},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -28,10 +28,15 @@ fn update_probe_batch(probes: If<Res<SteamAudioProbeBatch>>, mut simulator: ResM
 }
 
 fn add_source(
-    ready: On<AudioInputsReady>,
+    ready: On<InitSource>,
     mut commands: Commands,
+    has_source_already: Query<(), (With<AiSource>, Allow<Disabled>)>,
     simulator: ResMut<AiSimulator>,
 ) -> Result {
+    if has_source_already.contains(ready.0) {
+        return Ok(());
+    };
+
     let source = AiSource(
         audionimbus::Source::try_new(
             &simulator,
