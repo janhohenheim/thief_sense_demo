@@ -47,7 +47,7 @@ pub(crate) fn loudness_to_listener(
 ) -> Result<f32> {
     let listener_transform = AudionimbusCoordinateSystem::from(*transform.get(listener)?);
     let (inputs, mut source, source_transform) = inputs.get_mut(source)?;
-    let inputs = inputs.get()?;
+    let inputs = inputs.get()?.inputs;
 
     let (direct_buffer, path_buffer, iteration_out_buffer, accumulated_output, direct) = buffers
         .get_or_insert_with(|| {
@@ -142,8 +142,7 @@ pub(crate) fn loudness_to_listener(
     )?;
 
     for i in 0..repeat {
-        let iteration_in =
-            &inputs.inputs[i * MIN_FRAME_SIZE as usize..(i + 1) * MIN_FRAME_SIZE as usize];
+        let iteration_in = &inputs[i * MIN_FRAME_SIZE as usize..(i + 1) * MIN_FRAME_SIZE as usize];
 
         // The input we use is highly sporadic given that we reuse whatever window happens do be available from the audio thread.
         // That means we often process the same sound multiple times, with some heavy cuts in it, e.g.
@@ -179,7 +178,7 @@ pub(crate) fn loudness_to_listener(
 
     if let Ok(mut writer) = writer.get_mut(listener) {
         // if you want to debug the input, make sure to use the following on near NPCs:
-        // `buffer.inputs[..param::MIN_FRAME_SIZE as usize].iter().enumerate()`
+        // `inputs[..param::MIN_FRAME_SIZE as usize].iter().enumerate()`
         // Otherwise they would debug write the entire 525 ms buffer every 175 ms
         for (i, sample) in accumulated_output.iter().enumerate() {
             writer.write_sample(i, *sample);

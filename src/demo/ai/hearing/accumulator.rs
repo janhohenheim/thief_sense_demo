@@ -145,9 +145,17 @@ fn update_accumulators(
         let input_buffer_entities = accumulator.input_buffers.clone();
         let input_buffer_values = input_buffers.iter_many(&input_buffer_entities);
         let accumulator_len = accumulator.inputs.len();
-        for (dst, buffers) in accumulator.inputs.iter_mut().zip(input_buffer_values) {
-            assert_eq!(accumulator_len, buffers.inputs.len());
-            *dst = buffers.inputs.iter().sum();
+        accumulator.inputs.fill(0.0);
+
+        for input_buffer in input_buffer_values {
+            assert_eq!(accumulator_len, input_buffer.inputs.len());
+            for (dst, src) in accumulator
+                .inputs
+                .iter_mut()
+                .zip(input_buffer.inputs.iter())
+            {
+                *dst += src;
+            }
         }
         accumulator.update_loudness();
     }
