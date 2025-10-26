@@ -3,6 +3,7 @@ use bevy_steam_audio::STEAM_AUDIO_CONTEXT;
 
 use crate::demo::ai::hearing::debug::{EnableAudioPathVisualization, EnableAudioWriter};
 
+pub(crate) mod accumulator;
 mod bookkeeping;
 mod debug;
 pub(crate) mod listen;
@@ -19,6 +20,7 @@ pub(super) fn plugin(app: &mut App) {
         listen::plugin,
         node::plugin,
         debug::plugin,
+        accumulator::plugin,
     ));
     app.insert_resource(EnableAudioPathVisualization(false))
         .insert_resource(EnableAudioWriter(true));

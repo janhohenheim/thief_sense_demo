@@ -13,7 +13,7 @@ use std::time::Duration;
 use bevy::prelude::*;
 
 use crate::{
-    GameFixedSystems,
+    GameFixedUpdateSystems,
     demo::{
         ai::{
             awareness::AwarenessLevel, debug::DebugVision, hearing::listen::listen,
@@ -35,7 +35,7 @@ pub(super) fn plugin(app: &mut App) {
     app.add_staggered_timer::<SenseTimer>();
     app.add_systems(
         FixedUpdate,
-        update_all_senses.in_set(GameFixedSystems::Senses),
+        update_all_senses.in_set(GameFixedUpdateSystems::Senses),
     );
 }
 

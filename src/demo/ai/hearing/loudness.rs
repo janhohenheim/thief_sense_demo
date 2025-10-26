@@ -8,6 +8,7 @@ use std::array;
 use crate::demo::ai::{
     hearing::{
         AiSource,
+        accumulator::AudioInputs,
         debug::AudioDebugWriter,
         node::InputBuffer,
         param::{self, MIN_FRAME_SIZE},
@@ -33,7 +34,7 @@ pub(crate) fn loudness_to_listener(
         near,
     }): In<LoudnessInput>,
     transform: Query<&GlobalTransform>,
-    mut sample_player: Query<(&mut InputBuffer, &mut AiSource, &GlobalTransform)>,
+    mut inputs: Query<(AudioInputs, &mut AiSource, &GlobalTransform)>,
     mut writer: Query<&mut AudioDebugWriter>,
     mut buffers: Local<
         Option<(
@@ -46,7 +47,8 @@ pub(crate) fn loudness_to_listener(
     >,
 ) -> Result<f32> {
     let listener_transform = AudionimbusCoordinateSystem::from(*transform.get(listener)?);
-    let (mut buffer, mut source, source_transform) = sample_player.get_mut(source)?;
+    let (inputs, mut source, source_transform) = inputs.get_mut(source)?;
+    let inputs = inputs.get()?;
 
     let (direct_buffer, path_buffer, iteration_out_buffer, accumulated_output, direct) = buffers
         .get_or_insert_with(|| {
@@ -142,7 +144,7 @@ pub(crate) fn loudness_to_listener(
 
     for i in 0..repeat {
         let iteration_in =
-            &mut buffer.inputs[i * MIN_FRAME_SIZE as usize..(i + 1) * MIN_FRAME_SIZE as usize];
+            &inputs.inputs[i * MIN_FRAME_SIZE as usize..(i + 1) * MIN_FRAME_SIZE as usize];
 
         // The input we use is highly sporadic given that we reuse whatever window happens do be available from the audio thread.
         // That means we often process the same sound multiple times, with some heavy cuts in it, e.g.
@@ -162,7 +164,7 @@ pub(crate) fn loudness_to_listener(
 
         // Safety: all borrowed data is valid until this buffer is dropped again.
         // Also, we pinky promise not to leak the second mutable reference hihi
-        let channel_ptrs = [iteration_in.as_mut_ptr()];
+        let channel_ptrs = [iteration_in.as_ptr() as *mut f32];
         let in_sa_buffer = unsafe {
             audionimbus::AudioBuffer::<&mut [f32], _>::try_new(channel_ptrs, MIN_FRAME_SIZE)
         }?;

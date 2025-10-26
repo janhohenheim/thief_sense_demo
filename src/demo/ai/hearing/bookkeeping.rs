@@ -5,7 +5,9 @@ use bevy_steam_audio::{
 
 use crate::{
     GamePreFixedSystems,
-    demo::ai::hearing::{AiAudible, AiSimulator, AiSource, param},
+    demo::ai::hearing::{
+        AiAudible, AiSimulator, AiSource, accumulator::AudioInputsReady, node::InputBuffer, param,
+    },
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -30,15 +32,10 @@ fn update_probe_batch(probes: If<Res<SteamAudioProbeBatch>>, mut simulator: ResM
 }
 
 fn add_source(
-    add: On<Add, AudionimbusSource>,
-    ai_audible: Query<(), (With<AiAudible>, Allow<Disabled>)>,
+    ready: On<AudioInputsReady>,
     mut commands: Commands,
     simulator: ResMut<AiSimulator>,
 ) -> Result {
-    if !ai_audible.contains(add.entity) {
-        return Ok(());
-    }
-
     let source = AiSource(
         audionimbus::Source::try_new(
             &simulator,
@@ -50,7 +47,7 @@ fn add_source(
     );
     simulator.add_source(&source);
 
-    commands.entity(add.entity).try_insert(source);
+    commands.entity(ready.0).try_insert(source);
     Ok(())
 }
 

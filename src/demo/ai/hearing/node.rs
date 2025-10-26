@@ -30,6 +30,7 @@ use firewheel::{
 use fixed_resample::{ResampleQuality, ResamplingChannelConfig};
 
 use crate::{
+    GameFixedPreUpdateSystems,
     demo::ai::{
         hearing::{
             AiAudible,
@@ -45,13 +46,16 @@ type Cons = fixed_resample::ResamplingCons<f32>;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(PreStartup, init_pool)
-        .add_systems(FixedPreUpdate, update_input_buffer)
+        .add_systems(
+            FixedPreUpdate,
+            update_input_buffer.in_set(GameFixedPreUpdateSystems::UpdateInputBuffers),
+        )
         .add_systems(Last, establish_channel.in_set(SeedlingSystems::Queue));
     app.add_observer(setup_sample_player)
         .add_observer(despawn_pool_late)
         .add_observer(reestablish_channel)
         .add_observer(clear_prod);
-    app.register_required_components::<AiPool, AiAudible>();
+    app.register_required_components::<AiAudible, AiPool>();
     app.register_node::<InputBufferNode>();
 }
 
@@ -70,14 +74,14 @@ pub(crate) struct InputBuffer {
 }
 
 impl InputBuffer {
-    pub fn update_loudness(&mut self) {
+    fn update_loudness(&mut self) {
         self.loudness = rms(&self.inputs);
     }
 }
 
-#[derive(PoolLabel, Reflect, PartialEq, Eq, Debug, Hash, Clone)]
+#[derive(PoolLabel, Reflect, Default, PartialEq, Eq, Debug, Hash, Clone)]
 #[reflect(Component)]
-pub(crate) struct AiPool;
+struct AiPool;
 
 #[derive(Component, Diff, Patch, Clone, RealtimeClone, Default, Reflect)]
 #[reflect(Component)]

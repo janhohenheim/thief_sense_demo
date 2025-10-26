@@ -16,7 +16,7 @@ use crate::{
     collision_layer::CollisionLayer,
     cpu_lighting::LightTransform,
     demo::{
-        ai::vision::visibility::AiVisibility,
+        ai::{hearing::accumulator::AccumulateAudioInputs, vision::visibility::AiVisibility},
         player::animation::{PlayerAnimationState, setup_player_animations},
     },
     link_head::link_head_bone,
@@ -66,6 +66,7 @@ fn spawn_player(
             FloatHeight(PLAYER_FLOAT_HEIGHT),
             AiVisibility::default(),
             LightTransform(Vec3::Y * -(PLAYER_HEIGHT / 2.0)),
+            AccumulateAudioInputs,
         ))
         .with_children(|parent| {
             parent

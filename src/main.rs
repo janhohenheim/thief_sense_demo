@@ -119,13 +119,19 @@ impl Plugin for AppPlugin {
             despawn::plugin,
         ));
 
-        // Order new `AppSystems` variants by adding them here:
-
         app.configure_sets(
+            FixedPreUpdate,
+            (
+                GameFixedPreUpdateSystems::UpdateInputBuffers,
+                GameFixedPreUpdateSystems::UpdateAccumulators,
+            )
+                .chain(),
+        )
+        .configure_sets(
             FixedUpdate,
             (
-                GameFixedSystems::Senses.run_if(any_with_component::<Player>),
-                GameFixedSystems::Despawn,
+                GameFixedUpdateSystems::Senses.run_if(any_with_component::<Player>),
+                GameFixedUpdateSystems::Despawn,
             )
                 .chain(),
         )
@@ -158,9 +164,15 @@ enum GamePreFixedSystems {
 }
 
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
-enum GameFixedSystems {
+enum GameFixedUpdateSystems {
     Senses,
     Despawn,
+}
+
+#[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
+enum GameFixedPreUpdateSystems {
+    UpdateInputBuffers,
+    UpdateAccumulators,
 }
 
 fn spawn_camera(mut commands: Commands, mut image_assets: ResMut<Assets<Image>>) {

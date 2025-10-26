@@ -5,6 +5,7 @@ use crate::demo::ai::{
     debug::DebugHearing,
     hearing::{
         AiSource,
+        accumulator::AudioInputs,
         loudness::{LoudnessInput, loudness_to_listener},
         simulate::{AiSimulationInputs, update_simulation_for_listener},
     },
@@ -58,13 +59,19 @@ pub(crate) fn listen(
 fn sources_for_listener(
     In(npc): In<Entity>,
     transform: Query<&GlobalTransform>,
-    sources: Query<(Entity, &GlobalTransform), With<AiSource>>,
+    sources: Query<(Entity, &GlobalTransform, AudioInputs), With<AiSource>>,
 ) -> Result<Vec<Entity>> {
     let npc_translation = transform.get(npc)?.translation();
     let sources = sources
         .iter()
-        .filter_map(|(entity, transform)| {
-            if transform.translation().distance_squared(npc_translation) < 100.0 * 100.0 {
+        .filter_map(|(entity, transform, inputs)| {
+            let inputs = inputs.get().ok()?;
+            let dist_squared = transform
+                .translation()
+                .distance_squared(npc_translation)
+                .max(1.0);
+            let loudness_at_dist = inputs.loudness / dist_squared;
+            if loudness_at_dist > 0.0 {
                 Some(entity)
             } else {
                 None
