@@ -63,18 +63,6 @@ impl<'w, 's> AudioInputsItem<'w, 's> {
     }
 }
 
-// TODO:
-// For this to work, every accumulator must correspond to exactly one audionimbus source.
-// Each sample player is
-// - SamplePlayer
-// - AiAudioPool
-// - AiAudible
-// - InputBuffer
-// - InputBufferOf
-// and each accumulator is
-// - InputBufferAccumulator
-// - AiSource
-// otherwise, we process the audio with the SA effects of a single source, which leads to some weird stuff man
 #[derive(Component, Debug, Reflect)]
 #[reflect(Component)]
 #[relationship(relationship_target = InputBufferAccumulator)]

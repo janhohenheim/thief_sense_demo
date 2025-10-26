@@ -71,6 +71,7 @@ fn sources_for_listener(
                 .distance_squared(npc_translation)
                 .max(1.0);
             let loudness_at_dist = inputs.loudness / dist_squared;
+            // TODO: use a higher threshold.
             if loudness_at_dist > 0.0 {
                 Some(entity)
             } else {
