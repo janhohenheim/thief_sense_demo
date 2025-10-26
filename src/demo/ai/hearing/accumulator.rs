@@ -1,13 +1,10 @@
 use std::{iter, ops::Deref};
 
-use bevy::{
-    ecs::{query::QueryData, system::SystemParam},
-    prelude::*,
-};
+use bevy::{ecs::query::QueryData, prelude::*};
 
 use crate::{
     GameFixedPreUpdateSystems,
-    demo::ai::hearing::{AiSource, node::InputBuffer, param, rms},
+    demo::ai::hearing::{node::InputBuffer, param, rms},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -39,7 +36,7 @@ pub(crate) struct AudioInputs {
     input_buffer: Option<&'static InputBuffer>,
 }
 
-const SILENCE: [f32; param::MAX_FRAME_SIZE as usize] = [0.0; _];
+static SILENCE: [f32; param::MAX_FRAME_SIZE as usize] = [0.0; _];
 
 impl<'w, 's> AudioInputsItem<'w, 's> {
     pub(crate) fn get<'a>(&'a self) -> Result<BorrowedAudioInputs<'a>> {

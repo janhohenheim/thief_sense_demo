@@ -1,13 +1,9 @@
 use bevy::{ecs::entity_disabling::Disabled, prelude::*};
-use bevy_steam_audio::{
-    probes::SteamAudioProbeBatch, scene::SteamAudioRootScene, sources::AudionimbusSource,
-};
+use bevy_steam_audio::{probes::SteamAudioProbeBatch, scene::SteamAudioRootScene};
 
 use crate::{
     GamePreFixedSystems,
-    demo::ai::hearing::{
-        AiAudible, AiSimulator, AiSource, accumulator::AudioInputsReady, node::InputBuffer, param,
-    },
+    demo::ai::hearing::{AiSimulator, AiSource, accumulator::AudioInputsReady, param},
 };
 
 pub(super) fn plugin(app: &mut App) {
