@@ -7,7 +7,7 @@ pub(crate) mod __many_to_many;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins(__many_to_many::plugin);
-    app.add_systems(PreUpdate, tick_awareness_times);
+    app.add_systems(FixedPreUpdate, tick_awareness_times);
 }
 
 #[derive(Debug, Component, Default)]

@@ -4,7 +4,8 @@ use crate::{
     collision_layer::CollisionLayer,
     demo::{
         ai::{
-            awareness::Alertness, view_cone::debug::add_debug_view_cones, visibility::AiVisibility,
+            awareness::Alertness,
+            vision::{view_cone::debug::add_debug_view_cones, visibility::AiVisibility},
         },
         npc::animation::{NpcAnimationState, setup_npc_animations},
         target::TargetBase,
@@ -40,6 +41,7 @@ const NPC_MAX_SPEED: f32 = 5.0;
 const NPC_WALK_SPEED: f32 = 2.5;
 
 #[point_class(base(TargetBase), model("models/npc.glb"))]
+#[derive(Debug)]
 pub(crate) struct Npc;
 
 fn spawn_npc(

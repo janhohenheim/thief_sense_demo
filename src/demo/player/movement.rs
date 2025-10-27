@@ -25,7 +25,8 @@ pub(super) fn plugin(app: &mut App) {
                     offset: Some(Vec3::new(0.0, 0.5, 0.0)),
                     ..default()
                 },
-                children![(Text::default(), GizmoText)],
+                children![(Text::default(), GizmoText, Pickable::IGNORE,)],
+                Pickable::IGNORE,
             )),
         ));
     });
@@ -50,6 +51,7 @@ fn update_pointer_gizmo_lighting(world: &mut World) -> Result {
     else {
         return Ok(());
     };
+
     let point = point + Vec3::Y * 0.05;
     {
         let mut transform = world

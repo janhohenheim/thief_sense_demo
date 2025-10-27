@@ -18,7 +18,7 @@ pub(super) fn plugin(app: &mut App) {
 #[derive(Component)]
 pub(crate) struct AnimationPlayerAncestor;
 
-/// Simple link to the animation player of a model that is buried deep in the hierarchy.
+/// Link to the [`AnimationPlayer`]s of a model that are buried deep in the hierarchy of an [`AnimationPlayerAncestor`].
 #[derive(Component, Reflect, Clone, Deref)]
 #[reflect(Component)]
 #[relationship_target(relationship = AnimationPlayerOf)]
@@ -29,35 +29,48 @@ pub(crate) struct AnimationPlayers(Vec<Entity>);
 #[relationship(relationship_target = AnimationPlayers)]
 pub(crate) struct AnimationPlayerOf(pub(crate) Entity);
 
+/// Link to the [`AnimationTarget`]s of a model that are buried deep in the hierarchy of an [`AnimationPlayerAncestor`].
+#[derive(Component, Reflect, Clone, Deref)]
+#[reflect(Component)]
+#[relationship_target(relationship = AnimationTargetOf)]
+pub(crate) struct AnimationTargets(Vec<Entity>);
+
+#[derive(Component, Reflect, Deref)]
+#[reflect(Component)]
+#[relationship(relationship_target = AnimationTargets)]
+pub(crate) struct AnimationTargetOf(pub(crate) Entity);
+
 /// Bevy likes to hide the [`AnimationPlayer`] component deep in the hierarchy of a model.
 /// This system ensures that we can find the animation player easily by inserting an [`AnimationPlayers`] relationship
 /// into the same entity that contains the [`AnimationPlayerAncestor`] component.
 fn link_animation_player(
     trigger: On<SceneInstanceReady>,
     mut commands: Commands,
-    q_parent: Query<&ChildOf>,
-    q_children: Query<&Children>,
-    q_animation_player: Query<Entity, With<AnimationPlayer>>,
-    q_ancestor: Query<Entity, With<AnimationPlayerAncestor>>,
+    child_of: Query<&ChildOf>,
+    children: Query<&Children>,
+    anim_players: Query<(), With<AnimationPlayer>>,
+    targets: Query<(), With<AnimationTarget>>,
+    ancestor: Query<(), With<AnimationPlayerAncestor>>,
 ) {
     let scene_root = trigger.entity;
-    let animation_player = q_children
-        .iter_descendants(scene_root)
-        .find(|child| q_animation_player.get(*child).is_ok());
-    let Some(animation_player) = animation_player else {
-        return;
-    };
-
-    let animation_ancestor = iter::once(animation_player)
-        .chain(q_parent.iter_ancestors(animation_player))
-        .find(|entity| q_ancestor.get(*entity).is_ok());
+    let animation_ancestor = iter::once(scene_root)
+        .chain(child_of.iter_ancestors(scene_root))
+        .find(|entity| ancestor.get(*entity).is_ok());
     let Some(animation_ancestor) = animation_ancestor else {
         return;
     };
-
-    commands
-        .entity(animation_player)
-        .insert(AnimationPlayerOf(animation_ancestor));
+    for child in children.iter_descendants(scene_root) {
+        if anim_players.contains(child) {
+            commands
+                .entity(child)
+                .insert(AnimationPlayerOf(animation_ancestor));
+        }
+        if targets.contains(child) {
+            commands
+                .entity(child)
+                .insert(AnimationTargetOf(animation_ancestor));
+        }
+    }
 }
 
 pub(crate) fn get_clip<'a>(
@@ -65,14 +78,12 @@ pub(crate) fn get_clip<'a>(
     graph: &AnimationGraph,
     clips: &'a mut Assets<AnimationClip>,
 ) -> Result<&'a mut AnimationClip> {
-    let node = graph
-        .get(node)
-        .ok_or_else(|| BevyError::from("Node not found"))?;
+    let node = graph.get(node).ok_or("Node not found")?;
     let clip = match &node.node_type {
         AnimationNodeType::Clip(handle) => clips.get_mut(handle),
         _ => return Err("Node is not a clip".into()),
     };
-    clip.ok_or_else(|| "Clip has an invalid handle".into())
+    clip.ok_or("Clip has an invalid handle".into())
 }
 
 pub(crate) fn find_bone_id(

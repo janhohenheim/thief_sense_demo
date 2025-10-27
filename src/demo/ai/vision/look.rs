@@ -3,68 +3,33 @@ use bevy::prelude::*;
 
 use crate::{
     collision_layer::CollisionLayer,
-    demo::{
-        ai::{
-            awareness::{Alertness, AwarenessLevel},
-            sense::SenseTimer,
+    demo::ai::{
+        awareness::{Alertness, AwarenessLevel},
+        debug::DebugVision,
+        vision::{
             view_cone::{ViewCone, ViewCones, VisibilityAcuities},
             visibility::{AiVisibility, get_or_update_visibility},
         },
-        npc::Npc,
-        player::Player,
     },
 };
 
-pub(super) fn plugin(app: &mut App) {
-    app.add_systems(
-        RunFixedMainLoop,
-        update_all_senses.in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
-    );
-}
+pub(super) fn plugin(_app: &mut App) {}
 
-fn update_all_senses(world: &mut World) -> Result {
-    let npcs = world
-        .query_filtered::<Entity, With<Npc>>()
-        .iter(world)
-        .collect::<Vec<_>>();
-    let mut errors = Vec::new();
-    for npc in npcs {
-        if let Err(err) = update_senses(In(npc), world) {
-            errors.push(err);
-        }
-    }
-
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(BevyError::from(
-            errors
-                .iter()
-                .fold(String::new(), |acc, err| acc + &err.to_string()),
-        ))
-    }
-}
-
-fn update_senses(In(npc): In<Entity>, world: &mut World) -> Result {
-    // TODO: handle the whole sense updating at once for the NPC, and not first all vision, then all sounds, etc.
-    // For example, this approach here completely removes all information about which entities we are even sensing!
-    let _vision_pulses: Vec<AwarenessLevel> = look(In(npc), world)?;
-    Ok(())
-}
-
-fn look(In(npc): In<Entity>, world: &mut World) -> Result<Vec<AwarenessLevel>> {
+pub(crate) fn look(
+    In(npc): In<Entity>,
+    world: &mut World,
+) -> Result<Vec<(Entity, AwarenessLevel)>> {
     // TODO: check / update awareness flags (kAIAF_CanRaycast, kAIAF_HaveLOS, etc)
     let entities_in_view: Vec<(Entity, ViewCone)> =
         world.run_system_cached_with(check_view_cones, npc)?;
     let mut pulses = Vec::new();
-    let mut errors = Vec::new();
     for (entity, view_cone) in entities_in_view {
         // Process entities in view
         let ai_visibility: AiVisibility =
             match world.run_system_cached_with(get_or_update_visibility, entity) {
                 Ok(visibility) => visibility,
                 Err(err) => {
-                    errors.push(err.to_string());
+                    error!("{err}");
                     continue;
                 }
             };
@@ -73,7 +38,7 @@ fn look(In(npc): In<Entity>, world: &mut World) -> Result<Vec<AwarenessLevel>> {
         {
             Ok(visibility) => visibility,
             Err(err) => {
-                errors.push(err.to_string());
+                error!("{err}");
                 continue;
             }
         };
@@ -83,19 +48,13 @@ fn look(In(npc): In<Entity>, world: &mut World) -> Result<Vec<AwarenessLevel>> {
             v if v < 75 => AwarenessLevel::Moderate,
             _ => AwarenessLevel::High,
         };
-        info!(
-            "Entity {:?} ({visibility} -> {pulse:?}): {ai_visibility:?} ",
-            entity
-        );
-        pulses.push(pulse);
+        world.entity_mut(npc).insert(DebugVision {
+            entity,
+            visibility: ai_visibility,
+        });
+        pulses.push((entity, pulse));
     }
-    // Todo: don't fail the entire fn when a single pulse fails
-    match errors {
-        errors if errors.is_empty() => Ok(pulses),
-        errors => Err(BevyError::from(
-            errors.iter().fold(String::new(), |acc, err| acc + err),
-        )),
-    }
+    Ok(pulses)
 }
 
 fn visibility_to_viewer(
@@ -116,28 +75,12 @@ fn visibility_to_viewer(
 /// Cloning view cones around like this is surprisingly cheap because they use Arcs internally.
 fn check_view_cones(
     In(entity): In<Entity>,
-    mut npcs: Query<(&Transform, &mut SenseTimer, &Alertness)>,
-    player: Single<&Transform, With<Player>>,
+    mut npcs: Query<(&Transform, &Alertness)>,
     spatial: SpatialQuery,
     view_cones: Res<ViewCones>,
     transforms: Query<&GlobalTransform>,
 ) -> Result<Vec<(Entity, ViewCone)>> {
-    let player_transform = player.into_inner();
-    let (npc_transform, mut sense_timer, alertness) = npcs.get_mut(entity)?;
-    if !sense_timer.is_finished() {
-        return Ok(Vec::new());
-    }
-    const DIST_CUTOFF: f32 = 12.0;
-    let ms = if player_transform
-        .translation
-        .distance_squared(npc_transform.translation)
-        > DIST_CUTOFF * DIST_CUTOFF
-    {
-        500
-    } else {
-        200
-    };
-    sense_timer.set_base_time_millis(ms);
+    let (npc_transform, alertness) = npcs.get_mut(entity)?;
 
     let mut filter = SpatialQueryFilter::default()
         .with_mask(CollisionLayer::AiVisible)

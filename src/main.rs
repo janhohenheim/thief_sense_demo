@@ -9,11 +9,14 @@ mod audio;
 mod collision_layer;
 mod cpu_lighting;
 mod demo;
+mod despawn;
 #[cfg(feature = "dev")]
 mod dev_tools;
 mod link_head;
 mod movement;
 mod screens;
+mod solid_color;
+mod staggered_timer;
 mod third_party;
 use bevy::{
     color::palettes::tailwind,
@@ -24,10 +27,9 @@ use bevy::{
 };
 
 use crate::{
-    solid_color::SolidColorEnvironmentMapLight as _, third_party::ui_anchor::UiAnchorCamera,
+    demo::player::Player, solid_color::SolidColorEnvironmentMapLight as _,
+    third_party::ui_anchor::UiAnchorCamera,
 };
-mod rand_timer;
-mod solid_color;
 
 fn main() -> AppExit {
     App::new().add_plugins(AppPlugin).run()
@@ -56,7 +58,7 @@ impl Plugin for AppPlugin {
                 .set(LogPlugin {
                     filter: format!(
                         concat!(
-                            "{default}",
+                            "{default},",
                             "symphonia_bundle_mp3::demuxer=warn,",
                             "symphonia_format_caf::demuxer=warn,",
                             "symphonia_format_isompf4::demuxer=warn,",
@@ -90,6 +92,13 @@ impl Plugin for AppPlugin {
         app.set_error_handler(bevy::ecs::error::error);
 
         app.insert_resource(AmbientLight::NONE);
+        app.insert_resource(MeshPickingSettings {
+            require_markers: true,
+            ..default()
+        })
+        .insert_resource(UiPickingSettings {
+            require_markers: true,
+        });
 
         // Add other plugins.
         app.add_plugins((
@@ -101,24 +110,38 @@ impl Plugin for AppPlugin {
             #[cfg(feature = "dev")]
             dev_tools::plugin,
             screens::plugin,
-            rand_timer::plugin,
+            staggered_timer::plugin,
             movement::plugin,
             cpu_lighting::plugin,
             solid_color::plugin,
             collision_layer::plugin,
             link_head::plugin,
+            despawn::plugin,
         ));
 
-        // Order new `AppSystems` variants by adding them here:
         app.configure_sets(
-            Update,
+            FixedPreUpdate,
             (
-                AppSystems::TickTimers,
-                AppSystems::RecordInput,
-                AppSystems::Update,
+                GameFixedPreUpdateSystems::UpdateInputBuffers,
+                GameFixedPreUpdateSystems::UpdateAccumulators,
             )
                 .chain(),
-        );
+        )
+        .configure_sets(
+            FixedUpdate,
+            (
+                GameFixedUpdateSystems::Senses.run_if(any_with_component::<Player>),
+                GameFixedUpdateSystems::Despawn,
+            )
+                .chain(),
+        )
+        .configure_sets(
+            RunFixedMainLoop,
+            (GamePreFixedSystems::Bookkeep, GamePreFixedSystems::Commit)
+                .chain()
+                .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
+        )
+        .configure_sets(Update, (GameUpdateSystems::Animation).chain());
 
         // Spawn the main camera.
         app.add_systems(Startup, spawn_camera);
@@ -129,19 +152,34 @@ impl Plugin for AppPlugin {
 /// When adding a new variant, make sure to order it in the `configure_sets`
 /// call above.
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
-enum AppSystems {
-    /// Tick timers.
-    TickTimers,
-    /// Record player input.
-    RecordInput,
-    /// Do everything else (consider splitting this into further variants).
-    Update,
+enum GameUpdateSystems {
+    Animation,
+}
+
+#[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
+enum GamePreFixedSystems {
+    Bookkeep,
+    /// Prepare simulators
+    Commit,
+}
+
+#[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
+enum GameFixedUpdateSystems {
+    Senses,
+    Despawn,
+}
+
+#[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
+enum GameFixedPreUpdateSystems {
+    UpdateInputBuffers,
+    UpdateAccumulators,
 }
 
 fn spawn_camera(mut commands: Commands, mut image_assets: ResMut<Assets<Image>>) {
     commands.spawn((
         Name::new("Camera"),
         Camera3d::default(),
+        MeshPickingCamera,
         Transform::from_xyz(0.0, 10.0, 8.0).looking_to(Vec3::new(0.0, -1.0, -0.7), Vec3::Y),
         EnvironmentMapLight {
             intensity: 60.0,

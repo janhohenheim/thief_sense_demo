@@ -6,21 +6,27 @@ use bevy::prelude::*;
 use crate::{
     collision_layer::CollisionLayer,
     cpu_lighting::estimate_tone_mapped_lighting,
-    demo::player::{PLAYER_RUN_SPEED, PLAYER_WALK_SPEED},
-    rand_timer::RandTimer,
+    demo::{
+        ai::calc_control_rating,
+        player::{PLAYER_RUN_SPEED, PLAYER_WALK_SPEED},
+    },
 };
 
 pub(super) fn plugin(app: &mut App) {
-    // NOT calling `add_rand_timer` because we want to manually reset it
-    app.add_systems(PreUpdate, tick_visibility_timer);
+    app.add_systems(FixedPreUpdate, tick_visibility_timer);
 }
 
+/// Timer for how often an object should maximally update its visibility when observed by any AI.
+///
+/// Doesn't need to be staggered since very few AI visible objects will be observed at any given time,
+/// and they probably won't be observed on the same frame. Remember the AI visibility systems themselves
+/// are already staggered, so observing anything and thus updating its visibility is indirectly staggered too.
 #[derive(Component, Deref, DerefMut)]
-pub(crate) struct VisibilityTimer(RandTimer);
+pub(crate) struct VisibilityTimer(Timer);
 
 impl Default for VisibilityTimer {
     fn default() -> Self {
-        let mut timer = RandTimer::from_millis(200);
+        let mut timer = Timer::from_seconds(0.2, TimerMode::Once);
         // The visibility starts off uncalculated,
         // so start the timer finished in order to always "re"calculate the visibility when it's first requested.
         timer.finish();
@@ -62,8 +68,9 @@ impl Default for AiVisibilityControl {
     }
 }
 
-#[derive(Component, Debug, Copy, Clone, Default)]
+#[derive(Component, Debug, Copy, Clone, Default, Reflect)]
 #[require(VisibilityTimer, AiVisibilityControl)]
+#[reflect(Component)]
 pub(crate) struct AiVisibility {
     pub(crate) lighting: u8,
     pub(crate) movement: u8,
@@ -160,39 +167,17 @@ fn calculate_light_rating(
     object: Query<&AiVisibilityControl>,
 ) -> Result<u8> {
     let control = object.get(entity)?;
-    let raw_lighting = (raw_lighting * 100.0).clamp(1.0, 100.0) as u8;
-    const LOW_LIGHT_NORM: u8 = 25;
-    const MEDIUM_LIGHT_NORM: u8 = 50;
-    const HIGH_LIGHT_NORM: u8 = 75;
-    let (pre_norm_base, pre_norm_range, norm_base, norm_range) = match raw_lighting {
-        l if l < control.low_visibility => (0, control.low_visibility, 0, LOW_LIGHT_NORM),
-        l if l < control.medium_visibility => (
-            control.low_visibility,
-            control.medium_visibility - control.low_visibility,
-            LOW_LIGHT_NORM,
-            MEDIUM_LIGHT_NORM - LOW_LIGHT_NORM,
-        ),
-        l if l < control.high_visibility => (
-            control.medium_visibility,
-            control.high_visibility - control.medium_visibility,
-            MEDIUM_LIGHT_NORM,
-            HIGH_LIGHT_NORM - MEDIUM_LIGHT_NORM,
-        ),
-        _ => (
-            control.high_visibility,
-            100 - control.high_visibility,
-            HIGH_LIGHT_NORM,
-            100 - HIGH_LIGHT_NORM,
-        ),
-    };
-    let result = norm_base
-        + ((raw_lighting - pre_norm_base) as f32 / pre_norm_range as f32) as u8
-        + norm_range;
+    let result = calc_control_rating(
+        raw_lighting,
+        control.low_visibility,
+        control.medium_visibility,
+        control.high_visibility,
+    );
     Ok(result)
 }
 
 fn tick_visibility_timer(mut timers: Query<&mut VisibilityTimer>, time: Res<Time>) {
     for mut timer in timers.iter_mut() {
-        timer.tick(&time);
+        timer.tick(time.delta());
     }
 }

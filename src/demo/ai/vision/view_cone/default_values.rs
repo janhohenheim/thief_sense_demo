@@ -1,7 +1,7 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
 
-use crate::demo::ai::view_cone::{
+use crate::demo::ai::vision::view_cone::{
     ViewCone, ViewConeFlags, ViewCones, VisibilityAcuities, VisibilityAcuity,
     collider::ViewCone as _,
 };
