@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use bevy_steam_audio::STEAM_AUDIO_CONTEXT;
 
-use crate::demo::ai::hearing::debug::{EnableAudioPathVisualization, EnableAudioWriter};
+use crate::demo::{
+    ai::hearing::debug::{EnableAudioPathVisualization, EnableAudioWriter},
+    npc::Npc,
+};
 
 pub(crate) mod accumulator;
 mod bookkeeping;
@@ -24,6 +27,33 @@ pub(super) fn plugin(app: &mut App) {
     ));
     app.insert_resource(EnableAudioPathVisualization(false))
         .insert_resource(EnableAudioWriter(cfg!(feature = "dev")));
+    app.register_required_components::<Npc, LoudnessAcuity>();
+}
+
+#[derive(Component, Debug, Clone, Copy, Deref, DerefMut)]
+pub(crate) struct LoudnessAcuity(pub(crate) f32);
+
+impl Default for LoudnessAcuity {
+    fn default() -> Self {
+        Self(1.0)
+    }
+}
+
+#[derive(Component, Debug, Copy, Clone)]
+pub(crate) struct AiLoudnessControl {
+    pub(crate) low_loudness: u8,
+    pub(crate) medium_loudness: u8,
+    pub(crate) high_loudness: u8,
+}
+
+impl Default for AiLoudnessControl {
+    fn default() -> Self {
+        Self {
+            low_loudness: 1,
+            medium_loudness: 3,
+            high_loudness: 5,
+        }
+    }
 }
 
 mod param {
@@ -86,7 +116,7 @@ impl FromWorld for AiSimulator {
 }
 
 #[derive(Component, Clone, Deref, DerefMut)]
-#[require(Transform, GlobalTransform)]
+#[require(Transform, GlobalTransform, AiLoudnessControl)]
 struct AiSource(audionimbus::Source);
 
 #[inline]

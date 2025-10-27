@@ -43,11 +43,9 @@ fn update_all_senses(world: &mut World) -> Result {
     let npcs = world.run_system_cached(get_npcs_to_update)?;
     for npc in npcs {
         world.entity_mut(npc.entity).remove::<DebugVision>();
-        let now = std::time::Instant::now();
         if let Err(err) = update_senses(In(npc), world) {
             error!("{err}");
         }
-        info!("sense update per NPC: {:?}", now.elapsed());
     }
     Ok(())
 }

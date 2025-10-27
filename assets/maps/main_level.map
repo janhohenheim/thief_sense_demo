@@ -117,9 +117,3 @@
 "origin" "72 72 40"
 "target" "a"
 }
-// entity 10
-{
-"classname" "npc"
-"origin" "-216 -136 40"
-"target" "c"
-}

@@ -2,11 +2,12 @@ use bevy::prelude::*;
 
 use crate::demo::ai::{
     awareness::AwarenessLevel,
+    calc_control_rating,
     debug::DebugHearing,
     hearing::{
-        AiSource,
+        AiLoudnessControl, AiSource, LoudnessAcuity,
         accumulator::AudioInputs,
-        loudness::{LoudnessInput, loudness_to_listener},
+        loudness::{LoudnessInput, simulate_raw_loudness_to_listener},
         simulate::{AiSimulationInputs, update_simulation_for_listener},
     },
 };
@@ -29,20 +30,27 @@ pub(crate) fn listen(
         },
     )?;
     let mut pulses = Vec::new();
-    let mut total_loudness = 0.0;
+    let mut avg_loudness = 0.0;
+    let source_len = sources.len();
     for source in sources {
         let raw_loudness: f32 = world.run_system_cached_with(
-            loudness_to_listener,
+            simulate_raw_loudness_to_listener,
             LoudnessInput {
                 listener: npc,
                 source,
                 near,
             },
         )?;
-        total_loudness += raw_loudness;
-        let loudness = raw_loudness as u32;
+        avg_loudness += loudness_to_fraction(raw_loudness) as f32;
+        let loudness: u8 = world.run_system_cached_with(
+            loudness_to_listener,
+            LoudnessToListenerInput {
+                listener: npc,
+                source,
+                rms: raw_loudness,
+            },
+        )?;
 
-        // TODO: This is just placeholder code. It's fine, but the loudness is still raw and not factoring in any attenuation factors or object "mod" factors.
         let pulse = match loudness {
             v if v < 25 => AwarenessLevel::Lowest,
             v if v < 50 => AwarenessLevel::Low,
@@ -51,7 +59,10 @@ pub(crate) fn listen(
         };
         pulses.push((source, pulse));
     }
-    world.entity_mut(npc).insert(DebugHearing(total_loudness));
+    if source_len != 0 {
+        avg_loudness /= source_len as f32;
+    }
+    world.entity_mut(npc).insert(DebugHearing(avg_loudness));
 
     Ok(pulses)
 }
@@ -71,13 +82,55 @@ fn sources_for_listener(
                 .distance_squared(npc_translation)
                 .max(1.0);
             let loudness_at_dist = inputs.loudness / dist_squared;
-            // TODO: use a higher threshold.
-            if loudness_at_dist > 0.0 {
-                Some(entity)
-            } else {
-                None
-            }
+            let fraction = loudness_to_fraction(loudness_at_dist);
+
+            if fraction > 0.01 { Some(entity) } else { None }
         })
         .collect::<Vec<_>>();
     Ok(sources)
+}
+
+struct LoudnessToListenerInput {
+    listener: Entity,
+    source: Entity,
+    rms: f32,
+}
+
+fn loudness_to_listener(
+    In(LoudnessToListenerInput {
+        listener,
+        source,
+        rms,
+    }): In<LoudnessToListenerInput>,
+    loudness_control: Query<&AiLoudnessControl>,
+    acuity: Query<&LoudnessAcuity>,
+) -> Result<u8> {
+    let control = loudness_control.get(source)?;
+    let acuity = acuity.get(listener)?;
+    let fraction = loudness_to_fraction(rms);
+    let rating = calc_control_rating(
+        fraction,
+        control.low_loudness,
+        control.medium_loudness,
+        control.high_loudness,
+    );
+    let result = (rating as f32 * acuity.0).clamp(0.0, 100.0) as u8;
+    Ok(result)
+}
+
+#[inline]
+fn loudness_to_fraction(rms: f32) -> f32 {
+    // Tweak P0 such that the sound of footsteps at a distance of 4 meters is between 35-40 dB
+    // Source: <https://www.scirp.org/journal/paperinformation?paperid=98579>
+    const P0: f32 = 90e-6;
+    let db_spl = 20.0 * (rms / P0).log10();
+    // Human hearing threshold is around 0 dB
+    // We could use 30 dB, which is a very quiet room: <http://www.makeitlouder.com/Decibel%20Level%20Chart.txt>
+    // But that would make it impossible for the AI to hear teeeny tiny steps the player is taking, which is kinda cool.
+    const MIN_DB: f32 = 0.0;
+    // 70 dB: Safe maximum longterm exposure without hearing loss. Louder than a TV, quieter than a car.
+    // Source: <https://www.epa.gov/archive/epa/aboutepa/epa-identifies-noise-levels-affecting-health-and-welfare.html>
+    const MAX_DB: f32 = 70.0;
+    let fraction = (db_spl - MIN_DB) / (MAX_DB - MIN_DB);
+    fraction.clamp(0.0, 1.0)
 }

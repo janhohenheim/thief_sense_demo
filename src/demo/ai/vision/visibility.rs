@@ -6,7 +6,10 @@ use bevy::prelude::*;
 use crate::{
     collision_layer::CollisionLayer,
     cpu_lighting::estimate_tone_mapped_lighting,
-    demo::player::{PLAYER_RUN_SPEED, PLAYER_WALK_SPEED},
+    demo::{
+        ai::calc_control_rating,
+        player::{PLAYER_RUN_SPEED, PLAYER_WALK_SPEED},
+    },
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -164,34 +167,12 @@ fn calculate_light_rating(
     object: Query<&AiVisibilityControl>,
 ) -> Result<u8> {
     let control = object.get(entity)?;
-    let raw_lighting = (raw_lighting * 100.0).clamp(1.0, 100.0) as u8;
-    const LOW_LIGHT_NORM: u8 = 25;
-    const MEDIUM_LIGHT_NORM: u8 = 50;
-    const HIGH_LIGHT_NORM: u8 = 75;
-    let (pre_norm_base, pre_norm_range, norm_base, norm_range) = match raw_lighting {
-        l if l < control.low_visibility => (0, control.low_visibility, 0, LOW_LIGHT_NORM),
-        l if l < control.medium_visibility => (
-            control.low_visibility,
-            control.medium_visibility - control.low_visibility,
-            LOW_LIGHT_NORM,
-            MEDIUM_LIGHT_NORM - LOW_LIGHT_NORM,
-        ),
-        l if l < control.high_visibility => (
-            control.medium_visibility,
-            control.high_visibility - control.medium_visibility,
-            MEDIUM_LIGHT_NORM,
-            HIGH_LIGHT_NORM - MEDIUM_LIGHT_NORM,
-        ),
-        _ => (
-            control.high_visibility,
-            100 - control.high_visibility,
-            HIGH_LIGHT_NORM,
-            100 - HIGH_LIGHT_NORM,
-        ),
-    };
-    let result = norm_base
-        + ((raw_lighting - pre_norm_base) as f32 / pre_norm_range as f32) as u8
-        + norm_range;
+    let result = calc_control_rating(
+        raw_lighting,
+        control.low_visibility,
+        control.medium_visibility,
+        control.high_visibility,
+    );
     Ok(result)
 }
 

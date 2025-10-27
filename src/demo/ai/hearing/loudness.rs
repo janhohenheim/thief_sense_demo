@@ -7,7 +7,7 @@ use std::array;
 
 use crate::demo::ai::{
     hearing::{
-        AiSource,
+        AiLoudnessControl, AiSource,
         accumulator::AudioInputs,
         debug::AudioDebugWriter,
         param::{self, MIN_FRAME_SIZE},
@@ -26,7 +26,7 @@ pub(crate) struct LoudnessInput {
     pub(crate) near: bool,
 }
 
-pub(crate) fn loudness_to_listener(
+pub(crate) fn simulate_raw_loudness_to_listener(
     In(LoudnessInput {
         listener,
         source,

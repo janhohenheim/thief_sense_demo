@@ -39,13 +39,32 @@ fn setup_ai_debug_ui(add: On<Add, Npc>, mut commands: Commands) {
                                 TextFont::from_font_size(15.0)
                             ),
                             (
-                                HearingBar,
                                 Node {
-                                    height: px(10.0),
-                                    width: px(0.0),
+                                    align_items: AlignItems::Center,
                                     ..default()
                                 },
-                                BackgroundColor(tailwind::RED_600.into()),
+                                children![
+                                    (
+                                        Node {
+                                            height: px(10.0),
+                                            width: px(100.0),
+                                            position_type: PositionType::Absolute,
+                                            ..default()
+                                        },
+                                        BackgroundColor(tailwind::RED_950.into()),
+                                    ),
+                                    (
+                                        HearingBar,
+                                        Node {
+                                            height: px(10.0),
+                                            width: px(0.0),
+                                            position_type: PositionType::Absolute,
+                                            ..default()
+                                        },
+                                        BackgroundColor(tailwind::RED_500.into()),
+                                        ZIndex(1)
+                                    )
+                                ]
                             )
                         ]
                     ),
@@ -104,7 +123,7 @@ fn update_ai_debug_ui(
         };
 
         hearing_bar.width = if let Some(hearing) = hearing {
-            px(hearing.0 * 3000.0)
+            px(hearing.0 * 100.0)
         } else {
             px(0.0)
         };
