@@ -37,6 +37,7 @@ pub(super) fn plugin(app: &mut App) {
         FixedUpdate,
         update_all_senses.in_set(GameFixedUpdateSystems::Senses),
     );
+    app.register_required_components::<Npc, SenseTimer>();
 }
 
 fn update_all_senses(world: &mut World) -> Result {
