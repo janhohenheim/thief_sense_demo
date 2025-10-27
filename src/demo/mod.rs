@@ -5,8 +5,6 @@
 
 use bevy::prelude::*;
 
-use crate::demo::{npc::Npc, player::Player};
-
 pub(crate) mod ai;
 pub(crate) mod level;
 pub(crate) mod npc;

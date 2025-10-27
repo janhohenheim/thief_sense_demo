@@ -7,7 +7,7 @@ use std::array;
 
 use crate::demo::ai::{
     hearing::{
-        AiLoudnessControl, AiSource,
+        AiSource,
         accumulator::AudioInputs,
         debug::AudioDebugWriter,
         param::{self, MIN_FRAME_SIZE},
