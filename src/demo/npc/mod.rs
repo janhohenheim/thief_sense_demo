@@ -4,7 +4,7 @@ use crate::{
     collision_layer::CollisionLayer,
     demo::{
         ai::{
-            awareness::Alertness,
+            alertness::Alertness,
             vision::{view_cone::debug::add_debug_view_cones, visibility::AiVisibility},
         },
         npc::animation::{NpcAnimationState, setup_npc_animations},

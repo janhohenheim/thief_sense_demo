@@ -6,11 +6,7 @@ use crate::demo::{ai::sense::SenseTimer, npc::Npc};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(FixedPreUpdate, tick_awareness_times);
-    app.register_required_components::<Npc, Alertness>();
 }
-
-#[derive(Debug, Component, Default)]
-pub(crate) struct Alertness(pub(crate) AwarenessLevel);
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Reflect)]
 pub(crate) enum AwarenessLevel {

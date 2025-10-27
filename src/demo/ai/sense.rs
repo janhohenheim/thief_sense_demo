@@ -40,28 +40,34 @@ pub(super) fn plugin(app: &mut App) {
     app.register_required_components::<Npc, SenseTimer>();
 }
 
-fn update_all_senses(world: &mut World) -> Result {
-    let npcs = world.run_system_cached(get_npcs_to_update)?;
-    for npc in npcs {
+fn update_all_senses(world: &mut World, mut buff_local: Local<Option<Vec<ToUpdate>>>) -> Result {
+    let mut buff = buff_local.take().unwrap_or_default();
+    buff.clear();
+    let npcs = world.run_system_cached_with(get_npcs_to_update, buff)?;
+    for npc in &npcs {
         world.entity_mut(npc.entity).remove::<DebugVision>();
-        if let Err(err) = update_senses(In(npc), world) {
+        if let Err(err) = update_senses(In(*npc), world) {
             error!("{err}");
         }
     }
+    buff_local.replace(npcs);
     Ok(())
 }
 
+#[derive(Debug, Clone, Copy)]
 struct ToUpdate {
     entity: Entity,
     near: bool,
 }
 
 fn get_npcs_to_update(
+    In(mut buff): In<Vec<ToUpdate>>,
     player_transform: Single<&Transform, With<Player>>,
     mut npcs: Query<(Entity, &Transform, &mut SenseTimer), With<Npc>>,
     time: Res<Time>,
 ) -> Vec<ToUpdate> {
-    npcs.iter_mut()
+    let to_update = npcs
+        .iter_mut()
         .filter_map(|(entity, npc_transform, mut timer)| {
             timer.tick(time.delta());
             if !timer.is_finished() {
@@ -79,13 +85,15 @@ fn get_npcs_to_update(
             };
             timer.reset_with(Duration::from_secs_f32(secs));
             Some(ToUpdate { entity, near })
-        })
-        .collect::<Vec<_>>()
+        });
+    buff.extend(to_update);
+    buff
 }
 
 fn update_senses(In(npc): In<ToUpdate>, world: &mut World) -> Result {
     let _vision_pulses: Vec<(Entity, AwarenessLevel)> = look(In(npc.entity), world)?;
-    let _hearing_pulses: Vec<(Entity, AwarenessLevel)> = listen(In((npc.entity, npc.near)), world)?;
+    let _hearing_pulses: Vec<(Entity, AwarenessLevel)> =
+        world.run_system_cached_with(listen, (npc.entity, npc.near))?;
     Ok(())
 }
 

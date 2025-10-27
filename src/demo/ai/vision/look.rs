@@ -4,7 +4,8 @@ use bevy::prelude::*;
 use crate::{
     collision_layer::CollisionLayer,
     demo::ai::{
-        awareness::{Alertness, AwarenessLevel},
+        alertness::Alertness,
+        awareness::AwarenessLevel,
         debug::DebugVision,
         vision::{
             view_cone::{ViewCone, ViewCones, VisibilityAcuities},
