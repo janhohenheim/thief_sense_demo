@@ -1,5 +1,6 @@
 use avian3d::prelude::SpatialQuery;
 use bevy::{ecs::system::SystemParam, platform::collections::HashMap, prelude::*, time::Stopwatch};
+use bitflags::bitflags;
 use evergreen_relations::prelude::*;
 
 use crate::demo::{ai::sense::SenseTimer, npc::Npc};
@@ -17,12 +18,36 @@ pub(crate) enum AwarenessLevel {
     High,
 }
 
-#[derive(Component, Reflect, Debug, Default)]
+impl AwarenessLevel {
+    pub(crate) fn is_aware(self) -> bool {
+        self != AwarenessLevel::Lowest
+    }
+}
+
+#[derive(Component, Clone, Reflect, Debug, Default)]
 #[reflect(Component)]
 pub(crate) struct Awareness {
     pub(crate) level: AwarenessLevel,
     /// Time in current [`Awareness::level`]
     pub(crate) time: Stopwatch,
+    pub(crate) flags: AwarenessFlags,
+}
+
+#[derive(Debug, Copy, Clone, Default, Reflect)]
+pub(crate) struct AwarenessFlags(u8);
+bitflags! {
+    impl AwarenessFlags: u8 {
+        const SEEN = 1 << 0;
+        const HEARD = 1 << 1;
+        const SENSED = Self::SEEN.bits() | Self::HEARD.bits();
+        /// Object has an uninterrupted raycast path to it
+        const CAN_RAYCAST = 1 << 2;
+        /// Object has an uninterrupted raycast path to it AND it is within the NPC's view cone
+        const HAS_LOS = 1 << 3;
+        const FIRST_HAND = 1 << 4;
+        // TODO: there's also a kAIAF_Freshened for refreshing awareness links, aka keeping them alive.
+        // That is useful when an NPC needs to chase a player across the map because the player climbed a ladder.
+    }
 }
 
 impl Awareness {
@@ -38,11 +63,12 @@ impl Awareness {
 #[derive(SystemParam)]
 pub(crate) struct AwarenessQuery<'w, 's> {
     awareness_targets: Query<'w, 's, &'static AwarenessToNpcTarget>,
-    awarenesses: Query<'w, 's, (&'static Awareness, &'static AwarenessToObject)>,
+    awarenesses: Query<'w, 's, (&'static mut Awareness, &'static AwarenessToObject)>,
+    commands: Commands<'w, 's>,
 }
 
 impl AwarenessQuery<'_, '_> {
-    pub(crate) fn get_awareness_of(&self, npc: Entity, target: Entity) -> Option<&'_ Awareness> {
+    pub(crate) fn get(&self, npc: Entity, target: Entity) -> Option<&'_ Awareness> {
         let awareness_targets = self.awareness_targets.get(npc).ok()?;
         awareness_targets
             // Iterating should be fine, a given NPC won't be aware of more than 3 objects or so anyways
@@ -55,6 +81,36 @@ impl AwarenessQuery<'_, '_> {
                     None
                 }
             })
+    }
+
+    pub(crate) fn set(&mut self, npc: Entity, target: Entity, awareness: Awareness) {
+        let Ok(awareness_targets) = self.awareness_targets.get(npc) else {
+            self.commands.spawn((
+                Name::new("Awareness"),
+                AwarenessToNpc(npc),
+                AwarenessToObject(target),
+                awareness,
+            ));
+            return;
+        };
+        let existing_awareness = awareness_targets
+            // Iterating should be fine, a given NPC won't be aware of more than 3 objects or so anyways
+            .iter()
+            .find(|entity| {
+                self.awarenesses
+                    .get(*entity)
+                    .is_ok_and(|(_awareness, awareness_to_object)| awareness_to_object.0 == target)
+            });
+        let Some(existing_awareness) = existing_awareness else {
+            self.commands.spawn((
+                Name::new("Awareness"),
+                AwarenessToNpc(npc),
+                AwarenessToObject(target),
+                awareness,
+            ));
+            return;
+        };
+        *self.awarenesses.get_mut(existing_awareness).unwrap().0 = awareness;
     }
 }
 
@@ -77,32 +133,5 @@ pub(crate) struct AwarenessToNpcTarget(Vec<Entity>);
 fn tick_awareness_times(mut awareness: Query<&mut Awareness>, time: Res<Time>) {
     for mut awareness in awareness.iter_mut() {
         awareness.time.tick(time.delta());
-    }
-}
-
-pub(crate) struct SetAwareCommand {
-    pub(crate) target: Entity,
-    pub(crate) awareness: Awareness,
-}
-
-impl EntityCommand for SetAwareCommand {
-    fn apply(self, entity_world: EntityWorldMut) {
-        let entity = entity_world.id();
-        entity_world.into_world_mut().spawn((
-            Name::new("Awareness"),
-            AwarenessToNpc(entity),
-            AwarenessToObject(self.target),
-            self.awareness,
-        ));
-    }
-}
-
-pub(crate) trait SetAwareCommandExt {
-    fn set_awareness_of(&mut self, target: Entity, awareness: Awareness) -> &mut Self;
-}
-
-impl SetAwareCommandExt for EntityCommands<'_> {
-    fn set_awareness_of(&mut self, target: Entity, awareness: Awareness) -> &mut Self {
-        self.queue(SetAwareCommand { target, awareness })
     }
 }
