@@ -25,6 +25,7 @@ use bevy::{
     log::{LogPlugin, tracing_subscriber::field::MakeExt},
     prelude::*,
 };
+use bevy_landmass::LandmassSystems;
 
 use crate::{
     demo::player::Player, solid_color::SolidColorEnvironmentMapLight as _,
@@ -122,6 +123,9 @@ impl Plugin for AppPlugin {
         app.configure_sets(
             FixedPreUpdate,
             (
+                GameFixedPreUpdateSystems::LandmassSync.before(LandmassSystems::SyncExistence),
+                GameFixedPreUpdateSystems::Bookkeep,
+                GameFixedPreUpdateSystems::Commit,
                 GameFixedPreUpdateSystems::UpdateInputBuffers,
                 GameFixedPreUpdateSystems::UpdateAccumulators,
             )
@@ -134,12 +138,6 @@ impl Plugin for AppPlugin {
                 GameFixedUpdateSystems::Despawn,
             )
                 .chain(),
-        )
-        .configure_sets(
-            RunFixedMainLoop,
-            (GamePreFixedSystems::Bookkeep, GamePreFixedSystems::Commit)
-                .chain()
-                .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
         )
         .configure_sets(Update, (GameUpdateSystems::Animation).chain());
 
@@ -157,13 +155,6 @@ enum GameUpdateSystems {
 }
 
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
-enum GamePreFixedSystems {
-    Bookkeep,
-    /// Prepare simulators
-    Commit,
-}
-
-#[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
 enum GameFixedUpdateSystems {
     Senses,
     Despawn,
@@ -171,6 +162,10 @@ enum GameFixedUpdateSystems {
 
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
 enum GameFixedPreUpdateSystems {
+    LandmassSync,
+    Bookkeep,
+    /// Prepare simulators
+    Commit,
     UpdateInputBuffers,
     UpdateAccumulators,
 }

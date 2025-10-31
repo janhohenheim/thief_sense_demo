@@ -180,3 +180,5 @@ opt-level = 0
 firewheel = { git = "https://github.com/BillyDM/firewheel" }
 bevy_seedling = { git = "https://github.com/corvusprudens/bevy_seedling", branch = "v0.6.0" }
 evergreen_relations = { git = "https://github.com/EvergreenNest/evergreen_relations" }
+bevy_landmass = { git = "https://github.com/janhohenheim/landmass", branch = "fixed-schedule" }
+landmass_rerecast = { git = "https://github.com/janhohenheim/landmass", branch = "fixed-schedule" }
