@@ -1,8 +1,9 @@
-use bevy::prelude::*;
+use bevy::{ecs::world::DeferredWorld, prelude::*};
 
 use crate::demo::{
     ai::awareness::{AwarenessFlags, AwarenessLevel, AwarenessQuery},
     npc::Npc,
+    player::Player,
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -27,6 +28,7 @@ fn pulse(
         is_audio,
     }): In<PulseInput>,
     mut npcs: Query<&mut Alertness>,
+    player: Query<(), With<Player>>,
     mut awareness_query: AwarenessQuery,
 ) -> Result {
     let mut alertness = npcs.get_mut(entity)?;
@@ -43,5 +45,8 @@ fn pulse(
         }
     }
     awareness_query.set(entity, object, awareness);
+    if player.contains(object) && level > alertness.0 && level >= AwarenessLevel::Moderate {
+        match level {}
+    }
     Ok(())
 }
