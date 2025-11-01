@@ -1,11 +1,11 @@
-use avian3d::prelude::SpatialQuery;
-use bevy::{ecs::system::SystemParam, platform::collections::HashMap, prelude::*, time::Stopwatch};
+use bevy::{ecs::system::SystemParam, prelude::*, time::Stopwatch};
 use bitflags::bitflags;
 use evergreen_relations::prelude::*;
 
-use crate::demo::{ai::sense::SenseTimer, npc::Npc};
+pub(crate) mod pulse;
 
 pub(super) fn plugin(app: &mut App) {
+    app.add_plugins(pulse::plugin);
     app.add_systems(FixedPreUpdate, tick_awareness_times);
 }
 

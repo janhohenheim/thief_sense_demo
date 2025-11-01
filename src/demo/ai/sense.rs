@@ -16,8 +16,10 @@ use crate::{
     GameFixedUpdateSystems,
     demo::{
         ai::{
-            alertness::{PulseInput, pulse},
-            awareness::AwarenessLevel,
+            awareness::{
+                AwarenessLevel,
+                pulse::{PulseInput, pulse},
+            },
             debug::DebugVision,
             hearing::listen::listen,
             vision::look::look,
