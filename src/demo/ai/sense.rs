@@ -16,7 +16,10 @@ use crate::{
     GameFixedUpdateSystems,
     demo::{
         ai::{
-            awareness::AwarenessLevel, debug::DebugVision, hearing::listen::listen,
+            alertness::{PulseInput, pulse},
+            awareness::AwarenessLevel,
+            debug::DebugVision,
+            hearing::listen::listen,
             vision::look::look,
         },
         npc::Npc,
@@ -91,9 +94,37 @@ fn get_npcs_to_update(
 }
 
 fn update_senses(In(npc): In<ToUpdate>, world: &mut World) -> Result {
-    let _vision_pulses: Vec<(Entity, AwarenessLevel)> = look(In(npc.entity), world)?;
-    let _hearing_pulses: Vec<(Entity, AwarenessLevel)> =
+    let vision_pulses: Vec<(Entity, AwarenessLevel)> = look(In(npc.entity), world)?;
+    for (vision_entity, vision_level) in vision_pulses {
+        match world.run_system_cached_with(
+            pulse,
+            PulseInput {
+                entity: npc.entity,
+                object: vision_entity,
+                level: vision_level,
+                is_audio: false,
+            },
+        ) {
+            Ok(()) => (),
+            Err(err) => error!("Error updating vision sense: {}", err),
+        }
+    }
+    let hearing_pulses: Vec<(Entity, AwarenessLevel)> =
         world.run_system_cached_with(listen, (npc.entity, npc.near))?;
+    for (hearing_entity, hearing_level) in hearing_pulses {
+        match world.run_system_cached_with(
+            pulse,
+            PulseInput {
+                entity: npc.entity,
+                object: hearing_entity,
+                level: hearing_level,
+                is_audio: true,
+            },
+        ) {
+            Ok(()) => (),
+            Err(err) => error!("Error updating hearing sense: {}", err),
+        }
+    }
     Ok(())
 }
 

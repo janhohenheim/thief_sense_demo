@@ -12,6 +12,7 @@ mod demo;
 mod despawn;
 #[cfg(feature = "dev")]
 mod dev_tools;
+mod fixed_timer;
 mod link_head;
 mod movement;
 mod screens;
@@ -118,6 +119,7 @@ impl Plugin for AppPlugin {
             collision_layer::plugin,
             link_head::plugin,
             despawn::plugin,
+            fixed_timer::plugin,
         ));
 
         app.configure_sets(
