@@ -99,7 +99,7 @@ fn update_senses(In(npc): In<ToUpdate>, world: &mut World) -> Result {
         match world.run_system_cached_with(
             pulse,
             PulseInput {
-                entity: npc.entity,
+                npc: npc.entity,
                 object: vision_entity,
                 level: vision_level,
                 is_audio: false,
@@ -115,7 +115,7 @@ fn update_senses(In(npc): In<ToUpdate>, world: &mut World) -> Result {
         match world.run_system_cached_with(
             pulse,
             PulseInput {
-                entity: npc.entity,
+                npc: npc.entity,
                 object: hearing_entity,
                 level: hearing_level,
                 is_audio: true,

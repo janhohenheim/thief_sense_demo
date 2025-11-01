@@ -4,10 +4,14 @@ use bevy::{
     ecs::{system::SystemState, world::DeferredWorld},
     prelude::*,
 };
+use bitflags::Flags;
 
 use crate::{
     demo::{
-        ai::awareness::{AwarenessFlags, AwarenessLevel, AwarenessQuery},
+        ai::{
+            awareness::{AwarenessFlags, AwarenessLevel, AwarenessQuery},
+            sense::SenseTimer,
+        },
         npc::Npc,
         player::Player,
     },
@@ -29,7 +33,7 @@ pub(super) fn plugin(app: &mut App) {
 pub(crate) struct Alertness(pub(crate) AwarenessLevel);
 
 pub(crate) struct PulseInput {
-    pub(crate) entity: Entity,
+    pub(crate) npc: Entity,
     pub(crate) object: Entity,
     pub(crate) level: AwarenessLevel,
     pub(crate) is_audio: bool,
@@ -37,7 +41,7 @@ pub(crate) struct PulseInput {
 
 pub(crate) fn pulse(
     In(PulseInput {
-        entity,
+        npc,
         object,
         level,
         is_audio,
@@ -47,7 +51,7 @@ pub(crate) fn pulse(
 ) -> Result {
     let mut awareness = awareness_query
         .get_mut(world)
-        .get(entity, object)
+        .get(npc, object)
         .cloned()
         .unwrap_or_default();
     awareness.flags.remove(AwarenessFlags::SENSED);
@@ -61,36 +65,99 @@ pub(crate) fn pulse(
     let is_sensing_player = world.entity(object).get::<Player>().is_some();
 
     // alertness delay
-    if is_sensing_player && level > awareness.level {
+    let level = if is_sensing_player && level > awareness.level {
         world.run_system_cached_with(
             delay_awareness,
-            PulseInput {
-                entity,
-                object,
-                level,
-                is_audio,
+            DelayInput {
+                npc,
+                old_level: awareness.level,
+                new_level: level,
             },
-        )?;
-    }
+        )?
+    } else {
+        level
+    };
 
-    awareness_query
-        .get_mut(world)
-        .set(entity, object, awareness);
+    awareness_query.get_mut(world).set(npc, object, awareness);
     Ok(())
 }
 
+struct DelayInput {
+    npc: Entity,
+    old_level: AwarenessLevel,
+    new_level: AwarenessLevel,
+}
+
 fn delay_awareness(
-    In(PulseInput {
-        entity,
-        object,
-        level,
-        is_audio,
-    }): In<PulseInput>,
-) {
-    match level {
-        AwarenessLevel::Lowest | AwarenessLevel::Low => { /* No delay */ }
-        AwarenessLevel::Moderate => todo!(),
-        AwarenessLevel::High => todo!(),
+    In(DelayInput {
+        npc,
+        old_level,
+        new_level,
+    }): In<DelayInput>,
+    mut npcs: Query<(
+        &mut ModerateDelayTimer,
+        &mut HighDelayTimer,
+        &mut ModerateDelayReuseTimer,
+        &mut HighDelayReuseTimer,
+        &mut SenseTimer,
+    )>,
+) -> Result<AwarenessLevel> {
+    let (mut moderate_delay, mut high_delay, mut moderate_reuse, mut high_reuse, mut sense_timer) =
+        npcs.get_mut(npc)?;
+
+    // Early returns
+    match new_level {
+        AwarenessLevel::Lowest | AwarenessLevel::Low => return Ok(new_level),
+        AwarenessLevel::Moderate => {
+            if !moderate_delay.is_finished() {
+                // The original now delays the sense timer, but that seems like a bug as it's delayed *per pulse*,
+                // so if you get 5 pulses nearby, you get delayed by a factor of 5.
+                // But this doesn't really affect the gameplay anyways, as it is then reset when the player is nearby anyways.
+                // So that sounds like a second bug fixing the first bug lol.
+                // Same is true for the `::High` branch.
+                return Ok(AwarenessLevel::Low);
+            } else if !moderate_reuse.is_finished() {
+                return Ok(new_level);
+            }
+        }
+        AwarenessLevel::High => {
+            if !high_delay.is_finished() {
+                return Ok(if moderate_delay.is_finished() {
+                    AwarenessLevel::Moderate
+                } else {
+                    old_level
+                });
+            } else if !high_reuse.is_finished() {
+                return Ok(new_level);
+            }
+        }
+    }
+
+    // Set timers
+    match new_level {
+        AwarenessLevel::Lowest | AwarenessLevel::Low => {
+            unreachable!("This was already early returned")
+        }
+        AwarenessLevel::Moderate => {
+            moderate_delay.reset();
+            high_delay.reset();
+            moderate_reuse.reset();
+            high_reuse.reset();
+            Ok(AwarenessLevel::Low)
+        }
+        AwarenessLevel::High => {
+            if old_level <= AwarenessLevel::Moderate {
+                moderate_delay.reset();
+            }
+            high_delay.reset();
+            moderate_reuse.reset();
+            high_reuse.reset();
+            Ok(if !moderate_delay.is_finished() {
+                AwarenessLevel::Low
+            } else {
+                AwarenessLevel::Moderate
+            })
+        }
     }
 }
 

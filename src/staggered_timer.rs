@@ -14,6 +14,7 @@ pub(crate) struct StaggeredTimer {
     timer: Timer,
     stagger: Option<Timer>,
     just_spawned: bool,
+    base_duration: Duration,
 }
 
 impl StaggeredTimer {
@@ -22,6 +23,7 @@ impl StaggeredTimer {
             timer: Timer::new(duration, TimerMode::Once),
             stagger: None,
             just_spawned: false,
+            base_duration: duration,
         }
     }
 
