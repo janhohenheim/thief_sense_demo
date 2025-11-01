@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use bevy::{ecs::system::SystemState, prelude::*};
-use bitflags::Flags;
 
 use crate::{
     demo::{

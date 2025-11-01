@@ -1,6 +1,5 @@
 use bevy::{ecs::system::SystemParam, prelude::*, time::Stopwatch};
 use bitflags::bitflags;
-use evergreen_relations::prelude::*;
 
 pub(crate) mod pulse;
 
