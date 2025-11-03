@@ -13,7 +13,6 @@ use std::time::Duration;
 use bevy::prelude::*;
 
 use crate::{
-    GameFixedUpdateSystems,
     demo::{
         ai::{
             awareness::{
@@ -53,7 +52,7 @@ pub(crate) fn update_senses(In(npc): In<Entity>, world: &mut World) -> Result {
         match world.run_system_cached_with(
             pulse,
             PulseInput {
-                npc: npc,
+                npc,
                 object: vision_entity,
                 level: vision_level,
                 is_audio: false,
@@ -69,7 +68,7 @@ pub(crate) fn update_senses(In(npc): In<Entity>, world: &mut World) -> Result {
         match world.run_system_cached_with(
             pulse,
             PulseInput {
-                npc: npc,
+                npc,
                 object: hearing_entity,
                 level: hearing_level,
                 is_audio: true,

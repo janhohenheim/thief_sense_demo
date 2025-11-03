@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{
     GameFixedUpdateSystems,
     demo::{
-        ai::{alertness::update_alertness, debug::DebugVision, sense::update_senses},
+        ai::{alertness::update_alertness, sense::update_senses},
         npc::Npc,
     },
 };

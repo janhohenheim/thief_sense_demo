@@ -12,7 +12,7 @@ pub(super) fn plugin(app: &mut App) {
     app.register_required_components::<Npc, FreeKnowledgeDurations>();
 }
 
-pub(crate) fn update_alertness(In(npc): In<Entity>) -> Result {
+pub(crate) fn update_alertness(In(_npc): In<Entity>) -> Result {
     Ok(())
 }
 
