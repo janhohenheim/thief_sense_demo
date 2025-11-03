@@ -51,7 +51,9 @@ impl From<Entity> for HighAlertnessToPlayer {
 pub(crate) struct ChangeAlertness {
     #[event_target]
     pub(crate) npc: Entity,
+    #[expect(dead_code)]
     pub(crate) object: Option<Entity>,
+    #[expect(dead_code)]
     pub(crate) previous_level: AwarenessLevel,
 }
 
@@ -59,7 +61,9 @@ pub(crate) struct ChangeAlertness {
 pub(crate) struct ChangeOrRegainAwarenessObject {
     #[event_target]
     pub(crate) npc: Entity,
+    #[expect(dead_code)]
     pub(crate) object: Option<Entity>,
+    #[expect(dead_code)]
     pub(crate) previous_level: AwarenessLevel,
 }
 
