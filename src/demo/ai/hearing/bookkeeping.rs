@@ -2,14 +2,14 @@ use bevy::{ecs::entity_disabling::Disabled, prelude::*};
 use bevy_steam_audio::{probes::SteamAudioProbeBatch, scene::SteamAudioRootScene};
 
 use crate::{
-    GamePreFixedSystems,
+    GameFixedPreUpdateSystems,
     demo::ai::hearing::{AiSimulator, AiSource, accumulator::InitSource, param},
 };
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, init_simulation).add_systems(
-        RunFixedMainLoop,
-        update_probe_batch.in_set(GamePreFixedSystems::Bookkeep),
+        FixedPreUpdate,
+        update_probe_batch.in_set(GameFixedPreUpdateSystems::Bookkeep),
     );
     app.add_observer(add_source).add_observer(remove_source);
 }

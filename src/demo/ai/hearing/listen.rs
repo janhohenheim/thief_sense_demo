@@ -19,8 +19,11 @@ pub(super) fn plugin(app: &mut App) {
 pub(crate) fn listen(
     In((npc, near)): In<(Entity, bool)>,
     world: &mut World,
+    mut buff_local: Local<Option<Vec<Entity>>>,
 ) -> Result<Vec<(Entity, AwarenessLevel)>> {
-    let sources: Vec<_> = world.run_system_cached_with(sources_for_listener, npc)?;
+    let mut buff = buff_local.take().unwrap_or_default();
+    buff.clear();
+    let sources: Vec<_> = world.run_system_cached_with(sources_for_listener, (npc, buff))?;
 
     () = world.run_system_cached_with(
         update_simulation_for_listener,
@@ -32,7 +35,7 @@ pub(crate) fn listen(
     let mut pulses = Vec::new();
     let mut avg_loudness = 0.0;
     let source_len = sources.len();
-    for source in sources {
+    for source in sources.iter().copied() {
         let raw_loudness: f32 = world.run_system_cached_with(
             simulate_raw_loudness_to_listener,
             LoudnessInput {
@@ -42,14 +45,20 @@ pub(crate) fn listen(
             },
         )?;
         avg_loudness += loudness_to_fraction(raw_loudness) as f32;
-        let loudness: u8 = world.run_system_cached_with(
+        let loudness: u8 = match world.run_system_cached_with(
             loudness_to_listener,
             LoudnessToListenerInput {
                 listener: npc,
                 source,
                 rms: raw_loudness,
             },
-        )?;
+        ) {
+            Ok(loudness) => loudness,
+            Err(err) => {
+                error!("Error calculating loudness: {err}");
+                continue;
+            }
+        };
 
         let pulse = match loudness {
             v if v < 25 => AwarenessLevel::Lowest,
@@ -64,30 +73,30 @@ pub(crate) fn listen(
     }
     world.entity_mut(npc).insert(DebugHearing(avg_loudness));
 
+    buff_local.replace(sources);
+
     Ok(pulses)
 }
 
 fn sources_for_listener(
-    In(npc): In<Entity>,
+    In((npc, mut buff)): In<(Entity, Vec<Entity>)>,
     transform: Query<&GlobalTransform>,
     sources: Query<(Entity, &GlobalTransform, AudioInputs), With<AiSource>>,
 ) -> Result<Vec<Entity>> {
     let npc_translation = transform.get(npc)?.translation();
-    let sources = sources
-        .iter()
-        .filter_map(|(entity, transform, inputs)| {
-            let inputs = inputs.get().ok()?;
-            let dist_squared = transform
-                .translation()
-                .distance_squared(npc_translation)
-                .max(1.0);
-            let loudness_at_dist = inputs.loudness / dist_squared;
-            let fraction = loudness_to_fraction(loudness_at_dist);
+    let sources = sources.iter().filter_map(|(entity, transform, inputs)| {
+        let inputs = inputs.get().ok()?;
+        let dist_squared = transform
+            .translation()
+            .distance_squared(npc_translation)
+            .max(1.0);
+        let loudness_at_dist = inputs.loudness / dist_squared;
+        let fraction = loudness_to_fraction(loudness_at_dist);
 
-            if fraction > 0.01 { Some(entity) } else { None }
-        })
-        .collect::<Vec<_>>();
-    Ok(sources)
+        if fraction > 0.01 { Some(entity) } else { None }
+    });
+    buff.extend(sources);
+    Ok(buff)
 }
 
 struct LoudnessToListenerInput {

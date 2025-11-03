@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+pub(crate) mod alertness;
 pub(crate) mod awareness;
 pub(crate) mod debug;
 pub(crate) mod hearing;
@@ -12,6 +13,7 @@ pub(super) fn plugin(app: &mut App) {
         awareness::plugin,
         vision::plugin,
         hearing::plugin,
+        alertness::plugin,
         debug::plugin,
     ));
 }

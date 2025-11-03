@@ -6,10 +6,9 @@ use bevy_tnua::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
-        RunFixedMainLoop,
+        FixedPreUpdate,
         (sync_agent_velocity, set_controller_velocity)
             .chain()
-            .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop)
             .before(LandmassSystems::SyncExistence)
             .run_if(in_state(Screen::Gameplay)),
     );

@@ -4,7 +4,8 @@ use bevy::prelude::*;
 use crate::{
     collision_layer::CollisionLayer,
     demo::ai::{
-        awareness::{Alertness, AwarenessLevel},
+        alertness::Alertness,
+        awareness::AwarenessLevel,
         debug::DebugVision,
         vision::{
             view_cone::{ViewCone, ViewCones, VisibilityAcuities},
@@ -94,7 +95,7 @@ fn check_view_cones(
         if !view_cone.flags.active() {
             continue;
         }
-        if !view_cone.flags.allowed_by(alertness.0) {
+        if !view_cone.flags.allowed_by(alertness.level) {
             continue;
         }
         let intersections = spatial.shape_intersections(

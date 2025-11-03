@@ -5,7 +5,7 @@ use bevy_steam_audio::{
 };
 
 use crate::{
-    GamePreFixedSystems,
+    GameFixedPreUpdateSystems,
     demo::ai::hearing::{
         AiSimulator, AiSource,
         debug::{EnableAudioWriter, PathVisualization, PathVisualizations, VisualizationsPtr},
@@ -15,8 +15,8 @@ use crate::{
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
-        RunFixedMainLoop,
-        commit_simulators.in_set(GamePreFixedSystems::Commit),
+        FixedPreUpdate,
+        commit_simulators.in_set(GameFixedPreUpdateSystems::Commit),
     );
 }
 

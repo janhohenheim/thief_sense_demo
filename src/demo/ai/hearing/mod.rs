@@ -49,9 +49,9 @@ pub(crate) struct AiLoudnessControl {
 impl Default for AiLoudnessControl {
     fn default() -> Self {
         Self {
-            low_loudness: 1,
-            medium_loudness: 3,
-            high_loudness: 5,
+            low_loudness: 50,
+            medium_loudness: 70,
+            high_loudness: 90,
         }
     }
 }
