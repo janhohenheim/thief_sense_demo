@@ -7,7 +7,8 @@ pub(crate) mod pulse;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((pulse::plugin, free_knowledge::plugin));
-    app.add_systems(FixedPreUpdate, (tick_awareness_times, count_awareness));
+    app.add_systems(FixedPreUpdate, tick_awareness_times)
+        .add_systems(FixedPostUpdate, count_awareness);
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Reflect, EnumCount)]
@@ -95,7 +96,7 @@ impl AwarenessQuery<'_, '_> {
 
     pub(crate) fn set(&mut self, npc: Entity, object: Entity, awareness: Awareness) {
         let Ok(awareness_targets) = self.npc_to_awareness.get(npc) else {
-            info!("spawned");
+            error!("spawned");
             self.commands.spawn((
                 Name::new("Awareness"),
                 AwarenessToNpc(npc),
