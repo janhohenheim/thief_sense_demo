@@ -96,12 +96,15 @@ fn get_highest_awareness(
         flags,
         max_last_contact,
     }): In<HighestAwarenessInput>,
-    npcs: Query<(&GlobalTransform, &Team, &NpcToAwareness)>,
+    npcs: Query<(&GlobalTransform, &Team, Option<&NpcToAwareness>)>,
     objects: Query<&Team>,
     awarenesses: Query<(&Awareness, &AwarenessToObject)>,
     players: Query<(), With<Player>>,
 ) -> Result<Option<(Entity, Awareness)>> {
     let (npc_transform, npc_team, npc_to_awareness) = npcs.get(npc)?;
+    let Some(npc_to_awareness) = npc_to_awareness else {
+        return Ok(None);
+    };
     let mut highest_awareness = None;
     for (awareness, awareness_to_object) in awarenesses.iter_many(npc_to_awareness.get()) {
         let object = awareness_to_object.get();

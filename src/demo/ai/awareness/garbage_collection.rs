@@ -45,8 +45,7 @@ fn despawn_dangling_awarenesses(
         Entity,
         (
             With<Awareness>,
-            Without<AwarenessToNpc>,
-            Without<AwarenessToObject>,
+            Or<(Without<AwarenessToNpc>, Without<AwarenessToObject>)>,
         ),
     >,
 ) {

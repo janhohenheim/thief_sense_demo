@@ -7,19 +7,14 @@ pub(super) fn plugin(app: &mut App) {
         .register_required_components::<Player, Team>();
 }
 
-#[derive(Component, Clone, Copy, Reflect, Debug, PartialEq, Eq)]
+#[derive(Component, Clone, Copy, Reflect, Debug, Default, PartialEq, Eq)]
 #[reflect(Component)]
 pub(crate) enum Team {
     Good,
+    #[default]
     Neutral,
     Bad(u8),
     Alarm,
-}
-
-impl Default for Team {
-    fn default() -> Self {
-        panic!("Need to set the team explicitly")
-    }
 }
 
 impl Team {
