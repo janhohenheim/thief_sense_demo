@@ -20,7 +20,8 @@ pub(crate) fn look(
     In(npc): In<Entity>,
     world: &mut World,
 ) -> Result<Vec<(Entity, AwarenessLevel)>> {
-    // TODO: check / update awareness flags (kAIAF_CanRaycast, kAIAF_HaveLOS, etc)
+    // The original only checks the view cones for potential targets that already passed a raycast,
+    // but I think the performance difference is negligible since we are doing cheap shape_intersections.
     let entities_in_view: Vec<(Entity, ViewCone)> =
         world.run_system_cached_with(check_view_cones, npc)?;
     let mut pulses = Vec::new();
