@@ -107,17 +107,13 @@ pub(crate) fn pulse(
             .capacitor
             .set_duration(capacitor.get(awareness.level));
         awareness.capacitor.reset();
-        info!("kept");
     } else if pulse < awareness.level {
+        // TODO: this is only called when a sensation happened, but we need to decrease the awareness level in-between too!
         if awareness.capacitor.is_finished() {
             awareness.level = pulse.decrease();
-            info!("disc");
-        } else {
-            info!("no disc")
         }
     } else {
         // awareness same or higher
-        info!("higher or equal: {:?} -> {:?}", awareness.level, pulse);
         awareness.level = pulse;
         awareness
             .capacitor

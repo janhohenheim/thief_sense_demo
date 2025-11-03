@@ -7,8 +7,7 @@ pub(crate) mod pulse;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((pulse::plugin, free_knowledge::plugin));
-    app.add_systems(FixedPreUpdate, tick_awareness_times)
-        .add_systems(FixedPostUpdate, count_awareness);
+    app.add_systems(FixedPreUpdate, tick_awareness_times);
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Reflect, EnumCount)]
@@ -79,7 +78,7 @@ pub(crate) struct AwarenessQuery<'w, 's> {
 impl AwarenessQuery<'_, '_> {
     pub(crate) fn get(&self, npc: Entity, object: Entity) -> Option<&'_ Awareness> {
         let npc_to_awareness = self.npc_to_awareness.get(npc).ok()?;
-        let res = npc_to_awareness
+        npc_to_awareness
             // Iterating should be fine, a given NPC won't be aware of more than 3 objects or so anyways
             .iter()
             .filter_map(|awareness| self.awarenesses.get(awareness).ok())
@@ -89,14 +88,11 @@ impl AwarenessQuery<'_, '_> {
                 } else {
                     None
                 }
-            });
-        info!("res: {}", res.is_some());
-        res
+            })
     }
 
     pub(crate) fn set(&mut self, npc: Entity, object: Entity, awareness: Awareness) {
         let Ok(awareness_targets) = self.npc_to_awareness.get(npc) else {
-            error!("spawned");
             self.commands.spawn((
                 Name::new("Awareness"),
                 AwarenessToNpc(npc),
@@ -124,10 +120,6 @@ impl AwarenessQuery<'_, '_> {
         };
         *self.awarenesses.get_mut(existing_awareness).unwrap().0 = awareness;
     }
-}
-
-fn count_awareness(q: Query<(), With<Awareness>>) {
-    info!("Counting awareness: {}", q.count());
 }
 
 #[derive(Component)]
