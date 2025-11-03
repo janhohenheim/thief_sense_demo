@@ -38,70 +38,22 @@ pub(crate) const SENSE_INTERVAL_FAR: f32 = SENSE_INTERVAL_NEAR * SENSE_INTERVAL_
 
 pub(super) fn plugin(app: &mut App) {
     app.add_staggered_timer::<SenseTimer>();
-    app.add_systems(
-        FixedUpdate,
-        update_all_senses.in_set(GameFixedUpdateSystems::Senses),
-    );
     app.register_required_components::<Npc, SenseTimer>();
 }
 
-fn update_all_senses(world: &mut World, mut buff_local: Local<Option<Vec<ToUpdate>>>) -> Result {
-    let mut buff = buff_local.take().unwrap_or_default();
-    buff.clear();
-    let npcs = world.run_system_cached_with(get_npcs_to_update, buff)?;
-    for npc in &npcs {
-        world.entity_mut(npc.entity).remove::<DebugVision>();
-        if let Err(err) = update_senses(In(*npc), world) {
-            error!("{err}");
-        }
-    }
-    buff_local.replace(npcs);
-    Ok(())
-}
-
-#[derive(Debug, Clone, Copy)]
-struct ToUpdate {
-    entity: Entity,
-    near: bool,
-}
-
-fn get_npcs_to_update(
-    In(mut buff): In<Vec<ToUpdate>>,
-    player_transform: Single<&Transform, With<Player>>,
-    mut npcs: Query<(Entity, &Transform, &mut SenseTimer), With<Npc>>,
-    time: Res<Time>,
-) -> Vec<ToUpdate> {
-    let to_update = npcs
-        .iter_mut()
-        .filter_map(|(entity, npc_transform, mut timer)| {
-            timer.tick(time.delta());
-            if !timer.is_finished() {
-                return None;
-            }
-            const DIST_CUTOFF: f32 = 12.0;
-            let (near, secs) = if player_transform
-                .translation
-                .distance_squared(npc_transform.translation)
-                > DIST_CUTOFF * DIST_CUTOFF
-            {
-                (false, SENSE_INTERVAL_FAR)
-            } else {
-                (true, SENSE_INTERVAL_NEAR)
-            };
-            timer.reset_with(Duration::from_secs_f32(secs));
-            Some(ToUpdate { entity, near })
-        });
-    buff.extend(to_update);
-    buff
-}
-
-fn update_senses(In(npc): In<ToUpdate>, world: &mut World) -> Result {
-    let vision_pulses: Vec<(Entity, AwarenessLevel)> = look(In(npc.entity), world)?;
+pub(crate) fn update_senses(In(npc): In<Entity>, world: &mut World) -> Result {
+    let should_update: Option<ShouldUpdate> =
+        world.run_system_cached_with(should_update_npc, npc)?;
+    let Some(ShouldUpdate { near }) = should_update else {
+        return Ok(());
+    };
+    world.entity_mut(npc).remove::<DebugVision>();
+    let vision_pulses: Vec<(Entity, AwarenessLevel)> = look(In(npc), world)?;
     for (vision_entity, vision_level) in vision_pulses {
         match world.run_system_cached_with(
             pulse,
             PulseInput {
-                npc: npc.entity,
+                npc: npc,
                 object: vision_entity,
                 level: vision_level,
                 is_audio: false,
@@ -112,12 +64,12 @@ fn update_senses(In(npc): In<ToUpdate>, world: &mut World) -> Result {
         }
     }
     let hearing_pulses: Vec<(Entity, AwarenessLevel)> =
-        world.run_system_cached_with(listen, (npc.entity, npc.near))?;
+        world.run_system_cached_with(listen, (npc, near))?;
     for (hearing_entity, hearing_level) in hearing_pulses {
         match world.run_system_cached_with(
             pulse,
             PulseInput {
-                npc: npc.entity,
+                npc: npc,
                 object: hearing_entity,
                 level: hearing_level,
                 is_audio: true,
@@ -130,6 +82,35 @@ fn update_senses(In(npc): In<ToUpdate>, world: &mut World) -> Result {
     Ok(())
 }
 
+struct ShouldUpdate {
+    near: bool,
+}
+
+fn should_update_npc(
+    In(npc): In<Entity>,
+    player_transform: Single<&GlobalTransform, With<Player>>,
+    mut npcs: Query<(&GlobalTransform, &mut SenseTimer), With<Npc>>,
+    time: Res<Time>,
+) -> Result<Option<ShouldUpdate>> {
+    let (npc_transform, mut sense_timer) = npcs.get_mut(npc)?;
+    sense_timer.tick(time.delta());
+    if !sense_timer.is_finished() {
+        return Ok(None);
+    }
+    const DIST_CUTOFF: f32 = 12.0;
+    let (near, secs) = if player_transform
+        .translation()
+        .distance_squared(npc_transform.translation())
+        > DIST_CUTOFF * DIST_CUTOFF
+    {
+        (false, SENSE_INTERVAL_FAR)
+    } else {
+        (true, SENSE_INTERVAL_NEAR)
+    };
+    sense_timer.reset_with(Duration::from_secs_f32(secs));
+    Ok(Some(ShouldUpdate { near }))
+}
+
 #[derive(Component, Debug, Deref, DerefMut)]
 pub(crate) struct SenseTimer(pub(crate) StaggeredTimer);
 
@@ -139,4 +120,20 @@ impl Default for SenseTimer {
             SENSE_INTERVAL_FAR,
         )))
     }
+}
+
+/// f32[0, 1] -> u8[0, 100]
+pub(crate) fn calc_control_rating(fraction: f32, low: u8, mid: u8, high: u8) -> u8 {
+    let raw = (fraction * 100.0).clamp(1.0, 100.0) as u8;
+    const LOW_NORM: u8 = 25;
+    const MID_NORM: u8 = 50;
+    const HIGH_NORM: u8 = 75;
+    let (pre_norm_base, pre_norm_range, norm_base, norm_range) = match raw {
+        l if l < low => (0, low, 0, LOW_NORM),
+        l if l < mid => (low, mid - low, LOW_NORM, MID_NORM - LOW_NORM),
+        l if l < high => (mid, high - mid, MID_NORM, HIGH_NORM - MID_NORM),
+        _ => (high, 100 - high, HIGH_NORM, 100 - HIGH_NORM),
+    };
+
+    norm_base + ((raw - pre_norm_base) as f32 / pre_norm_range as f32) as u8 + norm_range
 }

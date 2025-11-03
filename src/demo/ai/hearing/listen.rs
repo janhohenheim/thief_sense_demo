@@ -2,7 +2,6 @@ use bevy::prelude::*;
 
 use crate::demo::ai::{
     awareness::AwarenessLevel,
-    calc_control_rating,
     debug::DebugHearing,
     hearing::{
         AiLoudnessControl, AiSource, LoudnessAcuity,
@@ -10,6 +9,7 @@ use crate::demo::ai::{
         loudness::{LoudnessInput, simulate_raw_loudness_to_listener},
         simulate::{AiSimulationInputs, update_simulation_for_listener},
     },
+    sense::calc_control_rating,
 };
 
 pub(super) fn plugin(app: &mut App) {
