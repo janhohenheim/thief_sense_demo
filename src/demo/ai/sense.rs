@@ -16,7 +16,7 @@ use crate::{
     demo::{
         ai::{
             awareness::{
-                AwarenessLevel,
+                Awareness, AwarenessFlags, AwarenessLevel, NpcToAwareness,
                 pulse::{PulseInput, pulse},
             },
             debug::DebugVision,
@@ -47,6 +47,7 @@ pub(crate) fn update_senses(In(npc): In<Entity>, world: &mut World) -> Result {
         return Ok(());
     };
     world.entity_mut(npc).remove::<DebugVision>();
+    () = world.run_system_cached_with(clear_senses, npc)?;
     let vision_pulses: Vec<(Entity, AwarenessLevel)> = look(In(npc), world)?;
     for (vision_entity, vision_level) in vision_pulses {
         match world.run_system_cached_with(
@@ -79,6 +80,21 @@ pub(crate) fn update_senses(In(npc): In<Entity>, world: &mut World) -> Result {
         }
     }
     Ok(())
+}
+
+fn clear_senses(
+    In(npc): In<Entity>,
+    npcs: Query<&NpcToAwareness>,
+    mut awarenesses: Query<&mut Awareness>,
+) {
+    let Ok(npc_to_awareness) = npcs.get(npc) else {
+        // Don't return an error, the NPC just isn't aware of anything.
+        return;
+    };
+    let mut awarenesses = awarenesses.iter_many_mut(npc_to_awareness.get());
+    while let Some(mut awareness) = awarenesses.fetch_next() {
+        awareness.flags.remove(AwarenessFlags::SENSED);
+    }
 }
 
 struct ShouldUpdate {

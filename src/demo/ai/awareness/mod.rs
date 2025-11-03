@@ -61,11 +61,12 @@ bitflags! {
         const SEEN = 1 << 0;
         const HEARD = 1 << 1;
         const SENSED = Self::SEEN.bits() | Self::HEARD.bits();
-        /// Object has an uninterrupted raycast path to it
-        const CAN_RAYCAST = 1 << 2;
-        /// Object has an uninterrupted raycast path to it AND it is within the NPC's view cone
-        const HAS_LOS = 1 << 3;
         const FIRST_HAND = 1 << 4;
+        // intentionally omitted:
+        // - CAN_RAYCAST: just needed for optimization and hacks
+        // - HAS_LOS: basically the same as SEEN .
+        //   The original can only *either* see or hear a source at any single point in time,
+        //   but since we process both, there's no meaningful distinction between LOS and SEEN anymore.
         // TODO: there's also a kAIAF_Freshened for refreshing awareness links, aka keeping them alive.
         // That is useful when an NPC needs to chase a player across the map because the player climbed a ladder.
     }
