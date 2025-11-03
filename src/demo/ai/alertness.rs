@@ -56,7 +56,7 @@ pub(crate) struct ChangeAlertness {
 }
 
 #[derive(EntityEvent, Debug)]
-pub(crate) struct ChangeAwareness {
+pub(crate) struct ChangeOrRegainAwarenessObject {
     #[event_target]
     pub(crate) npc: Entity,
     pub(crate) object: Option<Entity>,
@@ -72,8 +72,8 @@ pub(crate) struct Alertness {
     pub(crate) peak: AwarenessLevel,
     pub(crate) free_knowledge: Duration,
     pub(crate) ever_got_high_alerted_by_player: bool,
-    pub(crate) lost_contact_to_high_awareness: bool,
-    pub(crate) last_high_aware_entity: Option<Entity>,
+    pub(crate) lost_contact_to_awareness_object: bool,
+    pub(crate) last_awareness_object: Option<Entity>,
 }
 
 impl Default for Alertness {
@@ -83,8 +83,8 @@ impl Default for Alertness {
             peak: AwarenessLevel::default(),
             free_knowledge: FreeKnowledgeDurations::default()[AwarenessLevel::default() as usize],
             ever_got_high_alerted_by_player: false,
-            lost_contact_to_high_awareness: false,
-            last_high_aware_entity: None,
+            lost_contact_to_awareness_object: false,
+            last_awareness_object: None,
         }
     }
 }
@@ -230,10 +230,10 @@ struct UpdateAlertnessToInput {
 fn update_alertness_to(
     In(UpdateAlertnessToInput { npc, awareness }): In<UpdateAlertnessToInput>,
     mut commands: Commands,
-    mut npcs: Query<&mut Alertness>,
+    mut npcs: Query<(&mut Alertness, &FreeKnowledgeDurations)>,
     players: Query<(), With<Player>>,
 ) -> Result {
-    let mut alertness = npcs.get_mut(npc)?;
+    let (mut alertness, free_knowledge_durations) = npcs.get_mut(npc)?;
     let previous_level = alertness.level;
     let (object, target_level, awareness) = if let Some((object, awareness)) = awareness {
         // Original now forces our alertness to be high if it was high before and a hardcoded 30 s have not yet passed since the last contact.
@@ -250,6 +250,7 @@ fn update_alertness_to(
     } else {
         target_level
     };
+    alertness.free_knowledge = free_knowledge_durations[alertness.level as usize];
     alertness.peak = alertness.peak.max(alertness.level);
 
     if alertness.level == AwarenessLevel::High
@@ -272,21 +273,31 @@ fn update_alertness_to(
         awareness.last_contact.elapsed() != Duration::ZERO
             || !awareness.flags.contains(AwarenessFlags::SEEN)
     }) {
-        alertness.lost_contact_to_high_awareness = true;
+        alertness.lost_contact_to_awareness_object = true;
     }
-    if object != alertness.last_high_aware_entity
-        || (alertness.lost_contact_to_high_awareness
+
+    if object != alertness.last_awareness_object
+        || (alertness.lost_contact_to_awareness_object
             && awareness.as_ref().is_some_and(|awareness| {
                 awareness.last_contact.elapsed() == Duration::ZERO
                     && awareness.flags.contains(AwarenessFlags::SEEN)
             }))
     {
-        alertness.last_high_aware_entity = object;
-        commands.entity(npc).trigger(|npc| ChangeAwareness {
-            npc,
-            object,
-            previous_level,
-        });
+        alertness.last_awareness_object = object;
+        commands
+            .entity(npc)
+            .trigger(|npc| ChangeOrRegainAwarenessObject {
+                npc,
+                object,
+                previous_level,
+            });
+    }
+
+    if awareness.as_ref().is_some_and(|awareness| {
+        awareness.last_contact.elapsed() == Duration::ZERO
+            && awareness.flags.contains(AwarenessFlags::SEEN)
+    }) {
+        alertness.lost_contact_to_awareness_object = false;
     }
 
     Ok(())

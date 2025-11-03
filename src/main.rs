@@ -75,7 +75,7 @@ impl Plugin for AppPlugin {
                     fmt_layer: |_| {
                         Some(Box::new(
                             bevy::log::tracing_subscriber::fmt::Layer::default()
-                                .without_time()
+                                //.without_time()
                                 .map_fmt_fields(MakeExt::debug_alt)
                                 .with_writer(std::io::stderr),
                         ))
