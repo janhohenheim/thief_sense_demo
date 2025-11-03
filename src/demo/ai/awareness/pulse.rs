@@ -125,7 +125,7 @@ pub(crate) fn pulse(
         awareness.capacitor.reset();
     }
     awareness_query.get_mut(world).set(npc, object, awareness);
-    world.flush();
+    awareness_query.apply(world);
     Ok(())
 }
 
