@@ -23,6 +23,14 @@ pub(crate) fn update_alertness(In(npc): In<Entity>, world: &mut World) -> Result
         get_highest_awareness,
         HighestAwarenessInput::new(npc).with_flags(HighestAwarenessFlags::ALERTING),
     )?;
+    () = world.run_system_cached_with(
+        update_alertness_to,
+        UpdateAlertnessToInput {
+            npc,
+            awareness: highest_awareness,
+        },
+    )?;
+
     Ok(())
 }
 
@@ -60,10 +68,10 @@ pub(crate) struct FreeKnowledgeDurations([Duration; AwarenessLevel::COUNT]);
 impl Default for FreeKnowledgeDurations {
     fn default() -> Self {
         Self([
-            Duration::from_millis(1500), // 1.0
-            Duration::from_millis(1500), // 1.0
-            Duration::from_millis(1875), // 1.25
-            Duration::from_millis(3000), // 2.0
+            Duration::from_millis(1500), // x 1.0
+            Duration::from_millis(1500), // x 1.0
+            Duration::from_millis(1875), // x 1.25
+            Duration::from_millis(3000), // x 2.0
         ])
     }
 }
@@ -175,6 +183,24 @@ fn get_highest_awareness(
         }
     }
     Ok(highest_awareness)
+}
+
+struct UpdateAlertnessToInput {
+    npc: Entity,
+    awareness: Option<(Entity, Awareness)>,
+}
+
+fn update_alertness_to(
+    In(UpdateAlertnessToInput { npc, awareness }): In<UpdateAlertnessToInput>,
+    mut npcs: Query<&mut Alertness>,
+) -> Result {
+    let mut alertness = npcs.get_mut(npc)?;
+    if let Some((object, awareness)) = awareness {
+        // Original now forces our alertness to be high if it was high before and a hardcoded 30 s have not yet passed since the last contact.
+        // But imo that's already taken care of by the cap, which is 45 s by default. Sure, this does not
+        // Also, it does *not* force the alertness when there happens to be no awareness of any object, which seems like a bug.
+    }
+    Ok(())
 }
 
 bitflags! {

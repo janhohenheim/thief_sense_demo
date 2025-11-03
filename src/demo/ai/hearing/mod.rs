@@ -1,4 +1,5 @@
-use bevy::prelude::*;
+use avian3d::prelude::ColliderOf;
+use bevy::{ecs::relationship::Relationship, prelude::*};
 use bevy_steam_audio::STEAM_AUDIO_CONTEXT;
 
 use crate::demo::{
@@ -13,6 +14,7 @@ pub(crate) mod listen;
 mod loudness;
 pub(crate) mod node;
 mod simulate;
+pub(crate) mod source_of;
 
 pub(super) fn plugin(app: &mut App) {
     app.init_resource::<AiSimulator>();
@@ -24,13 +26,23 @@ pub(super) fn plugin(app: &mut App) {
         node::plugin,
         debug::plugin,
         accumulator::plugin,
+        source_of::plugin,
     ));
     app.insert_resource(EnableAudioPathVisualization(false))
         .insert_resource(EnableAudioWriter(cfg!(feature = "dev")));
     app.register_required_components::<Npc, LoudnessAcuity>();
 }
 
-#[derive(Component, Debug, Clone, Copy, Deref, DerefMut)]
+/// This is to [`AiSource`] what [`RigidBody`] is to [`Collider`].
+///
+/// [`RigidBody`]: avian3d::prelude::RigidBody
+/// [`Collider`]: avian3d::prelude::Collider
+#[derive(Component, Debug, Default, Clone, Copy, Reflect)]
+#[reflect(Component)]
+pub(crate) struct AiSourceBody;
+
+#[derive(Component, Debug, Clone, Copy, Reflect)]
+#[reflect(Component)]
 pub(crate) struct LoudnessAcuity(pub(crate) f32);
 
 impl Default for LoudnessAcuity {
@@ -39,7 +51,8 @@ impl Default for LoudnessAcuity {
     }
 }
 
-#[derive(Component, Debug, Copy, Clone)]
+#[derive(Component, Debug, Copy, Clone, Reflect)]
+#[reflect(Component)]
 pub(crate) struct AiLoudnessControl {
     pub(crate) low_loudness: u8,
     pub(crate) medium_loudness: u8,
