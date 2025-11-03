@@ -12,7 +12,6 @@ use crate::{
             visibility::{AiVisibility, get_or_update_visibility},
         },
     },
-    dev_tools::log_components::LogComponentsCommands,
 };
 
 pub(super) fn plugin(_app: &mut App) {}

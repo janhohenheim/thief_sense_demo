@@ -1,7 +1,5 @@
-use avian3d::prelude::ColliderOf;
 use bevy::{
     ecs::{
-        error::CommandWithEntity as _,
         lifecycle::HookContext,
         relationship::{Relationship, RelationshipHookMode, RelationshipSourceCollection},
         world::DeferredWorld,

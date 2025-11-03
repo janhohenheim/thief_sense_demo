@@ -1,5 +1,4 @@
-use avian3d::prelude::ColliderOf;
-use bevy::{ecs::relationship::Relationship, prelude::*};
+use bevy::prelude::*;
 use bevy_steam_audio::STEAM_AUDIO_CONTEXT;
 
 use crate::demo::{

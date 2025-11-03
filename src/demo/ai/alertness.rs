@@ -194,8 +194,8 @@ fn update_alertness_to(
     In(UpdateAlertnessToInput { npc, awareness }): In<UpdateAlertnessToInput>,
     mut npcs: Query<&mut Alertness>,
 ) -> Result {
-    let mut alertness = npcs.get_mut(npc)?;
-    if let Some((object, awareness)) = awareness {
+    let _alertness = npcs.get_mut(npc)?;
+    if let Some((_object, _awareness)) = awareness {
         // Original now forces our alertness to be high if it was high before and a hardcoded 30 s have not yet passed since the last contact.
         // But imo that's already taken care of by the cap, which is 45 s by default. Sure, this does not
         // Also, it does *not* force the alertness when there happens to be no awareness of any object, which seems like a bug.
