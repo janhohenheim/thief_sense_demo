@@ -7,7 +7,7 @@ pub(crate) mod pulse;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((pulse::plugin, free_knowledge::plugin));
-    app.add_systems(FixedPreUpdate, tick_awareness_times);
+    app.add_systems(FixedPreUpdate, (tick_awareness_times, count_awareness));
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Reflect, EnumCount)]
@@ -70,33 +70,36 @@ bitflags! {
 
 #[derive(SystemParam)]
 pub(crate) struct AwarenessQuery<'w, 's> {
-    awareness_targets: Query<'w, 's, &'static AwarenessToNpcTarget>,
+    npc_to_awareness: Query<'w, 's, &'static NpcToAwareness>,
     awarenesses: Query<'w, 's, (&'static mut Awareness, &'static AwarenessToObject)>,
     commands: Commands<'w, 's>,
 }
 
 impl AwarenessQuery<'_, '_> {
-    pub(crate) fn get(&self, npc: Entity, target: Entity) -> Option<&'_ Awareness> {
-        let awareness_targets = self.awareness_targets.get(npc).ok()?;
-        awareness_targets
+    pub(crate) fn get(&self, npc: Entity, object: Entity) -> Option<&'_ Awareness> {
+        let npc_to_awareness = self.npc_to_awareness.get(npc).ok()?;
+        let res = npc_to_awareness
             // Iterating should be fine, a given NPC won't be aware of more than 3 objects or so anyways
             .iter()
             .filter_map(|awareness| self.awarenesses.get(awareness).ok())
             .find_map(|(awareness, awareness_to_object)| {
-                if awareness_to_object.0 == target {
+                if awareness_to_object.0 == object {
                     Some(awareness)
                 } else {
                     None
                 }
-            })
+            });
+        info!("res: {}", res.is_some());
+        res
     }
 
-    pub(crate) fn set(&mut self, npc: Entity, target: Entity, awareness: Awareness) {
-        let Ok(awareness_targets) = self.awareness_targets.get(npc) else {
+    pub(crate) fn set(&mut self, npc: Entity, object: Entity, awareness: Awareness) {
+        let Ok(awareness_targets) = self.npc_to_awareness.get(npc) else {
+            info!("spawned");
             self.commands.spawn((
                 Name::new("Awareness"),
                 AwarenessToNpc(npc),
-                AwarenessToObject(target),
+                AwarenessToObject(object),
                 awareness,
             ));
             return;
@@ -107,13 +110,13 @@ impl AwarenessQuery<'_, '_> {
             .find(|entity| {
                 self.awarenesses
                     .get(*entity)
-                    .is_ok_and(|(_awareness, awareness_to_object)| awareness_to_object.0 == target)
+                    .is_ok_and(|(_awareness, awareness_to_object)| awareness_to_object.0 == object)
             });
         let Some(existing_awareness) = existing_awareness else {
             self.commands.spawn((
                 Name::new("Awareness"),
                 AwarenessToNpc(npc),
-                AwarenessToObject(target),
+                AwarenessToObject(object),
                 awareness,
             ));
             return;
@@ -122,21 +125,25 @@ impl AwarenessQuery<'_, '_> {
     }
 }
 
+fn count_awareness(q: Query<(), With<Awareness>>) {
+    info!("Counting awareness: {}", q.count());
+}
+
 #[derive(Component)]
-#[relationship(relationship_target = AwarenessToObjectTarget)]
+#[relationship(relationship_target = ObjectToAwareness)]
 pub(crate) struct AwarenessToObject(Entity);
 
 #[derive(Component)]
-#[relationship_target(relationship = AwarenessToObject)]
-pub(crate) struct AwarenessToObjectTarget(Entity);
+#[relationship_target(relationship = AwarenessToObject, linked_spawn)]
+pub(crate) struct ObjectToAwareness(Vec<Entity>);
 
 #[derive(Component)]
-#[relationship(relationship_target = AwarenessToNpcTarget)]
+#[relationship(relationship_target = NpcToAwareness)]
 pub(crate) struct AwarenessToNpc(Entity);
 
-#[derive(Component)]
+#[derive(Component, Default)]
 #[relationship_target(relationship = AwarenessToNpc, linked_spawn)]
-pub(crate) struct AwarenessToNpcTarget(Vec<Entity>);
+pub(crate) struct NpcToAwareness(Vec<Entity>);
 
 fn tick_awareness_times(mut awareness: Query<&mut Awareness>, time: Res<Time>) {
     for mut awareness in awareness.iter_mut() {

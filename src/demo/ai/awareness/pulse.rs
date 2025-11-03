@@ -117,12 +117,12 @@ pub(crate) fn pulse(
         }
     } else {
         // awareness same or higher
+        info!("higher or equal: {:?} -> {:?}", awareness.level, pulse);
         awareness.level = pulse;
         awareness
             .capacitor
             .set_duration(capacitor.get(awareness.level));
         awareness.capacitor.reset();
-        info!("higher or equal");
     }
     awareness_query.get_mut(world).set(npc, object, awareness);
     Ok(())
