@@ -137,6 +137,7 @@ impl Plugin for AppPlugin {
             FixedUpdate,
             (
                 GameFixedUpdateSystems::Senses.run_if(any_with_component::<Player>),
+                GameFixedUpdateSystems::GarbageCollection,
                 GameFixedUpdateSystems::Despawn,
             )
                 .chain(),
@@ -159,6 +160,7 @@ enum GameUpdateSystems {
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
 enum GameFixedUpdateSystems {
     Senses,
+    GarbageCollection,
     Despawn,
 }
 

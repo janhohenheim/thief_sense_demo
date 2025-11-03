@@ -4,8 +4,9 @@ use bevy::{ecs::system::SystemState, prelude::*};
 
 use crate::{
     demo::{
-        ai::awareness::{
-            AwarenessFlags, AwarenessLevel, AwarenessQuery, free_knowledge::FreeKnowledge,
+        ai::{
+            alertness::Alertness,
+            awareness::{AwarenessFlags, AwarenessLevel, AwarenessQuery},
         },
         npc::Npc,
         player::Player,
@@ -22,7 +23,7 @@ pub(super) fn plugin(app: &mut App) {
     app.register_required_components::<Npc, HighDelayTimer>();
     app.register_required_components::<Npc, ModerateDelayReuseTimer>();
     app.register_required_components::<Npc, HighDelayReuseTimer>();
-    app.register_required_components::<Npc, AwarenessCapacitor>();
+    app.register_required_components::<Npc, AwarenessCapacitorDurations>();
 }
 
 pub(crate) struct PulseInput {
@@ -71,14 +72,13 @@ pub(crate) fn pulse(
         pulse
     };
 
-    let free_knowledge = world
+    let alertness = *world
         .entity(npc)
-        .get::<FreeKnowledge>()
-        .ok_or("FreeKnowledge component not found")?
-        .get(awareness.level);
+        .get::<Alertness>()
+        .ok_or("Alertness component not found")?;
 
     if awareness.flags.intersects(AwarenessFlags::SENSED)
-        || awareness.last_true_contact.elapsed() < free_knowledge
+        || awareness.last_true_contact.elapsed() < alertness.free_knowledge
     {
         if awareness.flags.intersects(AwarenessFlags::SENSED) {
             awareness.last_true_contact.reset();
@@ -96,30 +96,25 @@ pub(crate) fn pulse(
     }
     awareness.last_pulse = pulse;
 
-    let capacitor = *world
+    let capacitor_durations = *world
         .entity(npc)
-        .get::<AwarenessCapacitor>()
+        .get::<AwarenessCapacitorDurations>()
         .ok_or("Capacitor component not found")?;
     // If the AI is aware of the object and is currently sensing it,
     // ensure we remain aware of it.
     if pulse.is_aware() && awareness.level == AwarenessLevel::High {
         awareness
             .capacitor
-            .set_duration(capacitor.get(awareness.level));
+            .set_duration(capacitor_durations.get(awareness.level));
         awareness.capacitor.reset();
-    } else if pulse < awareness.level {
-        // TODO: this is only called when a sensation happened, but we need to decrease the awareness level in-between too!
-        if awareness.capacitor.is_finished() {
-            awareness.level = pulse.decrease();
-        }
-    } else {
-        // awareness same or higher
+    } else if pulse >= awareness.level {
         awareness.level = pulse;
         awareness
             .capacitor
-            .set_duration(capacitor.get(awareness.level));
+            .set_duration(capacitor_durations.get(awareness.level));
         awareness.capacitor.reset();
     }
+    // The branch for the capacitor expiring is handled in the garbage collection.
     awareness_query.get_mut(world).set(npc, object, awareness);
     awareness_query.apply(world);
     Ok(())
@@ -228,13 +223,13 @@ use delay_timer;
 
 #[derive(Component, Clone, Copy, Debug, Reflect)]
 #[reflect(Component)]
-pub(crate) struct AwarenessCapacitor {
+pub(crate) struct AwarenessCapacitorDurations {
     low_to_lowest: Duration,
     moderate_to_low: Duration,
     high_to_moderate: Duration,
 }
 
-impl Default for AwarenessCapacitor {
+impl Default for AwarenessCapacitorDurations {
     fn default() -> Self {
         Self {
             low_to_lowest: Duration::from_millis(4000),
@@ -244,7 +239,7 @@ impl Default for AwarenessCapacitor {
     }
 }
 
-impl AwarenessCapacitor {
+impl AwarenessCapacitorDurations {
     pub(crate) fn get(self, awareness: AwarenessLevel) -> Duration {
         match awareness {
             AwarenessLevel::Lowest => Duration::MAX,

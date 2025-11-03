@@ -136,7 +136,7 @@ fn update_cone_visibility(
             error!("Failed to get view cone for index {index}");
             continue;
         };
-        *visibility = if cone.flags.active() && cone.flags.allowed_by(alertness.0) {
+        *visibility = if cone.flags.active() && cone.flags.allowed_by(alertness.level) {
             Visibility::Inherited
         } else {
             Visibility::Hidden

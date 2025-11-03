@@ -2,11 +2,11 @@ use bevy::{ecs::system::SystemParam, prelude::*, time::Stopwatch};
 use bitflags::bitflags;
 use strum::EnumCount;
 
-pub(crate) mod free_knowledge;
+pub(crate) mod garbage_collection;
 pub(crate) mod pulse;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_plugins((pulse::plugin, free_knowledge::plugin));
+    app.add_plugins((pulse::plugin, garbage_collection::plugin));
     app.add_systems(FixedPreUpdate, tick_awareness_times);
 }
 
@@ -43,7 +43,8 @@ pub(crate) struct Awareness {
     pub(crate) capacitor: Timer,
     /// Flags of the current awareness
     pub(crate) flags: AwarenessFlags,
-    /// Last time there was a sensation, i.e. the NPC either heard or saw something
+    /// Last time there was a sensation, i.e. the NPC either heard or saw something. Used for free knowledge.
+    /// Not a timer because the allowed free knowledge changes with the current alertness.
     pub(crate) last_true_contact: Stopwatch,
     /// Last position of the sensed object.
     pub(crate) last_pos: Vec3,
@@ -137,6 +138,12 @@ pub(crate) struct AwarenessToNpc(Entity);
 #[derive(Component, Default)]
 #[relationship_target(relationship = AwarenessToNpc, linked_spawn)]
 pub(crate) struct NpcToAwareness(Vec<Entity>);
+
+impl NpcToAwareness {
+    pub(crate) fn get(&self) -> &[Entity] {
+        &self.0
+    }
+}
 
 fn tick_awareness_times(mut awareness: Query<&mut Awareness>, time: Res<Time>) {
     for mut awareness in awareness.iter_mut() {
