@@ -1,14 +1,16 @@
 use bevy::{ecs::system::SystemParam, prelude::*, time::Stopwatch};
 use bitflags::bitflags;
+use strum::EnumCount;
 
+pub(crate) mod free_knowledge;
 pub(crate) mod pulse;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_plugins(pulse::plugin);
+    app.add_plugins((pulse::plugin, free_knowledge::plugin));
     app.add_systems(FixedPreUpdate, tick_awareness_times);
 }
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Reflect)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Reflect, EnumCount)]
 pub(crate) enum AwarenessLevel {
     #[default]
     Lowest = 0,
@@ -21,15 +23,32 @@ impl AwarenessLevel {
     pub(crate) fn is_aware(self) -> bool {
         self != AwarenessLevel::Lowest
     }
+    pub(crate) fn decrease(self) -> Self {
+        match self {
+            AwarenessLevel::Lowest => AwarenessLevel::Lowest,
+            AwarenessLevel::Low => AwarenessLevel::Lowest,
+            AwarenessLevel::Moderate => AwarenessLevel::Low,
+            AwarenessLevel::High => AwarenessLevel::Moderate,
+        }
+    }
 }
 
 #[derive(Component, Clone, Reflect, Debug, Default)]
 #[reflect(Component)]
 pub(crate) struct Awareness {
+    /// Current [`AwarenessLevel`]
     pub(crate) level: AwarenessLevel,
-    /// Time in current [`Awareness::level`]
-    pub(crate) time: Stopwatch,
+    /// Time left in current [`Awareness::level`].
+    /// If the awareness level is lower than the previous level when this timer is expired, the awareness level is decreased.
+    pub(crate) capacitor: Timer,
+    /// Flags of the current awareness
     pub(crate) flags: AwarenessFlags,
+    /// Last time there was a sensation, i.e. the NPC either heard or saw something
+    pub(crate) last_true_contact: Stopwatch,
+    /// Last position of the sensed object.
+    pub(crate) last_pos: Vec3,
+    /// Last pulse contributing to the awareness
+    pub(crate) last_pulse: AwarenessLevel,
 }
 
 #[derive(Debug, Copy, Clone, Default, Reflect)]
@@ -46,16 +65,6 @@ bitflags! {
         const FIRST_HAND = 1 << 4;
         // TODO: there's also a kAIAF_Freshened for refreshing awareness links, aka keeping them alive.
         // That is useful when an NPC needs to chase a player across the map because the player climbed a ladder.
-    }
-}
-
-impl Awareness {
-    #[expect(dead_code)]
-    pub(crate) fn set_level(&mut self, level: AwarenessLevel) {
-        if self.level != level {
-            self.level = level;
-            self.time.reset();
-        }
     }
 }
 
@@ -131,6 +140,7 @@ pub(crate) struct AwarenessToNpcTarget(Vec<Entity>);
 
 fn tick_awareness_times(mut awareness: Query<&mut Awareness>, time: Res<Time>) {
     for mut awareness in awareness.iter_mut() {
-        awareness.time.tick(time.delta());
+        awareness.capacitor.tick(time.delta());
+        awareness.last_true_contact.tick(time.delta());
     }
 }

@@ -6534,6 +6534,7 @@ dependencies = [
  "hound",
  "landmass_rerecast",
  "rand",
+ "strum",
  "tracing",
  "trenchbroom_steam_audio",
 ]
