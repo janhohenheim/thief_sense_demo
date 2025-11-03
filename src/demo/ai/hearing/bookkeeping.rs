@@ -1,9 +1,13 @@
+use std::iter;
+
 use bevy::{ecs::entity_disabling::Disabled, prelude::*};
 use bevy_steam_audio::{probes::SteamAudioProbeBatch, scene::SteamAudioRootScene};
 
 use crate::{
     GameFixedPreUpdateSystems,
-    demo::ai::hearing::{AiSimulator, AiSource, accumulator::InitSource, param},
+    demo::ai::hearing::{
+        AiSimulator, AiSource, AiSourceBody, accumulator::InitSource, param, source_of::AiSourceOf,
+    },
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -32,6 +36,8 @@ fn add_source(
     mut commands: Commands,
     has_source_already: Query<(), (With<AiSource>, Allow<Disabled>)>,
     simulator: ResMut<AiSimulator>,
+    ai_source_bodies: Query<Entity, With<AiSourceBody>>,
+    ancestors: Query<&ChildOf>,
 ) -> Result {
     if has_source_already.contains(ready.0) {
         return Ok(());
@@ -47,8 +53,13 @@ fn add_source(
         .unwrap(),
     );
     simulator.add_source(&source);
-
     commands.entity(ready.0).try_insert(source);
+
+    let body = ai_source_bodies
+        .iter_many(iter::once(ready.0).chain(ancestors.iter_ancestors(ready.0)))
+        .next()
+        .ok_or("AiSource is not a descendant of an AiSourceBody")?;
+    commands.entity(ready.0).try_insert(AiSourceOf { body });
     Ok(())
 }
 

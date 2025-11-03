@@ -2,14 +2,15 @@ use bevy::prelude::*;
 
 use crate::demo::ai::{
     awareness::AwarenessLevel,
-    calc_control_rating,
     debug::DebugHearing,
     hearing::{
         AiLoudnessControl, AiSource, LoudnessAcuity,
         accumulator::AudioInputs,
         loudness::{LoudnessInput, simulate_raw_loudness_to_listener},
         simulate::{AiSimulationInputs, update_simulation_for_listener},
+        source_of::AiSourceOf,
     },
+    sense::calc_control_rating,
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -21,9 +22,8 @@ pub(crate) fn listen(
     world: &mut World,
     mut buff_local: Local<Option<Vec<Entity>>>,
 ) -> Result<Vec<(Entity, AwarenessLevel)>> {
-    let mut buff = buff_local.take().unwrap_or_default();
-    buff.clear();
-    let sources: Vec<_> = world.run_system_cached_with(sources_for_listener, (npc, buff))?;
+    let buff = buff_local.take().unwrap_or_default();
+    let mut sources: Vec<_> = world.run_system_cached_with(sources_for_listener, (npc, buff))?;
 
     () = world.run_system_cached_with(
         update_simulation_for_listener,
@@ -35,7 +35,7 @@ pub(crate) fn listen(
     let mut pulses = Vec::new();
     let mut avg_loudness = 0.0;
     let source_len = sources.len();
-    for source in sources.iter().copied() {
+    for source in sources.drain(..) {
         let raw_loudness: f32 = world.run_system_cached_with(
             simulate_raw_loudness_to_listener,
             LoudnessInput {
@@ -66,7 +66,14 @@ pub(crate) fn listen(
             v if v < 75 => AwarenessLevel::Moderate,
             _ => AwarenessLevel::High,
         };
-        pulses.push((source, pulse));
+        let entity = match world.entity(source).get::<AiSourceOf>() {
+            Some(source_of) => source_of.body,
+            None => {
+                error!("Visible entity does not belong to a source body");
+                continue;
+            }
+        };
+        pulses.push((entity, pulse));
     }
     if source_len != 0 {
         avg_loudness /= source_len as f32;

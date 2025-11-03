@@ -48,8 +48,8 @@ pub(crate) fn pulse(
         .get(npc, object)
         .cloned()
         .unwrap_or_default();
-    awareness.flags.remove(AwarenessFlags::SENSED);
     if pulse.is_aware() {
+        awareness.flags.insert(AwarenessFlags::FIRST_HAND);
         if is_audio {
             awareness.flags.insert(AwarenessFlags::HEARD);
         } else {
@@ -82,6 +82,7 @@ pub(crate) fn pulse(
     {
         if awareness.flags.intersects(AwarenessFlags::SENSED) {
             awareness.last_true_contact.reset();
+            awareness.last_contact.reset();
         }
         // I think the original here does two more sophisticated things:
         // - Use the last probe passed by the sound (idk if Steam Audio allows us to retrieve that info)

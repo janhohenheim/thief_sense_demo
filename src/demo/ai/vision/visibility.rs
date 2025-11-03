@@ -7,7 +7,7 @@ use crate::{
     collision_layer::CollisionLayer,
     cpu_lighting::estimate_tone_mapped_lighting,
     demo::{
-        ai::calc_control_rating,
+        ai::sense::calc_control_rating,
         player::{PLAYER_RUN_SPEED, PLAYER_WALK_SPEED},
     },
 };

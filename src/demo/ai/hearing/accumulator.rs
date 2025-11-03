@@ -4,7 +4,7 @@ use bevy::{ecs::query::QueryData, prelude::*};
 
 use crate::{
     GameFixedPreUpdateSystems,
-    demo::ai::hearing::{node::InputBuffer, param, rms},
+    demo::ai::hearing::{AiSourceBody, node::InputBuffer, param, rms},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -71,7 +71,6 @@ struct InputBufferOf(Entity);
 #[derive(Component, Default, Debug, Reflect)]
 #[reflect(Component, Default)]
 #[relationship_target(relationship = InputBufferOf, linked_spawn)]
-#[require(Transform, GlobalTransform)]
 struct InputBufferAccumulator {
     #[relationship]
     input_buffers: Vec<Entity>,
@@ -81,6 +80,7 @@ struct InputBufferAccumulator {
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
+#[require(Transform, GlobalTransform, AiSourceBody)]
 pub(crate) struct AccumulateAudioInputs;
 
 /// Needed to satisfy the `Reflect` derive macro.

@@ -1,4 +1,4 @@
-use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
+use avian3d::prelude::{ColliderOf, SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 
 use crate::{
@@ -20,14 +20,15 @@ pub(crate) fn look(
     In(npc): In<Entity>,
     world: &mut World,
 ) -> Result<Vec<(Entity, AwarenessLevel)>> {
-    // TODO: check / update awareness flags (kAIAF_CanRaycast, kAIAF_HaveLOS, etc)
-    let entities_in_view: Vec<(Entity, ViewCone)> =
+    // The original only checks the view cones for potential targets that already passed a raycast,
+    // but I think the performance difference is negligible since we are doing cheap shape_intersections.
+    let colliders_in_view: Vec<(Entity, ViewCone)> =
         world.run_system_cached_with(check_view_cones, npc)?;
     let mut pulses = Vec::new();
-    for (entity, view_cone) in entities_in_view {
+    for (collider, view_cone) in colliders_in_view {
         // Process entities in view
         let ai_visibility: AiVisibility =
-            match world.run_system_cached_with(get_or_update_visibility, entity) {
+            match world.run_system_cached_with(get_or_update_visibility, collider) {
                 Ok(visibility) => visibility,
                 Err(err) => {
                     error!("{err}");
@@ -35,7 +36,7 @@ pub(crate) fn look(
                 }
             };
         let visibility: u8 = match world
-            .run_system_cached_with(visibility_to_viewer, (entity, view_cone, ai_visibility))
+            .run_system_cached_with(visibility_to_viewer, (collider, view_cone, ai_visibility))
         {
             Ok(visibility) => visibility,
             Err(err) => {
@@ -48,6 +49,13 @@ pub(crate) fn look(
             v if v < 50 => AwarenessLevel::Low,
             v if v < 75 => AwarenessLevel::Moderate,
             _ => AwarenessLevel::High,
+        };
+        let entity = match world.entity(collider).get::<ColliderOf>() {
+            Some(collider_of) => collider_of.body,
+            None => {
+                error!("Visible entity does not belong to a rigid body");
+                continue;
+            }
         };
         world.entity_mut(npc).insert(DebugVision {
             entity,
@@ -114,7 +122,7 @@ fn check_view_cones(
             let (dir, len) = match Dir3::new_and_length(translation - npc_transform.translation) {
                 Ok(ok) => ok,
                 Err(_) => {
-                    warn!("NPC is intersecting with another entity");
+                    warn!("NPC is at the same position as another entity");
                     entities.push((intersection, view_cone.clone()));
                     continue;
                 }
