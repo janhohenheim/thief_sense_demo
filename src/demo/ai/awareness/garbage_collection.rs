@@ -25,12 +25,10 @@ fn decrease_expired_capacitors(
     for (capacitor_durations, npc_to_awareness) in npcs.iter() {
         let mut awareness_iter = awarenesses.iter_many_mut(npc_to_awareness.get());
         while let Some((entity, mut awareness)) = awareness_iter.fetch_next() {
-            info!("awareness cap: {:?}", awareness.capacitor.remaining());
             if awareness.capacitor.is_finished() {
                 awareness.level = awareness.level.decrease();
                 if awareness.level == AwarenessLevel::Lowest {
                     commands.entity(entity).try_despawn();
-                    info!("despawned!");
                 } else {
                     let new_cap = capacitor_durations.get(awareness.level);
                     awareness.capacitor.set_duration(new_cap);

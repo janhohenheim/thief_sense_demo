@@ -21,7 +21,8 @@ pub(crate) fn listen(
     world: &mut World,
     mut buff_local: Local<Option<Vec<Entity>>>,
 ) -> Result<Vec<(Entity, AwarenessLevel)>> {
-    let buff = buff_local.take().unwrap_or_default();
+    let mut buff = buff_local.take().unwrap_or_default();
+    buff.clear();
     let sources: Vec<_> = world.run_system_cached_with(sources_for_listener, (npc, buff))?;
 
     () = world.run_system_cached_with(
