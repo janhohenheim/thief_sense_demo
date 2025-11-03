@@ -18,6 +18,7 @@ use crate::{
     demo::{
         ai::{hearing::accumulator::AccumulateAudioInputs, vision::visibility::AiVisibility},
         player::animation::{PlayerAnimationState, setup_player_animations},
+        team::Team,
     },
     link_head::link_head_bone,
     movement::FloatHeight,
@@ -66,6 +67,7 @@ fn spawn_player(
             FloatHeight(PLAYER_FLOAT_HEIGHT),
             AiVisibility::default(),
             LightTransform(Vec3::Y * -(PLAYER_HEIGHT / 2.0)),
+            Team::Good,
             AccumulateAudioInputs,
         ))
         .with_children(|parent| {

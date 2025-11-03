@@ -46,6 +46,8 @@ pub(crate) struct Awareness {
     /// Last time there was a sensation, i.e. the NPC either heard or saw something. Used for free knowledge.
     /// Not a timer because the allowed free knowledge changes with the current alertness.
     pub(crate) last_true_contact: Stopwatch,
+    /// Last time there was a sensation, i.e. the NPC either heard or saw something. Is also refreshed when the NPC has free knowledge.
+    pub(crate) last_contact: Stopwatch,
     /// Last position of the sensed object.
     pub(crate) last_pos: Vec3,
     /// Last pulse contributing to the awareness
