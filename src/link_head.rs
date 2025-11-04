@@ -14,9 +14,15 @@ pub(super) fn plugin(app: &mut App) {
 #[relationship(relationship_target=Head)]
 pub(crate) struct HeadOf(pub(crate) Entity);
 
-#[derive(Component, Debug)]
+#[derive(Component, Clone, Copy, Debug)]
 #[relationship_target(relationship=HeadOf)]
 pub(crate) struct Head(Entity);
+
+impl Head {
+    pub(crate) fn get(self) -> Entity {
+        self.0
+    }
+}
 
 pub(crate) fn link_head_bone<Marker: Component>(
     bone_name: impl Into<String>,
