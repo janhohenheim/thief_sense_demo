@@ -10,6 +10,7 @@ use bevy::{
 use crate::{
     demo::ai::{
         alertness::Alertness,
+        awareness::AwarenessLevel,
         vision::view_cone::{ViewCone, ViewCones},
     },
     link_head::Head,
@@ -19,7 +20,7 @@ pub(super) fn plugin(app: &mut App) {
     app.init_resource::<DebugViewCones>();
     app.add_systems(
         PostUpdate,
-        update_cone_visibility.before(VisibilitySystems::CalculateBounds),
+        (update_cone_visibility, update_cone_material).before(VisibilitySystems::CalculateBounds),
     );
 }
 
@@ -27,7 +28,6 @@ pub(super) fn plugin(app: &mut App) {
 #[derive(Resource, Debug)]
 pub(crate) struct DebugViewCones {
     meshes: Vec<Handle<Mesh>>,
-    material: Handle<StandardMaterial>,
 }
 
 impl FromWorld for DebugViewCones {
@@ -40,17 +40,8 @@ impl FromWorld for DebugViewCones {
                 view_cone_meshes.push(handle);
             }
         });
-        let material = world
-            .resource_mut::<Assets<StandardMaterial>>()
-            .add(StandardMaterial {
-                base_color: Color::from(tailwind::GREEN_400.with_alpha(0.1)),
-                alpha_mode: AlphaMode::Blend,
-                unlit: true,
-                ..default()
-            });
         Self {
             meshes: view_cone_meshes,
-            material,
         }
     }
 }
@@ -91,14 +82,20 @@ pub(crate) fn add_debug_view_cones(
     heads: Query<&Head>,
     mut commands: Commands,
     debug_view_cones: Res<DebugViewCones>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) -> Result {
-    let head = heads.get(add.entity)?;
-    // is this really the best way? :hmm:
-    let head = head.iter().next().unwrap();
+    let head = heads.get(add.entity)?.get();
+
+    let material = materials.add(StandardMaterial {
+        base_color: Color::from(tailwind::NEUTRAL_400.with_alpha(0.1)),
+        alpha_mode: AlphaMode::Blend,
+        unlit: true,
+        ..default()
+    });
     for (index, mesh) in debug_view_cones.meshes.iter().enumerate() {
         commands.entity(head).with_child((
             Mesh3d(mesh.clone()),
-            MeshMaterial3d(debug_view_cones.material.clone()),
+            MeshMaterial3d(material.clone()),
             Transform::IDENTITY,
             Visibility::default(),
             NotShadowCaster,
@@ -141,5 +138,29 @@ fn update_cone_visibility(
         } else {
             Visibility::Hidden
         };
+    }
+}
+
+fn update_cone_material(
+    mut cone: Query<(&MeshMaterial3d<StandardMaterial>, &DebugConeOf)>,
+    alertness: Query<&Alertness>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    for (material, cone_of) in &mut cone {
+        let Ok(alertness) = alertness.get(cone_of.0) else {
+            error!("Failed to get alertness for entity {:?}", cone_of.0);
+            continue;
+        };
+        let Some(material) = materials.get_mut(material.id()) else {
+            error!("Failed to get material for entity {:?}", cone_of.0);
+            continue;
+        };
+        let color = match alertness.level {
+            AwarenessLevel::Lowest => tailwind::NEUTRAL_400.with_alpha(0.1),
+            AwarenessLevel::Low => tailwind::GREEN_400.with_alpha(0.1),
+            AwarenessLevel::Moderate => tailwind::AMBER_300.with_alpha(0.1),
+            AwarenessLevel::High => tailwind::ROSE_500.with_alpha(0.1),
+        };
+        material.base_color = color.into();
     }
 }
