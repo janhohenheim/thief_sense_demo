@@ -9,6 +9,7 @@ use crate::{
         },
         npc::animation::{NpcAnimationState, setup_npc_animations},
         target::TargetBase,
+        team::Team,
     },
     link_head::link_head_bone,
     movement::FloatHeight,
@@ -69,6 +70,7 @@ fn spawn_npc(
             ),
             AiVisibility::default(),
             Alertness::default(),
+            Team::Bad(0),
         ))
         .with_children(|parent| {
             parent

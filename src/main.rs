@@ -75,7 +75,7 @@ impl Plugin for AppPlugin {
                     fmt_layer: |_| {
                         Some(Box::new(
                             bevy::log::tracing_subscriber::fmt::Layer::default()
-                                .without_time()
+                                //.without_time()
                                 .map_fmt_fields(MakeExt::debug_alt)
                                 .with_writer(std::io::stderr),
                         ))
@@ -136,7 +136,7 @@ impl Plugin for AppPlugin {
         .configure_sets(
             FixedUpdate,
             (
-                GameFixedUpdateSystems::Senses.run_if(any_with_component::<Player>),
+                GameFixedUpdateSystems::Ai.run_if(any_with_component::<Player>),
                 GameFixedUpdateSystems::GarbageCollection,
                 GameFixedUpdateSystems::Despawn,
             )
@@ -159,7 +159,7 @@ enum GameUpdateSystems {
 
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
 enum GameFixedUpdateSystems {
-    Senses,
+    Ai,
     GarbageCollection,
     Despawn,
 }

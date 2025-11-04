@@ -1,11 +1,23 @@
 use bevy::{color::palettes::tailwind, prelude::*};
 use bevy_ui_anchor::{AnchorPoint, AnchorUiConfig, AnchoredUiNodes};
 
-use crate::demo::{ai::vision::visibility::AiVisibility, npc::Npc};
+use crate::demo::{
+    ai::{
+        alertness::{
+            Alertness, ChangeAlertness, ChangeOrRegainAwarenessObject, HighAlertnessToPlayer,
+        },
+        vision::visibility::AiVisibility,
+    },
+    npc::Npc,
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(setup_ai_debug_ui);
     app.add_systems(Update, update_ai_debug_ui);
+
+    app.add_observer(on_alertness_change)
+        .add_observer(on_awareness_change)
+        .add_observer(on_high_alertness_to_player);
 }
 
 fn setup_ai_debug_ui(add: On<Add, Npc>, mut commands: Commands) {
@@ -146,3 +158,21 @@ pub(crate) struct DebugHearing(pub(crate) f32);
 struct VisionText;
 #[derive(Component)]
 struct HearingBar;
+
+fn on_awareness_change(
+    change_awareness: On<ChangeOrRegainAwarenessObject>,
+    alertness: Query<&Alertness>,
+) {
+    info!(change_awareness=?change_awareness.event(), alertness=?alertness.get(change_awareness.npc).unwrap());
+}
+
+fn on_high_alertness_to_player(
+    high_alertness: On<HighAlertnessToPlayer>,
+    alertness: Query<&Alertness>,
+) {
+    info!(high_alertness=?high_alertness.event(), alertness=?alertness.get(high_alertness.npc).unwrap());
+}
+
+fn on_alertness_change(change_alertness: On<ChangeAlertness>, alertness: Query<&Alertness>) {
+    info!(change_alertness=?change_alertness.event(), alertness=?alertness.get(change_alertness.npc).unwrap());
+}
