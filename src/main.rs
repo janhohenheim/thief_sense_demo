@@ -26,6 +26,7 @@ use bevy::{
     log::{LogPlugin, tracing_subscriber::field::MakeExt},
     prelude::*,
 };
+use bevy_bae::BaeSystems;
 use bevy_landmass::LandmassSystems;
 
 use crate::{
@@ -136,11 +137,17 @@ impl Plugin for AppPlugin {
         .configure_sets(
             FixedUpdate,
             (
-                GameFixedUpdateSystems::Ai.run_if(any_with_component::<Player>),
+                GameFixedUpdateSystems::AiSenses.run_if(any_with_component::<Player>),
+                GameFixedUpdateSystems::AiBehavior,
+                GameFixedUpdateSystems::PostAiBehavior,
                 GameFixedUpdateSystems::GarbageCollection,
                 GameFixedUpdateSystems::Despawn,
             )
                 .chain(),
+        )
+        .configure_sets(
+            FixedUpdate,
+            BaeSystems::ExecutePlan.in_set(GameFixedUpdateSystems::AiBehavior),
         )
         .configure_sets(Update, (GameUpdateSystems::Animation).chain());
 
@@ -159,7 +166,9 @@ enum GameUpdateSystems {
 
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
 enum GameFixedUpdateSystems {
-    Ai,
+    AiSenses,
+    AiBehavior,
+    PostAiBehavior,
     GarbageCollection,
     Despawn,
 }

@@ -1,22 +1,35 @@
 use crate::{
-    demo::{npc::NPC_RADIUS, path_corner::PathCorner, target::Target},
+    GameFixedUpdateSystems,
+    demo::{
+        npc::{NPC_RADIUS, Npc},
+        path_corner::PathCorner,
+        target::Target,
+    },
     third_party::landmass::Agent,
 };
 use bevy::{ecs::relationship::Relationship as _, prelude::*};
 use bevy_landmass::{PointSampleDistance3d, prelude::*};
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(FixedUpdate, set_target_to_quake_target);
+    app.add_systems(FixedPreUpdate, disable_npc_targets);
+    app.add_systems(
+        FixedUpdate,
+        set_target_to_quake_target.in_set(GameFixedUpdateSystems::PostAiBehavior),
+    );
+    app.register_required_components::<Target, TargetEnabled>();
 }
 
 fn set_target_to_quake_target(
-    controllers: Query<(&Target, &Agent)>,
+    controllers: Query<(&Target, &TargetEnabled, &Agent)>,
     mut agents: Query<&mut AgentTarget3d>,
     path_corners: Query<(), With<PathCorner>>,
     transforms: Query<&Transform>,
     archipelago: Single<&Archipelago3d>,
 ) {
-    for (target, agent) in &controllers {
+    for (target, enabled, agent) in &controllers {
+        if !enabled.0 {
+            continue;
+        }
         let Ok(mut agent_target) = agents.get_mut(**agent) else {
             error!("Failed to get agent target");
             continue;
@@ -35,5 +48,21 @@ fn set_target_to_quake_target(
         if let Ok(target_point) = target_point {
             *agent_target = AgentTarget3d::Point(target_point.point());
         }
+    }
+}
+
+#[derive(Component, Debug, Reflect, Clone, Copy, Deref, DerefMut)]
+pub(crate) struct TargetEnabled(pub(crate) bool);
+
+impl Default for TargetEnabled {
+    fn default() -> Self {
+        Self(true)
+    }
+}
+
+/// Reset target each frame so that the behavior can set them explicitly
+fn disable_npc_targets(mut npcs: Query<&mut TargetEnabled, With<Npc>>) {
+    for mut enabled in npcs.iter_mut() {
+        **enabled = false;
     }
 }

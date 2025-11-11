@@ -723,6 +723,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_bae"
+version = "0.0.1"
+dependencies = [
+ "bevy_app",
+ "bevy_derive",
+ "bevy_ecs",
+ "bevy_mod_props",
+ "bevy_ptr",
+ "bevy_reflect",
+ "bevy_utils",
+ "disqualified",
+ "log",
+ "ustr",
+ "variadics_please",
+]
+
+[[package]]
 name = "bevy_camera"
 version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1325,6 +1342,16 @@ name = "bevy_mikktspace"
 version = "0.17.0-dev"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ef8e4b7e61dfe7719bb03c884dc270cd46a82efb40f93e9933b990c5c190c59"
+
+[[package]]
+name = "bevy_mod_props"
+version = "0.1.0"
+source = "git+https://github.com/NthTensor/trill#1d52e816d8f46ec26afc2a453a9b4d587dc0535d"
+dependencies = [
+ "bevy_ecs",
+ "thiserror 2.0.17",
+ "ustr",
+]
 
 [[package]]
 name = "bevy_pbr"
@@ -6517,6 +6544,7 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy-tnua",
  "bevy-tnua-avian3d",
+ "bevy_bae",
  "bevy_framepace",
  "bevy_landmass",
  "bevy_rerecast",
@@ -6974,6 +7002,18 @@ dependencies = [
  "idna",
  "percent-encoding",
  "serde",
+]
+
+[[package]]
+name = "ustr"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18b19e258aa08450f93369cf56dd78063586adf19e92a75b338a800f799a0208"
+dependencies = [
+ "ahash",
+ "byteorder",
+ "lazy_static",
+ "parking_lot",
 ]
 
 [[package]]

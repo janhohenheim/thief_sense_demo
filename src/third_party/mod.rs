@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 pub(crate) mod avian;
+mod bae;
 mod framepace;
 pub(crate) mod landmass;
 mod rerecast;
@@ -19,5 +20,6 @@ pub(super) fn plugin(app: &mut App) {
         framepace::plugin,
         ui_anchor::plugin,
         steam_audio::plugin,
+        bae::plugin,
     ));
 }

@@ -25,7 +25,7 @@ use bevy_trenchbroom::prelude::*;
 
 mod animation;
 mod audio;
-mod movement;
+pub(crate) mod movement;
 
 pub(super) fn plugin(app: &mut App) {
     app.load_asset::<Gltf>(NPC_GLTF);

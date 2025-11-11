@@ -79,7 +79,9 @@ bevy_shuffle_bag = "0.3.0"
 crossbeam-channel = "0.5.15"
 hound = "3.5.1"
 fixed-resample = "0.9.2"
+
 bevy_trenchbroom_avian = "0.10.0"
+bevy_bae = { version = "0.0.1", path = "../bevy_bae" }
 strum = "0.27.2"
 
 [features]
