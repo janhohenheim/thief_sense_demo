@@ -41,6 +41,7 @@ impl LogNormalTimer {
         self.timer.is_finished()
     }
 
+    #[expect(dead_code)]
     pub(crate) fn remaining(&self) -> Duration {
         self.timer.remaining()
     }

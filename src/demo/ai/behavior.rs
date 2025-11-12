@@ -1,5 +1,8 @@
 use bevy::prelude::*;
 use bevy_bae::prelude::*;
+use bevy_landmass::{
+    AgentTarget, AgentTarget3d, Archipelago3d, FromAgentRadius, PointSampleDistance3d,
+};
 use bevy_seedling::sample::{AudioSample, SamplePlayer};
 use bevy_steam_audio::nodes::SteamAudioPool;
 use bevy_trill::{RequestResponse, Response};
@@ -9,11 +12,12 @@ use crate::{
     demo::{
         ai::{
             alertness::{Alertness, ChangeAlertness},
-            awareness::{Awareness, AwarenessLevel},
+            awareness::{AwarenessLevel, AwarenessQuery},
         },
         npc::{Npc, movement::TargetEnabled},
     },
     log_normal_timer::LogNormalTimer,
+    third_party::landmass::Agent,
 };
 use bevy_bae::bevy_mod_props::Class;
 
@@ -26,7 +30,11 @@ pub(super) fn plugin(app: &mut App) {
         .load_asset::<AudioSample>("audio/barks/patrol/patrol-3.ogg")
         .load_asset::<AudioSample>("audio/barks/up_to_low/up_to_low-1.ogg")
         .load_asset::<AudioSample>("audio/barks/up_to_moderate/up_to_moderate-1.ogg")
-        .load_asset::<AudioSample>("audio/barks/up_to_high/up_to_high-1.ogg");
+        .load_asset::<AudioSample>("audio/barks/up_to_high/up_to_high-1.ogg")
+        .load_asset::<AudioSample>("audio/barks/down_to_lowest/down_to_lowest-1.ogg")
+        .load_asset::<AudioSample>("audio/barks/down_to_lowest/down_to_lowest-2.ogg")
+        .load_asset::<AudioSample>("audio/barks/down_to_low/down_to_low-1.ogg")
+        .load_asset::<AudioSample>("audio/barks/down_to_moderate/down_to_moderate-1.ogg");
 }
 
 fn insert_npc_behavior(add: On<Add, Npc>, mut commands: Commands) {
@@ -40,8 +48,8 @@ fn insert_npc_behavior(add: On<Add, Npc>, mut commands: Commands) {
 pub(crate) fn npc_behavior() -> impl Bundle {
     (
         Plan::new(),
-        Select,
         Class::new("guard"),
+        Select,
         tasks![
             (
                 Name::new("Punch player"),
@@ -104,9 +112,49 @@ fn search_player(_: In<OperatorInput>) -> OperatorStatus {
     OperatorStatus::Success
 }
 
-fn investigate(_: In<OperatorInput>) -> OperatorStatus {
-    info!("Investigating");
-    OperatorStatus::Success
+fn investigate(
+    input: In<OperatorInput>,
+    npcs: Query<(&Alertness, &Agent)>,
+    mut agents: Query<&mut AgentTarget3d>,
+    awareness: AwarenessQuery,
+    mut timer: Local<Option<LogNormalTimer>>,
+    time: Res<Time>,
+    mut investigation_pos: Local<Option<Vec3>>,
+    archipelago: Single<&Archipelago3d>,
+) -> OperatorStatus {
+    let (alertness, agent) = npcs.get(input.entity).unwrap();
+    let last_object = alertness.last_awareness_object.unwrap();
+    let awareness = awareness.get(input.entity, last_object).unwrap();
+
+    let timer = timer.get_or_insert_with(|| LogNormalTimer::new(4.0, 0.2));
+    timer.tick(time.delta());
+
+    let pos = if timer.is_finished() {
+        timer.reset();
+        archipelago
+            .sample_point(
+                awareness.last_pos,
+                &PointSampleDistance3d::from_agent_radius(3.0),
+            )
+            .map(|p| p.point())
+    } else if investigation_pos.is_none() {
+        archipelago
+            .sample_point(
+                awareness.last_pos,
+                &PointSampleDistance3d::from_agent_radius(3.0),
+            )
+            .map(|p| p.point())
+    } else {
+        Ok(investigation_pos.unwrap())
+    };
+    let Ok(pos) = pos else {
+        return OperatorStatus::Failure;
+    };
+    investigation_pos.replace(pos);
+    let mut agent_target = agents.get_mut(agent.get()).unwrap();
+    *agent_target = AgentTarget::Point(pos);
+
+    OperatorStatus::Ongoing
 }
 
 fn patrol(
@@ -154,7 +202,7 @@ fn sync_alertness(
     let (alertness, mut props) = npcs.get_mut(change.npc)?;
     let old = change.previous_level;
     let new = alertness.level;
-    props.set("alertness", new.to_string());
+    props.set("alertness", new.to_string().to_lowercase());
     props.set(
         "ever_got_high_alerted_by_player",
         alertness.ever_got_high_alerted_by_player,
