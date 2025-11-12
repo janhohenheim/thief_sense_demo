@@ -7,15 +7,54 @@ use bevy_tnua::prelude::*;
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         FixedPreUpdate,
-        (sync_agent_velocity, set_controller_velocity)
+        (
+            set_desired_velocity,
+            sync_agent_velocity,
+            set_controller_velocity,
+        )
             .chain()
             .before(LandmassSystems::SyncExistence)
             .run_if(in_state(Screen::Gameplay)),
     );
+    app.register_required_components::<Agent, IsRunning>();
+    app.register_required_components::<Agent, SpeedSettings>();
 }
 
 #[derive(Component)]
 pub(crate) struct FloatHeight(pub(crate) f32);
+
+#[derive(Component, Default, Deref, DerefMut)]
+pub(crate) struct IsRunning(pub(crate) bool);
+
+#[derive(Component, Default, Clone, Copy)]
+pub(crate) struct SpeedSettings {
+    pub(crate) base: f32,
+    pub(crate) run: f32,
+}
+
+fn set_desired_velocity(
+    mut npcs: Query<
+        (&SpeedSettings, &IsRunning, &Agent),
+        Or<(Changed<SpeedSettings>, Changed<IsRunning>)>,
+    >,
+    mut agents: Query<&mut AgentSettings>,
+) {
+    for (speed_settings, is_running, agent) in &mut npcs {
+        let Ok(mut agent_settings) = agents.get_mut(agent.get()) else {
+            continue;
+        };
+        agent_settings.desired_speed = if is_running.0 {
+            speed_settings.run
+        } else {
+            speed_settings.base
+        };
+        agent_settings.max_speed = if is_running.0 {
+            speed_settings.run
+        } else {
+            speed_settings.run + 0.1
+        };
+    }
+}
 
 fn set_controller_velocity(
     mut agent_query: Query<(&mut TnuaController, &Agent, &FloatHeight)>,

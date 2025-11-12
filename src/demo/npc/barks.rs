@@ -11,19 +11,21 @@ use crate::{
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(insert_npc_response_observer)
         .add_observer(play_bark)
-        .load_asset::<AudioSample>("audio/barks/patrol/patrol_lowest-1.ogg")
-        .load_asset::<AudioSample>("audio/barks/patrol/patrol_lowest-2.ogg")
-        .load_asset::<AudioSample>("audio/barks/patrol/patrol_lowest-3.ogg")
-        .load_asset::<AudioSample>("audio/barks/patrol/patrol_low-1.ogg")
-        .load_asset::<AudioSample>("audio/barks/patrol/patrol_low-2.ogg")
-        .load_asset::<AudioSample>("audio/barks/patrol/patrol_low-3.ogg")
-        .load_asset::<AudioSample>("audio/barks/up_to_low/up_to_low-1.ogg")
-        .load_asset::<AudioSample>("audio/barks/up_to_moderate/up_to_moderate-1.ogg")
-        .load_asset::<AudioSample>("audio/barks/up_to_high/up_to_high-1.ogg")
-        .load_asset::<AudioSample>("audio/barks/down_to_lowest/down_to_lowest-1.ogg")
-        .load_asset::<AudioSample>("audio/barks/down_to_lowest/down_to_lowest-2.ogg")
-        .load_asset::<AudioSample>("audio/barks/down_to_low/down_to_low-1.ogg")
-        .load_asset::<AudioSample>("audio/barks/down_to_moderate/down_to_moderate-1.ogg");
+        .load_asset::<AudioSample>("audio/sound_effects/barks/patrol/patrol_lowest-1.ogg")
+        .load_asset::<AudioSample>("audio/sound_effects/barks/patrol/patrol_lowest-2.ogg")
+        .load_asset::<AudioSample>("audio/sound_effects/barks/patrol/patrol_lowest-3.ogg")
+        .load_asset::<AudioSample>("audio/sound_effects/barks/patrol/patrol_low-1.ogg")
+        .load_asset::<AudioSample>("audio/sound_effects/barks/patrol/patrol_low-2.ogg")
+        .load_asset::<AudioSample>("audio/sound_effects/barks/patrol/patrol_low-3.ogg")
+        .load_asset::<AudioSample>("audio/sound_effects/barks/up_to_low/up_to_low-1.ogg")
+        .load_asset::<AudioSample>("audio/sound_effects/barks/up_to_moderate/up_to_moderate-1.ogg")
+        .load_asset::<AudioSample>("audio/sound_effects/barks/up_to_high/up_to_high-1.ogg")
+        .load_asset::<AudioSample>("audio/sound_effects/barks/down_to_lowest/down_to_lowest-1.ogg")
+        .load_asset::<AudioSample>("audio/sound_effects/barks/down_to_lowest/down_to_lowest-2.ogg")
+        .load_asset::<AudioSample>("audio/sound_effects/barks/down_to_low/down_to_low-1.ogg")
+        .load_asset::<AudioSample>(
+            "audio/sound_effects/barks/down_to_moderate/down_to_moderate-1.ogg",
+        );
 }
 
 fn insert_npc_response_observer(add: On<Add, Npc>, mut commands: Commands) {

@@ -1,12 +1,11 @@
 use bevy::{picking::pointer::PointerInteraction, prelude::*};
-use bevy_landmass::{
-    AgentSettings, AgentTarget3d, Archipelago3d, FromAgentRadius as _, PointSampleDistance3d,
-};
+use bevy_landmass::{AgentTarget3d, Archipelago3d, FromAgentRadius as _, PointSampleDistance3d};
 use bevy_ui_anchor::{AnchorPoint, AnchorUiConfig, AnchoredUiNodes};
 
 use crate::{
     cpu_lighting::estimate_tone_mapped_lighting,
-    demo::player::{PLAYER_RADIUS, PLAYER_RUN_SPEED, PLAYER_WALK_SPEED, Player},
+    demo::player::{PLAYER_RADIUS, Player},
+    movement::IsRunning,
     third_party::landmass::Agent,
 };
 
@@ -87,9 +86,9 @@ fn draw_pointer_gizmo(
 
 fn move_player(
     mut click: On<Pointer<Click>>,
-    mut agents: Query<(&mut AgentSettings, &mut AgentTarget3d)>,
+    mut agents: Query<&mut AgentTarget3d>,
     archipelago: Single<&Archipelago3d>,
-    player: Single<&Agent, With<Player>>,
+    player: Single<(&Agent, &mut IsRunning), With<Player>>,
     meshes: Query<(), With<Mesh3d>>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
 ) -> Result {
@@ -103,15 +102,11 @@ fn move_player(
         point,
         &PointSampleDistance3d::from_agent_radius(PLAYER_RADIUS),
     );
-    let (mut settings, mut target) = agents.get_mut(player.entity())?;
+    let (agent, mut is_running) = player.into_inner();
+    **is_running = keyboard_input.pressed(KeyCode::ShiftLeft);
+    let mut target = agents.get_mut(agent.entity())?;
     if let Ok(sampled_point) = sampled_point {
         *target = AgentTarget3d::Point(sampled_point.point());
-        settings.desired_speed = if keyboard_input.pressed(KeyCode::ShiftLeft) {
-            PLAYER_RUN_SPEED
-        } else {
-            PLAYER_WALK_SPEED
-        };
-        settings.max_speed = settings.desired_speed + 2.0;
         click.propagate(false);
     }
     Ok(())

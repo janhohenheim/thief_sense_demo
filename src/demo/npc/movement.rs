@@ -1,17 +1,12 @@
 use crate::{
     GameFixedUpdateSystems,
-    demo::{
-        npc::{NPC_RADIUS, Npc},
-        path_corner::PathCorner,
-        target::Target,
-    },
+    demo::{npc::NPC_RADIUS, path_corner::PathCorner, target::Target},
     third_party::landmass::Agent,
 };
 use bevy::{ecs::relationship::Relationship as _, prelude::*};
 use bevy_landmass::{PointSampleDistance3d, prelude::*};
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(FixedPreUpdate, disable_npc_targets);
     app.add_systems(
         FixedUpdate,
         set_target_to_quake_target.in_set(GameFixedUpdateSystems::PostAiBehavior),
@@ -57,12 +52,5 @@ pub(crate) struct TargetEnabled(pub(crate) bool);
 impl Default for TargetEnabled {
     fn default() -> Self {
         Self(true)
-    }
-}
-
-/// Reset target each frame so that the behavior can set them explicitly
-fn disable_npc_targets(mut npcs: Query<&mut TargetEnabled, With<Npc>>) {
-    for mut enabled in npcs.iter_mut() {
-        **enabled = false;
     }
 }
