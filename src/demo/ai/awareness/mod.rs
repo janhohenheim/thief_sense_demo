@@ -1,6 +1,6 @@
 use bevy::{ecs::system::SystemParam, prelude::*, time::Stopwatch};
 use bitflags::bitflags;
-use strum::EnumCount;
+use strum::{Display, EnumCount};
 
 pub(crate) mod garbage_collection;
 pub(crate) mod pulse;
@@ -10,7 +10,9 @@ pub(super) fn plugin(app: &mut App) {
     app.add_systems(FixedPreUpdate, tick_awareness_times);
 }
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Reflect, EnumCount)]
+#[derive(
+    Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Reflect, EnumCount, Display,
+)]
 pub(crate) enum AwarenessLevel {
     #[default]
     Lowest = 0,

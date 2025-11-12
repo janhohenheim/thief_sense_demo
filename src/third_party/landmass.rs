@@ -14,12 +14,18 @@ pub(super) fn plugin(app: &mut App) {
     ));
 }
 
-#[derive(Component, Deref, Debug, Reflect)]
+#[derive(Component, Clone, Copy, Deref, Debug, Reflect)]
 #[reflect(Component)]
 #[relationship(relationship_target = Agent)]
 pub(crate) struct AgentOf(pub(crate) Entity);
 
-#[derive(Component, Deref, Debug, Reflect)]
+#[derive(Component, Clone, Copy, Deref, Debug, Reflect)]
 #[reflect(Component)]
 #[relationship_target(relationship = AgentOf)]
 pub(crate) struct Agent(Entity);
+
+impl Agent {
+    pub(crate) fn get(self) -> Entity {
+        self.0
+    }
+}

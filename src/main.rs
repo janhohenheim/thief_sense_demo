@@ -14,6 +14,7 @@ mod despawn;
 mod dev_tools;
 mod fixed_timer;
 mod link_head;
+mod log_normal_timer;
 mod movement;
 mod screens;
 mod solid_color;
@@ -26,6 +27,7 @@ use bevy::{
     log::{LogPlugin, tracing_subscriber::field::MakeExt},
     prelude::*,
 };
+use bevy_bae::BaeSystems;
 use bevy_landmass::LandmassSystems;
 
 use crate::{
@@ -111,15 +113,18 @@ impl Plugin for AppPlugin {
             demo::plugin,
             #[cfg(feature = "dev")]
             dev_tools::plugin,
-            screens::plugin,
-            staggered_timer::plugin,
-            movement::plugin,
-            cpu_lighting::plugin,
-            solid_color::plugin,
-            collision_layer::plugin,
-            link_head::plugin,
-            despawn::plugin,
-            fixed_timer::plugin,
+            (
+                screens::plugin,
+                staggered_timer::plugin,
+                movement::plugin,
+                cpu_lighting::plugin,
+                solid_color::plugin,
+                collision_layer::plugin,
+                link_head::plugin,
+                despawn::plugin,
+                fixed_timer::plugin,
+                log_normal_timer::plugin,
+            ),
         ));
 
         app.configure_sets(
@@ -136,11 +141,17 @@ impl Plugin for AppPlugin {
         .configure_sets(
             FixedUpdate,
             (
-                GameFixedUpdateSystems::Ai.run_if(any_with_component::<Player>),
+                GameFixedUpdateSystems::AiSenses.run_if(any_with_component::<Player>),
+                GameFixedUpdateSystems::AiBehavior,
+                GameFixedUpdateSystems::PostAiBehavior,
                 GameFixedUpdateSystems::GarbageCollection,
                 GameFixedUpdateSystems::Despawn,
             )
                 .chain(),
+        )
+        .configure_sets(
+            FixedUpdate,
+            BaeSystems::ExecutePlan.in_set(GameFixedUpdateSystems::AiBehavior),
         )
         .configure_sets(Update, (GameUpdateSystems::Animation).chain());
 
@@ -159,7 +170,9 @@ enum GameUpdateSystems {
 
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
 enum GameFixedUpdateSystems {
-    Ai,
+    AiSenses,
+    AiBehavior,
+    PostAiBehavior,
     GarbageCollection,
     Despawn,
 }

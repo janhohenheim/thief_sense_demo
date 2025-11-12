@@ -10,6 +10,7 @@ use crate::{
 
 pub(crate) mod alertness;
 pub(crate) mod awareness;
+
 pub(crate) mod debug;
 pub(crate) mod hearing;
 pub(crate) mod sense;
@@ -24,7 +25,10 @@ pub(super) fn plugin(app: &mut App) {
         alertness::plugin,
         debug::plugin,
     ));
-    app.add_systems(FixedUpdate, update_ai.in_set(GameFixedUpdateSystems::Ai));
+    app.add_systems(
+        FixedUpdate,
+        update_ai.in_set(GameFixedUpdateSystems::AiSenses),
+    );
 }
 
 fn update_ai(world: &mut World, mut buff_local: Local<Option<Vec<Entity>>>) -> Result {
