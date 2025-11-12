@@ -1,4 +1,8 @@
 (criterion IsGuard (class == guard))
+(criterion IsLowestAlertness (alertness == lowest))
+(criterion IsLowAlertness (alertness == low))
+(criterion IsModerateAlertness (alertness == moderate))
+(criterion IsHighAlertness (alertness == high))
 (criterion ConceptPatrol (concept == patrol))
 (criterion ConceptUpToLowAlertness (concept == up_to_low))
 (criterion ConceptUpToModerateAlertness (concept == up_to_moderate))
@@ -7,7 +11,8 @@
 (criterion ConceptDownToLowAlertness (concept == down_to_low))
 (criterion ConceptDownToModerateAlertness (concept == down_to_moderate))
 
-(rule GuardPatrol (ConceptPatrol IsGuard) (GuardPatrolBarks))
+(rule GuardPatrolLowest (ConceptPatrol IsGuard IsLowestAlertness) (GuardPatrolLowestBarks))
+(rule GuardPatrolLow (ConceptPatrol IsGuard IsLowAlertness) (GuardPatrolLowBarks))
 (rule GuardUpToLow (ConceptUpToLowAlertness IsGuard) (GuardUpToLowAlertnessBarks))
 (rule GuardUpToModerate (ConceptUpToModerateAlertness IsGuard) (GuardUpToModerateAlertnessBarks))
 (rule GuardUpToHigh (ConceptUpToHighAlertness IsGuard) (GuardUpToHighAlertnessBarks))
@@ -16,10 +21,17 @@
 (rule GuardDownToModerate (ConceptDownToModerateAlertness IsGuard) (GuardDownToModerateAlertnessBarks))
 
 
-(response GuardPatrolBarks shuffle
-    (line "audio/barks/patrol/patrol-1.ogg" priority "0")
-    (line "audio/barks/patrol/patrol-2.ogg" priority "0")
-    (line "audio/barks/patrol/patrol-3.ogg" priority "0")
+(response GuardPatrolLowestBarks shuffle
+    (line "audio/barks/patrol/patrol_lowest-1.ogg" priority "0")
+    (line "audio/barks/patrol/patrol_lowest-2.ogg" priority "0")
+    (line "audio/barks/patrol/patrol_lowest-3.ogg" priority "0")
+    ()
+)
+
+(response GuardPatrolLowBarks shuffle
+    (line "audio/barks/patrol/patrol_low-1.ogg" priority "0")
+    (line "audio/barks/patrol/patrol_low-2.ogg" priority "0")
+    (line "audio/barks/patrol/patrol_low-3.ogg" priority "0")
     ()
 )
 
