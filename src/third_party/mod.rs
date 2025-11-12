@@ -8,6 +8,7 @@ mod rerecast;
 mod steam_audio;
 mod tnua;
 mod trenchbroom;
+mod trill;
 pub(crate) mod ui_anchor;
 
 pub(super) fn plugin(app: &mut App) {
@@ -21,5 +22,6 @@ pub(super) fn plugin(app: &mut App) {
         ui_anchor::plugin,
         steam_audio::plugin,
         bae::plugin,
+        trill::plugin,
     ));
 }

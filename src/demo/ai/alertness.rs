@@ -53,7 +53,6 @@ pub(crate) struct ChangeAlertness {
     pub(crate) npc: Entity,
     #[expect(dead_code)]
     pub(crate) object: Option<Entity>,
-    #[expect(dead_code)]
     pub(crate) previous_level: AwarenessLevel,
 }
 

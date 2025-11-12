@@ -14,6 +14,7 @@ mod despawn;
 mod dev_tools;
 mod fixed_timer;
 mod link_head;
+mod log_normal_timer;
 mod movement;
 mod screens;
 mod solid_color;
@@ -112,15 +113,18 @@ impl Plugin for AppPlugin {
             demo::plugin,
             #[cfg(feature = "dev")]
             dev_tools::plugin,
-            screens::plugin,
-            staggered_timer::plugin,
-            movement::plugin,
-            cpu_lighting::plugin,
-            solid_color::plugin,
-            collision_layer::plugin,
-            link_head::plugin,
-            despawn::plugin,
-            fixed_timer::plugin,
+            (
+                screens::plugin,
+                staggered_timer::plugin,
+                movement::plugin,
+                cpu_lighting::plugin,
+                solid_color::plugin,
+                collision_layer::plugin,
+                link_head::plugin,
+                despawn::plugin,
+                fixed_timer::plugin,
+                log_normal_timer::plugin,
+            ),
         ));
 
         app.configure_sets(
