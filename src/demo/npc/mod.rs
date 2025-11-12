@@ -5,6 +5,7 @@ use crate::{
     demo::{
         ai::{
             alertness::Alertness,
+            hearing::AiSourceBody,
             vision::{view_cone::debug::add_debug_view_cones, visibility::AiVisibility},
         },
         npc::animation::{NpcAnimationState, setup_npc_animations},
@@ -22,6 +23,8 @@ use bevy_landmass::prelude::*;
 use bevy_tnua::{TnuaAnimatingState, prelude::*};
 use bevy_tnua_avian3d::TnuaAvian3dSensorShape;
 use bevy_trenchbroom::prelude::*;
+mod barks;
+mod behavior;
 
 mod animation;
 mod audio;
@@ -30,7 +33,13 @@ pub(crate) mod movement;
 pub(super) fn plugin(app: &mut App) {
     app.load_asset::<Gltf>(NPC_GLTF);
     app.add_observer(spawn_npc);
-    app.add_plugins((movement::plugin, animation::plugin, audio::plugin));
+    app.add_plugins((
+        movement::plugin,
+        animation::plugin,
+        audio::plugin,
+        behavior::plugin,
+        barks::plugin,
+    ));
 }
 
 const NPC_GLTF: &str = "models/npc.glb";
@@ -70,6 +79,7 @@ fn spawn_npc(
             ),
             AiVisibility::default(),
             Alertness::default(),
+            AiSourceBody,
             Team::Bad(0),
         ))
         .with_children(|parent| {

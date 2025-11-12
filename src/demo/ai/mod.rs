@@ -10,7 +10,7 @@ use crate::{
 
 pub(crate) mod alertness;
 pub(crate) mod awareness;
-pub(crate) mod behavior;
+
 pub(crate) mod debug;
 pub(crate) mod hearing;
 pub(crate) mod sense;
@@ -24,7 +24,6 @@ pub(super) fn plugin(app: &mut App) {
         hearing::plugin,
         alertness::plugin,
         debug::plugin,
-        behavior::plugin,
     ));
     app.add_systems(
         FixedUpdate,
