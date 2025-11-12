@@ -102,13 +102,93 @@ fn punch_player(_: In<OperatorInput>) -> OperatorStatus {
     OperatorStatus::Success
 }
 
-fn chase_player(_: In<OperatorInput>) -> OperatorStatus {
-    info!("Chasing player");
+fn chase_player(
+    input: In<OperatorInput>,
+    npcs: Query<(&Alertness, &Agent)>,
+    mut agents: Query<&mut AgentTarget3d>,
+    awareness: AwarenessQuery,
+    mut timer: Local<Option<LogNormalTimer>>,
+    time: Res<Time>,
+    mut investigation_pos: Local<Option<Vec3>>,
+    archipelago: Single<&Archipelago3d>,
+) -> OperatorStatus {
+    let (alertness, agent) = npcs.get(input.entity).unwrap();
+    let last_object = alertness.last_awareness_object.unwrap();
+    let awareness = awareness.get(input.entity, last_object).unwrap();
+
+    let timer = timer.get_or_insert_with(|| LogNormalTimer::new(0.1, 0.1));
+    timer.tick(time.delta());
+
+    let pos = if timer.is_finished() {
+        timer.reset();
+        archipelago
+            .sample_point(
+                awareness.last_pos,
+                &PointSampleDistance3d::from_agent_radius(0.5),
+            )
+            .map(|p| p.point())
+    } else if investigation_pos.is_none() {
+        archipelago
+            .sample_point(
+                awareness.last_pos,
+                &PointSampleDistance3d::from_agent_radius(0.5),
+            )
+            .map(|p| p.point())
+    } else {
+        Ok(investigation_pos.unwrap())
+    };
+    let Ok(pos) = pos else {
+        return OperatorStatus::Failure;
+    };
+    investigation_pos.replace(pos);
+    let mut agent_target = agents.get_mut(agent.get()).unwrap();
+    *agent_target = AgentTarget::Point(pos);
+
     OperatorStatus::Success
 }
 
-fn search_player(_: In<OperatorInput>) -> OperatorStatus {
-    info!("Searching player");
+fn search_player(
+    input: In<OperatorInput>,
+    npcs: Query<(&Alertness, &Agent)>,
+    mut agents: Query<&mut AgentTarget3d>,
+    awareness: AwarenessQuery,
+    mut timer: Local<Option<LogNormalTimer>>,
+    time: Res<Time>,
+    mut investigation_pos: Local<Option<Vec3>>,
+    archipelago: Single<&Archipelago3d>,
+) -> OperatorStatus {
+    let (alertness, agent) = npcs.get(input.entity).unwrap();
+    let last_object = alertness.last_awareness_object.unwrap();
+    let awareness = awareness.get(input.entity, last_object).unwrap();
+
+    let timer = timer.get_or_insert_with(|| LogNormalTimer::new(0.5, 0.1));
+    timer.tick(time.delta());
+
+    let pos = if timer.is_finished() {
+        timer.reset();
+        archipelago
+            .sample_point(
+                awareness.last_pos,
+                &PointSampleDistance3d::from_agent_radius(1.0),
+            )
+            .map(|p| p.point())
+    } else if investigation_pos.is_none() {
+        archipelago
+            .sample_point(
+                awareness.last_pos,
+                &PointSampleDistance3d::from_agent_radius(1.0),
+            )
+            .map(|p| p.point())
+    } else {
+        Ok(investigation_pos.unwrap())
+    };
+    let Ok(pos) = pos else {
+        return OperatorStatus::Failure;
+    };
+    investigation_pos.replace(pos);
+    let mut agent_target = agents.get_mut(agent.get()).unwrap();
+    *agent_target = AgentTarget::Point(pos);
+
     OperatorStatus::Success
 }
 
@@ -154,7 +234,7 @@ fn investigate(
     let mut agent_target = agents.get_mut(agent.get()).unwrap();
     *agent_target = AgentTarget::Point(pos);
 
-    OperatorStatus::Ongoing
+    OperatorStatus::Success
 }
 
 fn patrol(
