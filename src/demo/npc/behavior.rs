@@ -3,12 +3,9 @@ use bevy_bae::prelude::*;
 use bevy_landmass::{
     AgentTarget, AgentTarget3d, Archipelago3d, FromAgentRadius, PointSampleDistance3d,
 };
-use bevy_seedling::sample::{AudioSample, SamplePlayer};
-use bevy_steam_audio::nodes::SteamAudioPool;
-use bevy_trill::{RequestResponse, Response};
+use bevy_trill::RequestResponse;
 
 use crate::{
-    asset_tracking::LoadResource,
     demo::{
         ai::{
             alertness::{Alertness, ChangeAlertness},
