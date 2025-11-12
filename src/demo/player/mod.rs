@@ -21,7 +21,7 @@ use crate::{
         team::Team,
     },
     link_head::link_head_bone,
-    movement::FloatHeight,
+    movement::{FloatHeight, SpeedSettings},
     third_party::landmass::AgentOf,
 };
 
@@ -68,6 +68,10 @@ fn spawn_player(
             AiVisibility::default(),
             LightTransform(Vec3::Y * -(PLAYER_HEIGHT / 2.0)),
             Team::Good,
+            SpeedSettings {
+                base: PLAYER_WALK_SPEED,
+                run: PLAYER_RUN_SPEED,
+            },
             AccumulateAudioInputs,
         ))
         .with_children(|parent| {
@@ -87,8 +91,8 @@ fn spawn_player(
             agent: default(),
             settings: AgentSettings {
                 radius: PLAYER_RADIUS,
-                desired_speed: PLAYER_WALK_SPEED,
-                max_speed: PLAYER_WALK_SPEED + 2.0,
+                desired_speed: 0.0,
+                max_speed: 0.0,
             },
             archipelago_ref: ArchipelagoRef3d::new(*archipelago),
         },

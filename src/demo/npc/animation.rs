@@ -11,7 +11,8 @@ use bevy_tnua::{TnuaAnimatingState, TnuaAnimatingStateDirective, prelude::*};
 use crate::{
     GameUpdateSystems,
     animation::{AnimationPlayers, find_bone_id, get_clip},
-    demo::npc::{NPC_GLTF, NPC_MAX_SPEED, NPC_WALK_SPEED},
+    demo::npc::NPC_GLTF,
+    movement::SpeedSettings,
     screens::Screen,
 };
 
@@ -114,11 +115,12 @@ fn play_animations(
         &mut TnuaAnimatingState<NpcAnimationState>,
         &TnuaController,
         &AnimationPlayers,
+        &SpeedSettings,
     )>,
     mut q_animation: Query<(&mut AnimationPlayer, &mut AnimationTransitions)>,
     animations: If<Res<NpcAnimations>>,
 ) {
-    for (mut animating_state, controller, anim_players) in &mut query {
+    for (mut animating_state, controller, anim_players, speed_settings) in &mut query {
         let mut iter = q_animation.iter_many_mut(anim_players.iter());
         while let Some((mut anim_player, mut transitions)) = iter.fetch_next() {
             match animating_state.update_by_discriminant({
@@ -126,7 +128,7 @@ fn play_animations(
                     continue;
                 };
                 let speed = basis_state.running_velocity.length();
-                if speed > NPC_WALK_SPEED + 0.1 {
+                if speed > speed_settings.base + 0.1 {
                     NpcAnimationState::Run(speed)
                 } else if speed > 0.01 {
                     NpcAnimationState::Walk(speed)
@@ -140,11 +142,11 @@ fn play_animations(
                     {
                         match state {
                             NpcAnimationState::Run(speed) => {
-                                let anim_speed = speed / NPC_MAX_SPEED;
+                                let anim_speed = speed / speed_settings.run;
                                 playing_animation.set_speed(anim_speed);
                             }
                             NpcAnimationState::Walk(speed) => {
-                                let anim_speed = speed / NPC_WALK_SPEED;
+                                let anim_speed = speed / speed_settings.base;
                                 playing_animation.set_speed(anim_speed);
                             }
                             NpcAnimationState::Idle => {}

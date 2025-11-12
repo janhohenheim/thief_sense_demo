@@ -14,11 +14,13 @@ use crate::{
         npc::{Npc, movement::TargetEnabled},
     },
     log_normal_timer::LogNormalTimer,
+    movement::IsRunning,
     third_party::landmass::Agent,
 };
 use bevy_bae::bevy_mod_props::Class;
 
 pub(super) fn plugin(app: &mut App) {
+    app.add_systems(FixedPreUpdate, reset_components);
     app.add_observer(insert_npc_behavior)
         .add_observer(sync_alertness);
 }
@@ -89,7 +91,7 @@ fn punch_player(_: In<OperatorInput>) -> OperatorStatus {
 
 fn chase_player(
     input: In<OperatorInput>,
-    npcs: Query<(&Alertness, &Agent)>,
+    mut npcs: Query<(&Alertness, &Agent, &mut IsRunning)>,
     mut agents: Query<&mut AgentTarget3d>,
     awareness: AwarenessQuery,
     mut timer: Local<Option<LogNormalTimer>>,
@@ -97,22 +99,15 @@ fn chase_player(
     mut investigation_pos: Local<Option<Vec3>>,
     archipelago: Single<&Archipelago3d>,
 ) -> OperatorStatus {
-    let (alertness, agent) = npcs.get(input.entity).unwrap();
+    let (alertness, agent, mut is_running) = npcs.get_mut(input.entity).unwrap();
     let last_object = alertness.last_awareness_object.unwrap();
     let awareness = awareness.get(input.entity, last_object).unwrap();
 
     let timer = timer.get_or_insert_with(|| LogNormalTimer::new(0.1, 0.1));
     timer.tick(time.delta());
 
-    let pos = if timer.is_finished() {
+    let pos = if timer.is_finished() || investigation_pos.is_none() {
         timer.reset();
-        archipelago
-            .sample_point(
-                awareness.last_pos,
-                &PointSampleDistance3d::from_agent_radius(0.5),
-            )
-            .map(|p| p.point())
-    } else if investigation_pos.is_none() {
         archipelago
             .sample_point(
                 awareness.last_pos,
@@ -128,13 +123,14 @@ fn chase_player(
     investigation_pos.replace(pos);
     let mut agent_target = agents.get_mut(agent.get()).unwrap();
     *agent_target = AgentTarget::Point(pos);
+    **is_running = true;
 
     OperatorStatus::Success
 }
 
 fn search_player(
     input: In<OperatorInput>,
-    npcs: Query<(&Alertness, &Agent)>,
+    mut npcs: Query<(&Alertness, &Agent, &mut IsRunning)>,
     mut agents: Query<&mut AgentTarget3d>,
     awareness: AwarenessQuery,
     mut timer: Local<Option<LogNormalTimer>>,
@@ -142,22 +138,15 @@ fn search_player(
     mut investigation_pos: Local<Option<Vec3>>,
     archipelago: Single<&Archipelago3d>,
 ) -> OperatorStatus {
-    let (alertness, agent) = npcs.get(input.entity).unwrap();
+    let (alertness, agent, mut is_running) = npcs.get_mut(input.entity).unwrap();
     let last_object = alertness.last_awareness_object.unwrap();
     let awareness = awareness.get(input.entity, last_object).unwrap();
 
     let timer = timer.get_or_insert_with(|| LogNormalTimer::new(0.5, 0.1));
     timer.tick(time.delta());
 
-    let pos = if timer.is_finished() {
+    let pos = if timer.is_finished() || investigation_pos.is_none() {
         timer.reset();
-        archipelago
-            .sample_point(
-                awareness.last_pos,
-                &PointSampleDistance3d::from_agent_radius(1.0),
-            )
-            .map(|p| p.point())
-    } else if investigation_pos.is_none() {
         archipelago
             .sample_point(
                 awareness.last_pos,
@@ -173,6 +162,7 @@ fn search_player(
     investigation_pos.replace(pos);
     let mut agent_target = agents.get_mut(agent.get()).unwrap();
     *agent_target = AgentTarget::Point(pos);
+    **is_running = true;
 
     OperatorStatus::Success
 }
@@ -194,15 +184,8 @@ fn investigate(
     let timer = timer.get_or_insert_with(|| LogNormalTimer::new(4.0, 0.2));
     timer.tick(time.delta());
 
-    let pos = if timer.is_finished() {
+    let pos = if timer.is_finished() || investigation_pos.is_none() {
         timer.reset();
-        archipelago
-            .sample_point(
-                awareness.last_pos,
-                &PointSampleDistance3d::from_agent_radius(3.0),
-            )
-            .map(|p| p.point())
-    } else if investigation_pos.is_none() {
         archipelago
             .sample_point(
                 awareness.last_pos,
@@ -287,4 +270,12 @@ fn sync_alertness(
     }
 
     Ok(())
+}
+
+/// Reset some things each frame so that the behavior can set them explicitly
+fn reset_components(mut npcs: Query<(&mut TargetEnabled, &mut IsRunning), With<Npc>>) {
+    for (mut enabled, mut is_running) in npcs.iter_mut() {
+        **enabled = false;
+        **is_running = false;
+    }
 }
