@@ -731,7 +731,8 @@ dependencies = [
 
 [[package]]
 name = "bevy_bae"
-version = "0.0.1"
+version = "0.0.2"
+source = "git+https://github.com/janhohenheim/bevy_bae#c6229955138f7c487135fadae18290cf5d68bc13"
 dependencies = [
  "bevy_app",
  "bevy_derive",
